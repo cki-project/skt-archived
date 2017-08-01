@@ -28,10 +28,12 @@ class beakerrunner(runner):
 
         return xml
 
-    def run(self, release, url):
+    def run(self, release, url, uid):
         bkr = subprocess.Popen(["bkr", "job-submit", "-"],
                 stdin=subprocess.PIPE)
-        bkr.communicate(self.getxml({'KVER' : release, 'KPKG_URL' : url}))
+        bkr.communicate(self.getxml({'KVER' : release,
+                                     'KPKG_URL' : url,
+                                     'UID': uid}))
 
 def getrunner(rtype, rarg):
     for cls in runner.__subclasses__():

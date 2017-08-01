@@ -100,7 +100,7 @@ if __name__ == '__main__':
     publisher.publish(tinfopath)
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    runner.run(builder.getrelease(), url)
+    runner.run(builder.getrelease(), url, str(tstamp))
 
     if cfg.get('wipe'):
         builder.cleanup()
