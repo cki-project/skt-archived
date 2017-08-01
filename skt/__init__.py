@@ -11,6 +11,7 @@ class ktree(object):
         self.wdir = os.path.expanduser(wdir) if wdir != None else tempfile.mkdtemp()
         self.uri = uri
         self.branch = branch if branch != None else "master"
+        self.info = []
 
         try:
             self.repo = git.Repo(self.wdir)
@@ -32,6 +33,13 @@ class ktree(object):
     def getpath(self):
         return self.wdir
 
+    def dumpinfo(self, fname='buildinfo.csv'):
+        fpath = '/'.join([self.wdir, fname])
+        with open(fpath, 'w') as f:
+            for iitem in self.info:
+                f.write(','.join(iitem) + "\n")
+        return fpath
+
     def checkout(self):
         logging.info("fetching base repo")
         self.repo.remote().fetch()
@@ -45,6 +53,9 @@ class ktree(object):
         self.repo.head.reset("origin/%s" % self.branch,
                              index = True,
                              working_tree = True)
+
+        self.info.append(("git", self.uri, str(self.repo.head.commit)))
+        logging.info("baserepo %s: %s", self.branch, self.repo.head.commit)
 
     def cleanup(self):
         logging.info("cleaning up %s", self.wdir)
@@ -70,8 +81,12 @@ class ktree(object):
         logging.info("merging %s: %s", rname, branch)
         try:
             remote.pull(branch)
+            self.info.append(("git", uri, str(remote.refs[branch].commit)))
+            logging.info("%s %s: %s", rname, branch,
+                         remote.refs[branch].commit)
         except git.exc.GitCommandError:
-            logging.warning("failed to merge '%s' from %s, skipping", branch, rname)
+            logging.warning("failed to merge '%s' from %s, skipping", branch,
+                            rname)
             self.repo.head.reset(index = True, working_tree = True)
 
     def merge_patchwork_patch(self, uri):
