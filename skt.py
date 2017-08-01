@@ -3,9 +3,9 @@
 import ConfigParser
 import argparse
 import ast
+import datetime
 import logging
 import os
-import time
 import skt, skt.runner, skt.publisher
 
 def addtstamp(path, tstamp):
@@ -13,7 +13,7 @@ def addtstamp(path, tstamp):
                         "%s-%s" % (tstamp, os.path.basename(path)))
 
 if __name__ == '__main__':
-    tstamp = int(round(time.time() * 1000))
+    tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-b", "--baserepo", type=str, help="Base repo URL")
