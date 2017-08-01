@@ -5,9 +5,15 @@ import argparse
 import ast
 import logging
 import os
+import time
 import skt, skt.runner, skt.publisher
 
+def addtstamp(path, tstamp):
+    return os.path.join(os.path.dirname(path),
+                        "%s-%s" % (tstamp, os.path.basename(path)))
+
 if __name__ == '__main__':
+    tstamp = int(round(time.time() * 1000))
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-b", "--baserepo", type=str, help="Base repo URL")
@@ -77,12 +83,21 @@ if __name__ == '__main__':
                                       cfg.get('cfgtype'))
 
     tgz = builder.mktgz(cfg.get('wipe'))
-    logging.info("tarball path: %s", tgz)
+    ttgz = addtstamp(tgz, tstamp)
+    os.rename(tgz, ttgz)
+
+    logging.info("tarball path: %s", ttgz)
+
+    infopath = ktree.dumpinfo()
+    tinfopath = addtstamp(infopath, tstamp)
+    os.rename(infopath, tinfopath)
 
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
-    url = publisher.publish(tgz)
+    url = publisher.publish(ttgz)
     logging.info("published url: %s", url)
+
+    publisher.publish(tinfopath)
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
     runner.run(builder.getrelease(), url)
