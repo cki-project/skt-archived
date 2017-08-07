@@ -1,6 +1,7 @@
 import git
 import logging
 import multiprocessing
+import re
 import shutil
 import subprocess
 import tempfile
@@ -112,6 +113,7 @@ class kbuilder(object):
         self._ready = 1
 
     def getrelease(self):
+        krelease = None
         if not self._ready:
             self.prepare(False)
 
@@ -121,10 +123,20 @@ class kbuilder(object):
                                "kernelrelease"],
                               stdout = subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
-        return stdout.split("\n")[-3]
+        for line in stdout.split("\n"):
+            m = re.match('^\d+\.\d+\.\d+.*$', line)
+            if m:
+                krelease = m.group()
+                break
+
+        if krelease == None:
+            raise Exception("Failed to find kernel release in stdout")
+
+        return krelease
 
 
     def mktgz(self, clean=True):
+        tgzpath = None
         self.prepare(clean)
         logging.info("building kernel")
         mk = subprocess.Popen(["make",
@@ -134,5 +146,13 @@ class kbuilder(object):
                                "targz-pkg"],
                               stdout = subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
-        # FIXME: not especially robust
-        return "/".join([self.path, stdout.split("\n")[-3].split(" ")[-1]])
+        for line in stdout.split("\n"):
+            m = re.match("^Tarball successfully created in (.*)$", line)
+            if m:
+                tgzpath = m.group(1)
+                break
+
+        if tgzpath == None:
+            raise Exception("Failed to find tgz path in stdout")
+
+        return "/".join([self.path, tgzpath])
