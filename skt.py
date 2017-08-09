@@ -10,10 +10,17 @@ import sys
 import skt, skt.runner, skt.publisher
 
 DEFAULTRC = "~/.sktrc"
+logger = logging.getLogger()
 
 def addtstamp(path, tstamp):
     return os.path.join(os.path.dirname(path),
                         "%s-%s" % (tstamp, os.path.basename(path)))
+
+def setup_logging(verbose):
+    logging.basicConfig(format="%(asctime)s %(levelname)8s   %(message)s")
+    logger.setLevel(logging.WARNING - (verbose * 10))
+
+
 def setup_parser():
     parser = argparse.ArgumentParser()
 
@@ -78,11 +85,8 @@ def main():
     parser = setup_parser()
     args = parser.parse_args()
 
+    setup_logging(args.verbose)
     cfg = load_config(args)
-
-    logging.basicConfig(format="%(asctime)s %(levelname)8s   %(message)s")
-    logger = logging.getLogger()
-    logger.setLevel(logging.WARNING - (args.verbose * 10))
 
     ktree = skt.ktree(cfg.get('baserepo'), branch=cfg.get('branch'),
                               wdir=cfg.get('workdir'))
