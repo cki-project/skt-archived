@@ -9,12 +9,12 @@ import os
 import sys
 import skt, skt.runner, skt.publisher
 
+DEFAULTRC = "~/.sktrc"
+
 def addtstamp(path, tstamp):
     return os.path.join(os.path.dirname(path),
                         "%s-%s" % (tstamp, os.path.basename(path)))
-
-def main():
-    tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
+def setup_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-b", "--baserepo", type=str, help="Base repo URL")
@@ -27,8 +27,14 @@ def main():
     parser.add_argument("-w", "--wipe", help="Clean build (make mrproper before building), remove workdir when finished", action="store_true", default=False)
     parser.add_argument("-m", "--merge-branch", nargs="+", help="Merge branch format: 'url [branch]'", action="append")
     parser.add_argument("-v", "--verbose", help="Increase verbosity level", action="count", default=0)
-    parser.add_argument("--rc", help="Path to rc file", default="~/.sktrc")
+    parser.add_argument("--rc", help="Path to rc file", default=DEFAULTRC)
 
+    return parser
+
+def main():
+    tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
+
+    parser = setup_parser()
     args = parser.parse_args()
 
     config = ConfigParser.ConfigParser()
