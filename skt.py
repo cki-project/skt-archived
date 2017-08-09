@@ -6,13 +6,14 @@ import ast
 import datetime
 import logging
 import os
+import sys
 import skt, skt.runner, skt.publisher
 
 def addtstamp(path, tstamp):
     return os.path.join(os.path.dirname(path),
                         "%s-%s" % (tstamp, os.path.basename(path)))
 
-if __name__ == '__main__':
+def main():
     tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
     parser = argparse.ArgumentParser()
 
@@ -104,3 +105,12 @@ if __name__ == '__main__':
 
     if cfg.get('wipe'):
         builder.cleanup()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        #cleanup??
+        print("\nExited at user request.")
+        sys.exit(1)
