@@ -31,19 +31,10 @@ def setup_parser():
 
     return parser
 
-def main():
-    tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
-
-    parser = setup_parser()
-    args = parser.parse_args()
-
+def load_config(args):
     config = ConfigParser.ConfigParser()
     config.read(os.path.expanduser(args.rc))
     cfg = vars(args)
-
-    logging.basicConfig(format="%(asctime)s %(levelname)8s   %(message)s")
-    logger = logging.getLogger()
-    logger.setLevel(logging.WARNING - (args.verbose * 10))
 
     if config.has_section('config'):
         for (name, value) in config.items('config'):
@@ -77,6 +68,21 @@ def main():
             if config.has_option(section, 'branch'):
                 mdesc.append(config.get(section, 'branch'))
             cfg['merge_branch'].append(mdesc)
+
+    return cfg
+
+
+def main():
+    tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
+
+    parser = setup_parser()
+    args = parser.parse_args()
+
+    cfg = load_config(args)
+
+    logging.basicConfig(format="%(asctime)s %(levelname)8s   %(message)s")
+    logger = logging.getLogger()
+    logger.setLevel(logging.WARNING - (args.verbose * 10))
 
     ktree = skt.ktree(cfg.get('baserepo'), branch=cfg.get('branch'),
                               wdir=cfg.get('workdir'))
