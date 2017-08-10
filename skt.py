@@ -55,7 +55,7 @@ def cmd_publish(cfg):
 def cmd_run(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    runner.run(cfg.get('buildurl'), cfg.get('krelease'), tstamp)
+    runner.run(cfg.get('buildurl'), cfg.get('krelease'), tstamp, cfg['wait'])
 
 def cmd_cleanup(cfg):
     shutil.rmtree(cfg.get('workdir'))
@@ -81,8 +81,10 @@ def setup_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
-    parser.add_argument("-w", "--wipe", help="Clean build (make mrproper before building), remove workdir when finished", action="store_true", default=False)
-    parser.add_argument("-v", "--verbose", help="Increase verbosity level", action="count", default=0)
+    parser.add_argument("-w", "--wipe", help="Clean build (make mrproper before building), remove workdir when finished",
+                        action="store_true", default=False)
+    parser.add_argument("-v", "--verbose", help="Increase verbosity level",
+                        action="count", default=0)
     parser.add_argument("--rc", help="Path to rc file", default=DEFAULTRC)
 
     subparsers = parser.add_subparsers()
@@ -90,7 +92,8 @@ def setup_parser():
     parser_merge = subparsers.add_parser("merge", add_help=False)
     parser_merge.add_argument("-b", "--baserepo", type=str, help="Base repo URL")
     parser_merge.add_argument("--branch", type=str, help="Base repo branch (default: master")
-    parser_merge.add_argument("-m", "--merge-branch", nargs="+", help="Merge branch format: 'url [branch]'", action="append")
+    parser_merge.add_argument("-m", "--merge-branch", nargs="+", help="Merge branch format: 'url [branch]'",
+                              action="append")
 
     parser_build = subparsers.add_parser("build", add_help=False)
     parser_build.add_argument("-c", "--baseconfig", type=str, help="Path to kernel config to use")
@@ -105,6 +108,8 @@ def setup_parser():
     parser_run.add_argument("-r", "--runner", nargs=2, type=str, help="Runner config in 'type \"{'key' : 'val', ...}\"' format")
     parser_run.add_argument("--buildurl", type=str, help="Build tarpkg url")
     parser_run.add_argument("--krelease", type=str, help="Kernel release version of the build")
+    parser_run.add_argument("--wait", help="Do not exit until tests are finished",
+                            action="store_true", default=False)
 
     parser_cleanup = subparsers.add_parser("cleanup", add_help=False)
 
