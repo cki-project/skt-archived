@@ -28,11 +28,14 @@ class beakerrunner(runner):
 
         return xml
 
-    def run(self, url, release, uid=None, wait=False):
+    def run(self, url, release, wait=False):
         args = ["bkr", "job-submit"]
         if wait == True:
             args += ["--wait"]
         args += ["-"]
+
+        uid = url.split('/')[-1]
+
         bkr = subprocess.Popen(args, stdin=subprocess.PIPE)
         bkr.communicate(self.getxml({'KVER' : release,
                                      'KPKG_URL' : url,

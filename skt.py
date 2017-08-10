@@ -53,9 +53,8 @@ def cmd_publish(cfg):
     return url
 
 def cmd_run(cfg):
-    tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    runner.run(cfg.get('buildurl'), cfg.get('krelease'), tstamp, cfg['wait'])
+    runner.run(cfg.get('buildurl'), cfg.get('krelease'), cfg['wait'])
 
 def cmd_cleanup(cfg):
     shutil.rmtree(cfg.get('workdir'))
