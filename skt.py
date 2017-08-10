@@ -6,14 +6,22 @@ import ast
 import datetime
 import logging
 import os
+import sys
 import skt, skt.runner, skt.publisher
+
+DEFAULTRC = "~/.sktrc"
+logger = logging.getLogger()
 
 def addtstamp(path, tstamp):
     return os.path.join(os.path.dirname(path),
                         "%s-%s" % (tstamp, os.path.basename(path)))
 
-if __name__ == '__main__':
-    tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
+def setup_logging(verbose):
+    logging.basicConfig(format="%(asctime)s %(levelname)8s   %(message)s")
+    logger.setLevel(logging.WARNING - (verbose * 10))
+
+
+def setup_parser():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-b", "--baserepo", type=str, help="Base repo URL")
@@ -26,17 +34,14 @@ if __name__ == '__main__':
     parser.add_argument("-w", "--wipe", help="Clean build (make mrproper before building), remove workdir when finished", action="store_true", default=False)
     parser.add_argument("-m", "--merge-branch", nargs="+", help="Merge branch format: 'url [branch]'", action="append")
     parser.add_argument("-v", "--verbose", help="Increase verbosity level", action="count", default=0)
-    parser.add_argument("--rc", help="Path to rc file", default="~/.sktrc")
+    parser.add_argument("--rc", help="Path to rc file", default=DEFAULTRC)
 
-    args = parser.parse_args()
+    return parser
 
+def load_config(args):
     config = ConfigParser.ConfigParser()
     config.read(os.path.expanduser(args.rc))
     cfg = vars(args)
-
-    logging.basicConfig(format="%(asctime)s %(levelname)8s   %(message)s")
-    logger = logging.getLogger()
-    logger.setLevel(logging.WARNING - (args.verbose * 10))
 
     if config.has_section('config'):
         for (name, value) in config.items('config'):
@@ -71,6 +76,18 @@ if __name__ == '__main__':
                 mdesc.append(config.get(section, 'branch'))
             cfg['merge_branch'].append(mdesc)
 
+    return cfg
+
+
+def main():
+    tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
+
+    parser = setup_parser()
+    args = parser.parse_args()
+
+    setup_logging(args.verbose)
+    cfg = load_config(args)
+
     ktree = skt.ktree(cfg.get('baserepo'), branch=cfg.get('branch'),
                               wdir=cfg.get('workdir'))
 
@@ -104,3 +121,12 @@ if __name__ == '__main__':
 
     if cfg.get('wipe'):
         builder.cleanup()
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        #cleanup??
+        print("\nExited at user request.")
+        sys.exit(1)
