@@ -28,7 +28,7 @@ class beakerrunner(runner):
 
         return xml
 
-    def run(self, release, url, uid):
+    def run(self, url, release, uid=None):
         bkr = subprocess.Popen(["bkr", "job-submit", "-"],
                 stdin=subprocess.PIPE)
         bkr.communicate(self.getxml({'KVER' : release,
