@@ -178,9 +178,9 @@ class kbuilder(object):
         self.prepare(clean)
         logging.info("building kernel")
         mk = subprocess.Popen(["make",
+                               "INSTALL_MOD_STRIP=1",
                                "-j%d" % multiprocessing.cpu_count(),
-                               "-C",
-                               self.path,
+                               "-C", self.path,
                                "targz-pkg"],
                               stdout = subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
