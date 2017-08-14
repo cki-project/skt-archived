@@ -54,7 +54,7 @@ class ktree(object):
         return head
 
     def checkout(self):
-        dstref = "refs/remotes/origin/%s" % (self.ref)
+        dstref = "refs/remotes/origin/master"
         logging.info("fetching base repo")
         self.git_cmd("fetch", "-n", "origin",
                      "+%s:%s" %
@@ -108,7 +108,7 @@ class ktree(object):
         except subprocess.CalledProcessError:
             pass
 
-        dstref = "refs/remotes/%s/%s" % (rname, ref)
+        dstref = "refs/remotes/%s/merge" % (rname)
         logging.info("fetching %s", dstref)
         self.git_cmd("fetch", "-n", rname,
                      "+%s:%s" %
