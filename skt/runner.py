@@ -9,8 +9,9 @@ class runner(object):
 class beakerrunner(runner):
     TYPE = 'beaker'
 
-    def __init__(self, jobtemplate):
+    def __init__(self, jobtemplate, jobowner = None):
         self.template = os.path.expanduser(jobtemplate)
+        self.jobowner = jobowner
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -32,6 +33,10 @@ class beakerrunner(runner):
         args = ["bkr", "job-submit"]
         if wait == True:
             args += ["--wait"]
+
+        if self.jobowner != None:
+            args += ["--job-owner=%s" % self.jobowner]
+
         args += ["-"]
 
         uid = url.split('/')[-1]
