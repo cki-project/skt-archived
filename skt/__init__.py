@@ -7,11 +7,11 @@ import tempfile
 import os
 
 class ktree(object):
-    def __init__(self, uri, branch=None, wdir=None):
+    def __init__(self, uri, ref=None, wdir=None):
         self.wdir = os.path.expanduser(wdir) if wdir != None else tempfile.mkdtemp()
         self.gdir = "%s/.git" % self.wdir
         self.uri = uri
-        self.branch = branch if branch != None else "master"
+        self.ref = ref if ref != None else "master"
         self.info = []
 
         try:
@@ -27,7 +27,7 @@ class ktree(object):
             self.git_cmd("remote", "add", "origin", self.uri)
 
         logging.info("base repo url: %s", self.uri)
-        logging.info("base branch: %s", self.branch)
+        logging.info("base ref: %s", self.ref)
         logging.info("work dir: %s", self.wdir)
 
     def git_cmd(self, *args, **kwargs):
@@ -54,18 +54,18 @@ class ktree(object):
         return head
 
     def checkout(self):
-        dstref = "refs/remotes/origin/%s" % (self.branch)
+        dstref = "refs/remotes/origin/%s" % (self.ref)
         logging.info("fetching base repo")
         self.git_cmd("fetch", "-n", "origin",
-                     "+refs/heads/%s:%s" %
-                      (self.branch, dstref))
+                     "+%s:%s" %
+                      (self.ref, dstref))
 
-        logging.info("checking out %s branch", self.branch)
+        logging.info("checking out %s", self.ref)
         self.git_cmd("reset", "--hard", dstref)
 
         head = self.get_head(dstref)
         self.info.append(("git", self.uri, head))
-        logging.info("baserepo %s: %s", self.branch, head)
+        logging.info("baserepo %s: %s", self.ref, head)
 
     def cleanup(self):
         logging.info("cleaning up %s", self.wdir)
@@ -100,7 +100,7 @@ class ktree(object):
 
         return rname
 
-    def merge_git_branch(self, uri, branch="master"):
+    def merge_git_ref(self, uri, ref="master"):
         rname = self.getrname(uri)
 
         try:
@@ -108,13 +108,13 @@ class ktree(object):
         except subprocess.CalledProcessError:
             pass
 
-        dstref = "refs/remotes/%s/%s" % (rname, branch)
+        dstref = "refs/remotes/%s/%s" % (rname, ref)
         logging.info("fetching %s", dstref)
         self.git_cmd("fetch", "-n", rname,
-                     "+refs/heads/%s:%s" %
-                      (branch, dstref))
+                     "+%s:%s" %
+                      (ref, dstref))
 
-        logging.info("merging %s: %s", rname, branch)
+        logging.info("merging %s: %s", rname, ref)
         try:
             grargs = { 'stdout' : subprocess.PIPE } if \
                 logging.getLogger().level > logging.DEBUG else {}
@@ -122,9 +122,9 @@ class ktree(object):
             self.git_cmd("merge", "--no-edit", dstref, **grargs)
             head = self.get_head(dstref)
             self.info.append(("git", uri, head))
-            logging.info("%s %s: %s", rname, branch, head)
+            logging.info("%s %s: %s", rname, ref, head)
         except subprocess.CalledProcessError:
-            logging.warning("failed to merge '%s' from %s, skipping", branch,
+            logging.warning("failed to merge '%s' from %s, skipping", ref,
                             rname)
             self.git_cmd("reset", "--hard")
 

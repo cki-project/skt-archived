@@ -30,11 +30,11 @@ def save_state(cfg, state):
 
 
 def cmd_merge(cfg):
-    ktree = skt.ktree(cfg.get('baserepo'), branch=cfg.get('branch'),
+    ktree = skt.ktree(cfg.get('baserepo'), ref=cfg.get('ref'),
                               wdir=cfg.get('workdir'))
     ktree.checkout()
-    for mb in cfg.get('merge_branch'):
-        ktree.merge_git_branch(*mb)
+    for mb in cfg.get('merge_ref'):
+        ktree.merge_git_ref(*mb)
 
     kpath = ktree.getpath()
     buildinfo = ktree.dumpinfo()
@@ -128,8 +128,8 @@ def setup_parser():
 
     parser_merge = subparsers.add_parser("merge", add_help=False)
     parser_merge.add_argument("-b", "--baserepo", type=str, help="Base repo URL")
-    parser_merge.add_argument("--branch", type=str, help="Base repo branch (default: master")
-    parser_merge.add_argument("-m", "--merge-branch", nargs="+", help="Merge branch format: 'url [branch]'",
+    parser_merge.add_argument("--ref", type=str, help="Base repo ref (default: master")
+    parser_merge.add_argument("-m", "--merge-ref", nargs="+", help="Merge ref format: 'url [ref]'",
                               action="append")
 
     parser_build = subparsers.add_parser("build", add_help=False)
@@ -207,15 +207,15 @@ def load_config(args):
         cfg['runner'] = [cfg['runner'][0],
                          ast.literal_eval(cfg['runner'][1])]
 
-    if 'merge_branch' not in cfg or cfg['merge_branch'] == None:
-        cfg['merge_branch'] = []
+    if 'merge_ref' not in cfg or cfg['merge_ref'] == None:
+        cfg['merge_ref'] = []
 
     for section in config.sections():
         if section.startswith("merge-"):
             mdesc = [config.get(section, 'url')]
-            if config.has_option(section, 'branch'):
-                mdesc.append(config.get(section, 'branch'))
-            cfg['merge_branch'].append(mdesc)
+            if config.has_option(section, 'ref'):
+                mdesc.append(config.get(section, 'ref'))
+            cfg['merge_ref'].append(mdesc)
 
     return cfg
 
