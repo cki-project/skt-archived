@@ -6,6 +6,7 @@ import ast
 import datetime
 import logging
 import os
+import shutil
 import sys
 import skt, skt.runner, skt.publisher
 
