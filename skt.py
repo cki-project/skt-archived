@@ -95,7 +95,7 @@ def cmd_cleanup(cfg):
             config.write(fp)
 
     if cfg.get('wipe'):
-        shutil.rmtree(cfg.get('workdir'))
+        shutil.rmtree(os.path.expanduser(cfg.get('workdir')))
 
 def cmd_all(cfg):
     (cfg['workdir'], cfg['buildinfo']) = cmd_merge(cfg)
