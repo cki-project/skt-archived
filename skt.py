@@ -12,6 +12,23 @@ import skt, skt.runner, skt.publisher
 DEFAULTRC = "~/.sktrc"
 logger = logging.getLogger()
 
+def save_state(cfg, state):
+    if 'state' not in cfg:
+        return
+
+    config = cfg.get('_parser')
+    if not config.has_section("state"):
+        config.add_section("state")
+
+    for (key, val) in state.iteritems():
+        if val != None:
+            logging.debug("state: %s -> %s", key, val)
+            config.set('state', key, val)
+
+    with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
+        config.write(fp)
+
+
 def cmd_merge(cfg):
     ktree = skt.ktree(cfg.get('baserepo'), branch=cfg.get('branch'),
                               wdir=cfg.get('workdir'))
@@ -19,8 +36,13 @@ def cmd_merge(cfg):
     for mb in cfg.get('merge_branch'):
         ktree.merge_git_branch(*mb)
 
+    kpath = ktree.getpath()
     buildinfo = ktree.dumpinfo()
-    return (ktree.getpath(), buildinfo)
+
+    save_state(cfg, {'workdir'   : kpath,
+                     'buildinfo' : buildinfo})
+
+    return (kpath, buildinfo)
 
 def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
@@ -38,7 +60,13 @@ def cmd_build(cfg):
         tbuildinfo = addtstamp(cfg['buildinfo'], tstamp)
         os.rename(cfg['buildinfo'], tbuildinfo)
 
-    return (ttgz, tbuildinfo, builder.getrelease())
+    krelease = builder.getrelease()
+
+    save_state(cfg, {'tarpkg'    : ttgz,
+                     'buildinfo' : tbuildinfo,
+                     'krelease'  : krelease})
+
+    return (ttgz, tbuildinfo, krelease)
 
 
 def cmd_publish(cfg):
@@ -50,6 +78,8 @@ def cmd_publish(cfg):
     if cfg.get('buildinfo') != None:
         publisher.publish(cfg['buildinfo'])
 
+    save_state(cfg, {'buildurl' : url})
+
     return url
 
 def cmd_run(cfg):
@@ -57,15 +87,21 @@ def cmd_run(cfg):
     runner.run(cfg.get('buildurl'), cfg.get('krelease'), cfg['wait'])
 
 def cmd_cleanup(cfg):
-    shutil.rmtree(cfg.get('workdir'))
+    config = cfg.get('_parser')
+    if config.has_section('state'):
+        config.remove_section('state')
+        with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
+            config.write(fp)
+
+    if cfg.get('wipe'):
+        shutil.rmtree(cfg.get('workdir'))
 
 def cmd_all(cfg):
     (cfg['workdir'], cfg['buildinfo']) = cmd_merge(cfg)
     (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
     cfg['buildurl'] = cmd_publish(cfg)
     cmd_run(cfg)
-    if cfg.get('wipe'):
-        cmd_cleanup(cfg)
+    cmd_cleanup(cfg)
 
 def addtstamp(path, tstamp):
     return os.path.join(os.path.dirname(path),
@@ -85,6 +121,8 @@ def setup_parser():
     parser.add_argument("-v", "--verbose", help="Increase verbosity level",
                         action="count", default=0)
     parser.add_argument("--rc", help="Path to rc file", default=DEFAULTRC)
+    parser.add_argument("--state", help="Save/read state from 'state' section of rc file",
+                        action="store_true", default=False)
 
     subparsers = parser.add_subparsers()
 
@@ -137,6 +175,14 @@ def load_config(args):
     config = ConfigParser.ConfigParser()
     config.read(os.path.expanduser(args.rc))
     cfg = vars(args)
+    cfg['_parser'] = config
+
+    # Read 'state' section first so that it is not overwritten by 'config'
+    # section values.
+    if cfg.get('state') and config.has_section('state'):
+        for (name, value) in config.items('state'):
+            if name not in cfg or cfg[name] == None:
+                cfg[name] = value
 
     if config.has_section('config'):
         for (name, value) in config.items('config'):
