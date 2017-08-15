@@ -94,6 +94,12 @@ def cmd_cleanup(cfg):
         with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
             config.write(fp)
 
+    if cfg.get('buildinfo') != None:
+        os.unlink(cfg['buildinfo'])
+
+    if cfg.get('tarpkg') != None:
+        os.unlink(cfg['tarpkg'])
+
     if cfg.get('wipe'):
         shutil.rmtree(os.path.expanduser(cfg.get('workdir')))
 
