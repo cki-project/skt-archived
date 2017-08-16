@@ -14,7 +14,7 @@ DEFAULTRC = "~/.sktrc"
 logger = logging.getLogger()
 
 def save_state(cfg, state):
-    if 'state' not in cfg:
+    if not cfg.get('state'):
         return
 
     config = cfg.get('_parser')
