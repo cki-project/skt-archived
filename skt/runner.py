@@ -43,6 +43,7 @@ class beakerrunner(runner):
                     result = m.group(1)
                     if result != "Pass":
                         ret = 1
+                    logging.info("result: %s [%d]", result, ret)
                     break
 
         return ret
