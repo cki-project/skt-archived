@@ -29,7 +29,27 @@ class beakerrunner(runner):
 
         return xml
 
+    def getresults(self, jobid):
+        ret = 0
+
+        if jobid != None:
+            bkr = subprocess.Popen(["bkr", "job-results", "--no-logs",
+                                    "--prettyxml", jobid],
+                                   stdout=subprocess.PIPE)
+            (stdout, stderr) = bkr.communicate()
+            for line in stdout.split("\n"):
+                m = re.match('^<job id=.*result="([^"]+)".*>$', line)
+                if m:
+                    result = m.group(1)
+                    if result != "Pass":
+                        ret = 1
+                    break
+
+        return ret
+
     def run(self, url, release, wait=False):
+        ret = 0
+        jobid = None
         args = ["bkr", "job-submit"]
         if wait == True:
             args += ["--wait"]
@@ -41,10 +61,24 @@ class beakerrunner(runner):
 
         uid = url.split('/')[-1]
 
-        bkr = subprocess.Popen(args, stdin=subprocess.PIPE)
-        bkr.communicate(self.getxml({'KVER' : release,
-                                     'KPKG_URL' : url,
-                                     'UID': uid}))
+        bkr = subprocess.Popen(args, stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE)
+        (stdout, stderr) = bkr.communicate(self.getxml({'KVER' : release,
+                                                        'KPKG_URL' : url,
+                                                        'UID': uid}))
+
+        for line in stdout.split("\n"):
+            m = re.match("^Submitted: \['([^']+)'\]$", line)
+            if m:
+                jobid = m.group(1)
+                break
+
+        logging.info("jobid: %s", jobid)
+
+        if wait == True:
+            ret = self.getresults(jobid)
+
+        return ret
 
 def getrunner(rtype, rarg):
     for cls in runner.__subclasses__():

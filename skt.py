@@ -12,6 +12,7 @@ import skt, skt.runner, skt.publisher
 
 DEFAULTRC = "~/.sktrc"
 logger = logging.getLogger()
+retcode = 0
 
 def save_state(cfg, state):
     if not cfg.get('state'):
@@ -84,8 +85,9 @@ def cmd_publish(cfg):
     return url
 
 def cmd_run(cfg):
+    global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    runner.run(cfg.get('buildurl'), cfg.get('krelease'), cfg['wait'])
+    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'), cfg['wait'])
 
 def cmd_cleanup(cfg):
     config = cfg.get('_parser')
@@ -234,6 +236,7 @@ def load_config(args):
 
 
 def main():
+    global retcode
 
     parser = setup_parser()
     args = parser.parse_args()
@@ -242,6 +245,7 @@ def main():
     cfg = load_config(args)
 
     args.func(cfg)
+    sys.exit(retcode)
 
 if __name__ == '__main__':
     try:
