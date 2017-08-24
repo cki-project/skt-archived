@@ -2,6 +2,8 @@ import logging
 import os
 import re
 import subprocess
+import time
+import xml.etree.ElementTree as etree
 
 class runner(object):
     TYPE = 'default'
@@ -12,6 +14,8 @@ class beakerrunner(runner):
     def __init__(self, jobtemplate, jobowner = None):
         self.template = os.path.expanduser(jobtemplate)
         self.jobowner = jobowner
+        self.watchdelay = 60
+        self.watchlist = set()
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -48,12 +52,44 @@ class beakerrunner(runner):
 
         return ret
 
+    def watchloop(self):
+        while len(self.watchlist):
+            time.sleep(self.watchdelay)
+            for cid in self.watchlist.copy():
+                bkr = subprocess.Popen(["bkr", "job-results", "--no-logs",
+                                        cid],
+                                       stdout=subprocess.PIPE)
+                (stdout, stderr) = bkr.communicate()
+                root = etree.fromstring(stdout)
+
+                logging.debug("status %s: %s (%s)", cid,
+                              root.attrib.get("status"),
+                              root.attrib.get("result"))
+                if root.attrib.get("status") in ["Completed", "Aborted"]:
+                    logging.info("%s status changed to '%s', removing from watchlist",
+                                 cid, root.attrib.get("status"))
+                    self.watchlist.remove(cid)
+
+    def wait(self, jobid):
+        bkr = subprocess.Popen(["bkr", "job-results", "--no-logs", jobid],
+                               stdout=subprocess.PIPE)
+        (stdout, stderr) = bkr.communicate()
+        root = etree.fromstring(stdout)
+
+        if root.attrib.get("status") in ["Completed", "Aborted"]:
+            return
+
+        for el in root.findall("recipeSet/recipe"):
+            cid = "R:%s" % el.attrib.get("id")
+            self.watchlist.add(cid)
+            logging.info("added %s to watchlist", cid)
+
+        self.watchloop()
+
     def run(self, url, release, wait=False):
         ret = 0
         jobid = None
         args = ["bkr", "job-submit"]
-        if wait == True:
-            args += ["--wait"]
 
         if self.jobowner != None:
             args += ["--job-owner=%s" % self.jobowner]
@@ -77,6 +113,7 @@ class beakerrunner(runner):
         logging.info("jobid: %s", jobid)
 
         if wait == True:
+            self.wait(jobid)
             ret = self.getresults(jobid)
 
         return ret
