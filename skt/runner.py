@@ -17,6 +17,8 @@ class beakerrunner(runner):
         self.watchdelay = 60
         self.watchlist = set()
         self.whiteboard = None
+        self.failures = {}
+        self.recipes = set()
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -34,7 +36,7 @@ class beakerrunner(runner):
 
         return xml
 
-    def getresults(self, jobid):
+    def jobresult(self, jobid):
         ret = 0
 
         if jobid != None:
@@ -48,10 +50,40 @@ class beakerrunner(runner):
                     result = m.group(1)
                     if result != "Pass":
                         ret = 1
-                    logging.info("result: %s [%d]", result, ret)
+                    logging.info("job result: %s [%d]", result, ret)
                     break
 
         return ret
+
+    def getresults(self, jobid = None):
+        ret = 0
+        fhosts = set()
+
+        if jobid != None:
+            ret = self.jobresult(jobid)
+
+        if jobid == None or ret != 0:
+            for (recipe, data) in self.failures.iteritems():
+                logging.info("%s failed %d/%d (%s)%s", recipe, len(data[0]),
+                             data[2], ', '.join(data[1]),
+                             "" if len(set(data[0])) > 1
+                                else ": %s" % data[0][0])
+
+                fhosts = fhosts.union(set(data[0]))
+                ret = 1
+
+        if ret != 0:
+            msg = ""
+            if len(fhosts) > 1:
+                msg = "multiple hosts"
+            else:
+                msg = "a single host: %s" % fhosts.pop()
+
+            logging.warning("FAILED %s/%s on %s", len(self.failures.keys()),
+                            len(self.recipes), msg)
+
+        return ret
+
 
     def recipe_to_job(self, recipe, samehost = False):
         tmp = recipe.copy()
@@ -83,41 +115,47 @@ class beakerrunner(runner):
             if iteration > 0:
                 time.sleep(self.watchdelay)
 
-            for (cid, reschedule) in self.watchlist.copy():
+            for (cid, reschedule, origin) in self.watchlist.copy():
                 bkr = subprocess.Popen(["bkr", "job-results", "--no-logs",
                                         cid],
                                        stdout=subprocess.PIPE)
                 (stdout, stderr) = bkr.communicate()
                 root = etree.fromstring(stdout)
 
-                logging.debug("[%d] status %s: %s (%s)", iteration, cid,
-                              root.attrib.get("status"),
-                              root.attrib.get("result"))
-
                 if root.attrib.get("status") in ["Completed", "Aborted",
                                                  "Cancelled"]:
                     logging.info("%s status changed to '%s', removing from watchlist",
                                  cid, root.attrib.get("status"))
-                    self.watchlist.remove((cid, reschedule))
+                    self.watchlist.remove((cid, reschedule, origin))
 
                     if root.attrib.get("status") ==  "Cancelled":
                         continue
 
-                    if reschedule and root.attrib.get("result") != "Pass":
-                        logging.info("%s -> '%s', resubmitting",
-                                     cid, root.attrib.get("result"))
+                    if root.attrib.get("result") != "Pass":
+                        if origin == None:
+                            origin = cid
 
-                        newjob = self.recipe_to_job(root, False)
-                        newjobid = self.jobsubmit(etree.tostring(newjob))
-                        self.add_to_watchlist(newjobid, False)
+                        if not self.failures.has_key(origin):
+                            self.failures[origin] = [[], set(), 1]
 
-                        newjob = self.recipe_to_job(root, True)
-                        newjobid = self.jobsubmit(etree.tostring(newjob))
-                        self.add_to_watchlist(newjobid, False)
+                        self.failures[origin][0].append(root.attrib.get("system"))
+                        self.failures[origin][1].add(root.attrib.get("result"))
+
+                        if reschedule:
+                            logging.info("%s -> '%s', resubmitting",
+                                         cid, root.attrib.get("result"))
+
+                            newjob = self.recipe_to_job(root, False)
+                            newjobid = self.jobsubmit(etree.tostring(newjob))
+                            self.add_to_watchlist(newjobid, False, origin)
+
+                            newjob = self.recipe_to_job(root, True)
+                            newjobid = self.jobsubmit(etree.tostring(newjob))
+                            self.add_to_watchlist(newjobid, False, origin)
 
             iteration += 1
 
-    def add_to_watchlist(self, jobid, reschedule=True):
+    def add_to_watchlist(self, jobid, reschedule=True, origin=None):
         bkr = subprocess.Popen(["bkr", "job-results", "--no-logs", jobid],
                                stdout=subprocess.PIPE)
         (stdout, stderr) = bkr.communicate()
@@ -128,7 +166,10 @@ class beakerrunner(runner):
 
         for el in root.findall("recipeSet/recipe"):
             cid = "R:%s" % el.attrib.get("id")
-            self.watchlist.add((cid,reschedule))
+            self.watchlist.add((cid, reschedule, origin))
+            self.recipes.add(cid)
+            if origin != None:
+                self.failures[origin][2] += 1
             logging.info("added %s to watchlist", cid)
 
     def wait(self, jobid):
@@ -155,6 +196,8 @@ class beakerrunner(runner):
                 jobid = m.group(1)
                 break
 
+        logging.info("submitted jobid: %s", jobid)
+
         return jobid
 
     def run(self, url, release, wait=False):
@@ -163,8 +206,6 @@ class beakerrunner(runner):
         jobid = self.jobsubmit(self.getxml({'KVER' : release,
                                             'KPKG_URL' : url,
                                             'UID': uid}))
-
-        logging.info("main jobid: %s", jobid)
 
         if wait == True:
             self.wait(jobid)
