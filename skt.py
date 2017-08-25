@@ -32,11 +32,14 @@ def save_state(cfg, state):
 
 
 def cmd_merge(cfg):
+    global retcode
     ktree = skt.ktree(cfg.get('baserepo'), ref=cfg.get('ref'),
                               wdir=cfg.get('workdir'))
     ktree.checkout()
     for mb in cfg.get('merge_ref'):
-        ktree.merge_git_ref(*mb)
+        retcode = ktree.merge_git_ref(*mb)
+        if retcode != 0:
+            return
 
     kpath = ktree.getpath()
     buildinfo = ktree.dumpinfo()

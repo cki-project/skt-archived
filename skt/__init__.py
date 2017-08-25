@@ -127,6 +127,9 @@ class ktree(object):
             logging.warning("failed to merge '%s' from %s, skipping", ref,
                             rname)
             self.git_cmd("reset", "--hard")
+            return 1
+
+        return 0
 
     def merge_patchwork_patch(self, uri):
         pass
