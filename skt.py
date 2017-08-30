@@ -99,7 +99,7 @@ def cmd_publish(cfg):
     logging.info("published url: %s", url)
 
     if cfg.get('buildinfo') != None:
-        publisher.publish(cfg.('buildinfo'))
+        publisher.publish(cfg.get('buildinfo'))
 
     save_state(cfg, {'buildurl' : url})
 
@@ -289,18 +289,18 @@ def load_config(args):
                             config.get('publisher', 'baseurl')]
 
     if config.has_section('runner') and ('runner' not in cfg or
-                                            cfg['runner'] == None):
+                                            cfg.get('runner') == None):
         rcfg = {}
         for (key, val) in config.items('runner'):
             if key == 'type':
                 continue
             rcfg[key] = val
         cfg['runner'] = [config.get('runner', 'type'), rcfg]
-    elif 'runner' in cfg and cfg['runner'] != None:
-        cfg['runner'] = [cfg['runner'][0],
-                         ast.literal_eval(cfg['runner'][1])]
+    elif 'runner' in cfg and cfg.get('runner') != None:
+        cfg['runner'] = [cfg.get('runner')[0],
+                         ast.literal_eval(cfg.get('runner')[1])]
 
-    if 'merge_ref' not in cfg or cfg['merge_ref'] == None:
+    if 'merge_ref' not in cfg or cfg.get('merge_ref') == None:
         cfg['merge_ref'] = []
 
     for section in config.sections():
