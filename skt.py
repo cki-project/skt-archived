@@ -152,6 +152,7 @@ def cmd_bisect(cfg):
     head = ktree.checkout()
 
     cfg['workdir'] = ktree.getpath()
+    cfg['buildinfo'] = None
 
     logging.info("Building good commit: %s", head)
     (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
