@@ -52,7 +52,7 @@ def cmd_merge(cfg):
     for mb in cfg.get('merge_ref'):
         (retcode, head) = ktree.merge_git_ref(*mb)
 
-        if cfg['bisect'] == True:
+        if cfg.get('bisect') == True:
             cfg['mergehead'] = head
             save_state(cfg, {'mergehead' : head})
 
@@ -80,8 +80,8 @@ def cmd_build(cfg):
 
     tbuildinfo = None
     if cfg.get('buildinfo') != None:
-        tbuildinfo = addtstamp(cfg['buildinfo'], tstamp)
-        os.rename(cfg['buildinfo'], tbuildinfo)
+        tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
+        os.rename(cfg.get('buildinfo'), tbuildinfo)
 
     krelease = builder.getrelease()
 
@@ -95,11 +95,11 @@ def cmd_build(cfg):
 def cmd_publish(cfg):
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
-    url = publisher.publish(cfg['tarpkg'])
+    url = publisher.publish(cfg.get('tarpkg'))
     logging.info("published url: %s", url)
 
     if cfg.get('buildinfo') != None:
-        publisher.publish(cfg['buildinfo'])
+        publisher.publish(cfg.('buildinfo'))
 
     save_state(cfg, {'buildurl' : url})
 
@@ -108,9 +108,10 @@ def cmd_publish(cfg):
 def cmd_run(cfg):
     global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'), cfg['wait'])
-    if retcode != 0 and cfg['bisect'] == True:
-        cfg['commitbad'] = cfg['mergehead']
+    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
+                         cfg.get('wait'))
+    if retcode != 0 and cfg.get('bisect') == True:
+        cfg['commitbad'] = cfg.get('mergehead')
         cmd_bisect(cfg)
 
 def cmd_cleanup(cfg):
@@ -122,13 +123,13 @@ def cmd_cleanup(cfg):
 
     if cfg.get('buildinfo') != None:
         try:
-            os.unlink(cfg['buildinfo'])
+            os.unlink(cfg.get('buildinfo'))
         except:
             pass
 
     if cfg.get('tarpkg') != None:
         try:
-            os.unlink(cfg['tarpkg'])
+            os.unlink(cfg.get('tarpkg'))
         except:
             pass
 
@@ -155,7 +156,7 @@ def cmd_bisect(cfg):
     logging.info("Building good commit: %s", cfg.get('commitgood'))
     (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
     cfg['buildurl'] = cmd_publish(cfg)
-    os.unlink(cfg['tarpkg'])
+    os.unlink(cfg.get('tarpkg'))
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
 
@@ -177,7 +178,7 @@ def cmd_bisect(cfg):
     while ret == 0:
         (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
         cfg['buildurl'] = cmd_publish(cfg)
-        os.unlink(cfg['tarpkg'])
+        os.unlink(cfg.get('tarpkg'))
         retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                              wait = True, host = cfg.get('host'),
                              uid = "[bisect] [%s]" % binfo,
@@ -282,7 +283,7 @@ def load_config(args):
                 cfg[name] = value
 
     if config.has_section('publisher') and ('publisher' not in cfg or
-                                            cfg['publisher'] == None):
+                                            cfg.get('publisher') == None):
         cfg['publisher'] = [config.get('publisher', 'type'),
                             config.get('publisher', 'destination'),
                             config.get('publisher', 'baseurl')]
