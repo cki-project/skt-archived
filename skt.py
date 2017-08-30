@@ -51,10 +51,8 @@ def cmd_merge(cfg):
     ktree.checkout()
     for mb in cfg.get('merge_ref'):
         (retcode, head) = ktree.merge_git_ref(*mb)
-
-        if cfg.get('bisect') == True:
-            cfg['mergehead'] = head
-            save_state(cfg, {'mergehead' : head})
+        cfg['mergehead'] = head
+        save_state(cfg, {'mergehead' : head})
 
         if retcode != 0:
             return
