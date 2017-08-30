@@ -62,7 +62,7 @@ class ktree(object):
     def get_head(self, ref):
         head = None
         with open(os.path.join(self.gdir, ref), 'r') as f:
-            head = f.readline()
+            head = f.readline().rstrip()
 
         return head
 
@@ -79,6 +79,7 @@ class ktree(object):
         head = self.get_head(dstref)
         self.info.append(("git", self.uri, head))
         logging.info("baserepo %s: %s", self.ref, head)
+        return str(head).rstrip()
 
     def cleanup(self):
         logging.info("cleaning up %s", self.wdir)
@@ -104,7 +105,6 @@ class ktree(object):
 
         return rurl
 
-
     def getrname(self, uri):
         rname = uri.split('/')[-1].replace('.git', '') if not uri.endswith('/') else uri.split('/')[-2].replace('.git', '')
         while self.get_remote_url(rname) == uri:
@@ -115,6 +115,7 @@ class ktree(object):
 
     def merge_git_ref(self, uri, ref="master"):
         rname = self.getrname(uri)
+        head = None
 
         try:
             self.git_cmd("remote", "add", rname, uri, stderr = subprocess.PIPE)
@@ -140,12 +141,66 @@ class ktree(object):
             logging.warning("failed to merge '%s' from %s, skipping", ref,
                             rname)
             self.git_cmd("reset", "--hard")
-            return 1
+            return (1, None)
 
-        return 0
+        return (0, head)
 
     def merge_patchwork_patch(self, uri):
         pass
+
+    def bisect_start(self, good):
+        os.chdir(self.wdir)
+        binfo = None
+        gbs = subprocess.Popen(["git",
+                                "--work-tree", self.wdir,
+                                "--git-dir", self.gdir,
+                                "bisect", "start", "HEAD", good],
+                               stdout = subprocess.PIPE)
+        (stdout, stderr) = gbs.communicate()
+
+        for line in stdout.split("\n"):
+            m = re.match('^Bisecting: (.*)$', line)
+            if m:
+                binfo = m.group(1)
+                logging.info(binfo)
+            else:
+                logging.info(line)
+
+        return binfo
+
+    def bisect_iter(self, bad):
+        os.chdir(self.wdir)
+        ret = 0
+        binfo = None
+        status = "good"
+
+        if bad == 1:
+            status = "bad"
+
+        logging.info("git bisect %s", status)
+        gbs = subprocess.Popen(["git",
+                                "--work-tree", self.wdir,
+                                "--git-dir", self.gdir,
+                                "bisect", status],
+                               stdout = subprocess.PIPE)
+        (stdout, stderr) = gbs.communicate()
+
+        for line in stdout.split("\n"):
+            m = re.match('^Bisecting: (.*)$', line)
+            if m:
+                binfo = m.group(1)
+                logging.info(binfo)
+            else:
+                m = re.match('^(.*) is the first bad commit$', line)
+                if m:
+                    binfo = m.group(1)
+                    ret = 1
+                    logging.warning("Bisected, bad commit: %s" % binfo)
+                    break
+                else:
+                    logging.info(line)
+
+        return (ret, binfo)
 
 class kbuilder(object):
     def __init__(self, path, basecfg, cfgtype = None):

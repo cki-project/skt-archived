@@ -32,6 +32,7 @@ class beakerrunner(runner):
         self.whiteboard = None
         self.failures = {}
         self.recipes = set()
+        self.lastsubmitted = None
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -71,12 +72,14 @@ class beakerrunner(runner):
     def getresults(self, jobid = None):
         ret = 0
         fhosts = set()
+        tfailures = 0
 
         if jobid != None:
             ret = self.jobresult(jobid)
 
         if jobid == None or ret != 0:
             for (recipe, data) in self.failures.iteritems():
+                tfailures += len(data[0])
                 logging.info("%s failed %d/%d (%s)%s", recipe, len(data[0]),
                              data[2], ', '.join(data[1]),
                              "" if len(set(data[0])) > 1
@@ -85,14 +88,14 @@ class beakerrunner(runner):
                 fhosts = fhosts.union(set(data[0]))
                 ret = 1
 
-        if ret != 0:
-            msg = ""
+        if ret != 0 and len(fhosts) > 0:
+            msg = "unknown"
             if len(fhosts) > 1:
                 msg = "multiple hosts"
-            else:
+            elif len(fhosts) == 1:
                 msg = "a single host: %s" % fhosts.pop()
 
-            logging.warning("FAILED %s/%s on %s", len(self.failures.keys()),
+            logging.warning("FAILED %s/%s on %s", tfailures,
                             len(self.recipes), msg)
 
         return ret
@@ -168,7 +171,7 @@ class beakerrunner(runner):
 
             iteration += 1
 
-    def add_to_watchlist(self, jobid, reschedule=True, origin=None):
+    def add_to_watchlist(self, jobid, reschedule = True, origin = None):
         bkr = subprocess.Popen(["bkr", "job-results", "--no-logs", jobid],
                                stdout=subprocess.PIPE)
         (stdout, stderr) = bkr.communicate()
@@ -185,9 +188,25 @@ class beakerrunner(runner):
                 self.failures[origin][2] += 1
             logging.info("added %s to watchlist", cid)
 
-    def wait(self, jobid):
-        self.add_to_watchlist(jobid, True)
+    def wait(self, jobid = None, reschedule = True):
+        if jobid == None:
+            jobid = self.lastsubmitted
+        self.add_to_watchlist(jobid, reschedule)
         self.watchloop()
+
+    def gethost(self, jobid = None):
+        if jobid == None:
+            jobid = self.lastsubmitted
+
+        logging.info("gethost for %s" % jobid)
+        bkr = subprocess.Popen(["bkr", "job-results", "--no-logs", jobid],
+                               stdout=subprocess.PIPE)
+        (stdout, stderr) = bkr.communicate()
+        root = etree.fromstring(stdout)
+        recipe = root.find("recipeSet/recipe")
+        logging.info("%s: %s" % (jobid, recipe.attrib.get("system")))
+
+        return recipe.attrib.get("system")
 
     def jobsubmit(self, xml):
         jobid = None
@@ -210,18 +229,34 @@ class beakerrunner(runner):
                 break
 
         logging.info("submitted jobid: %s", jobid)
+        self.lastsubmitted = jobid
 
         return jobid
 
-    def run(self, url, release, wait=False):
+    def run(self, url, release, wait = False, host = None, uid = "",
+            reschedule = True):
         ret = 0
-        uid = url.split('/')[-1]
+        self.failures = {}
+        self.recipes = set()
+        self.watchlist = set()
+
+        uid += " %s" % url.split('/')[-1]
+
+        if host == None:
+            hostname = ""
+            hostnametag = ""
+        else:
+            hostname = "(%s) " % host
+            hostnametag = '<hostname op="=" value="%s"/>' % host
+
         jobid = self.jobsubmit(self.getxml({'KVER' : release,
                                             'KPKG_URL' : url,
-                                            'UID': uid}))
+                                            'UID': uid,
+                                            'HOSTNAME' : hostname,
+                                            'HOSTNAMETAG' : hostnametag}))
 
         if wait == True:
-            self.wait(jobid)
+            self.wait(jobid, reschedule)
             ret = self.getresults(jobid)
 
         return ret
