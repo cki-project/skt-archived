@@ -93,15 +93,17 @@ def cmd_build(cfg):
 def cmd_publish(cfg):
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
+    infourl = None
     url = publisher.publish(cfg.get('tarpkg'))
     logging.info("published url: %s", url)
 
     if cfg.get('buildinfo') != None:
-        publisher.publish(cfg.get('buildinfo'))
+        infourl = publisher.publish(cfg.get('buildinfo'))
 
-    save_state(cfg, {'buildurl' : url})
+    save_state(cfg, {'buildurl' : url,
+                     'infourl'  : infourl})
 
-    return url
+    return (url, infourl)
 
 def cmd_run(cfg):
     global retcode
@@ -137,7 +139,7 @@ def cmd_cleanup(cfg):
 def cmd_all(cfg):
     (cfg['workdir'], cfg['buildinfo']) = cmd_merge(cfg)
     (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
-    cfg['buildurl'] = cmd_publish(cfg)
+    (cfg['buildurl'], cfg['infourl']) = cmd_publish(cfg)
     cmd_run(cfg)
     cmd_cleanup(cfg)
 
@@ -154,7 +156,7 @@ def cmd_bisect(cfg):
 
     logging.info("Building good commit: %s", head)
     (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
-    cfg['buildurl'] = cmd_publish(cfg)
+    (cfg['buildurl'], cfg['infourl']) = cmd_publish(cfg)
     os.unlink(cfg.get('tarpkg'))
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
@@ -176,7 +178,7 @@ def cmd_bisect(cfg):
     ret = 0
     while ret == 0:
         (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
-        cfg['buildurl'] = cmd_publish(cfg)
+        (cfg['buildurl'], cfg['infourl']) = cmd_publish(cfg)
         os.unlink(cfg.get('tarpkg'))
         retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                              wait = True, host = cfg.get('host'),
