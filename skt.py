@@ -108,8 +108,12 @@ def cmd_publish(cfg):
 def cmd_run(cfg):
     global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                         cfg.get('wait'))
+    (retcode, result) = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
+                                   cfg.get('wait'))
+
+    save_state(cfg, {'retcode' : retcode,
+                     'result'  : result})
+
     if retcode != 0 and cfg.get('bisect') == True:
         cfg['commitbad'] = cfg.get('mergehead')
         cmd_bisect(cfg)
@@ -140,7 +144,7 @@ def cmd_all(cfg):
     (cfg['workdir'], cfg['buildinfo']) = cmd_merge(cfg)
     (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
     (cfg['buildurl'], cfg['infourl']) = cmd_publish(cfg)
-    cmd_run(cfg)
+    (cfg['retcode'], cfg['result']) = cmd_run(cfg)
     cmd_cleanup(cfg)
 
 def cmd_bisect(cfg):
