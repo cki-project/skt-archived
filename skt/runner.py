@@ -74,6 +74,30 @@ class beakerrunner(runner):
 
         return url
 
+    def getverboseresults(self, joblist):
+        result = dict()
+        for jobid in joblist:
+            result[jobid] = dict()
+            root = self.getresultstree(jobid, True)
+
+            result[jobid]['result'] = root.attrib.get("result")
+
+            for recipe in root.findall("recipeSet/recipe"):
+                rid = "R:%s" % recipe.attrib.get("id")
+                clogurl = None
+
+                clog = recipe.find("logs/log[@name='console.log']")
+                if clog != None:
+                    clogurl = clog.attrib.get("href")
+
+                rdata = (recipe.attrib.get("result"),
+                         recipe.attrib.get("system"),
+                         clogurl)
+
+                result[jobid][rid] = rdata
+
+        return result
+
     def jobresult(self, jobid):
         ret = 0
         result = None
@@ -90,7 +114,6 @@ class beakerrunner(runner):
 
     def getresults(self, jobid = None):
         ret = 0
-        result = None
         fhosts = set()
         tfailures = 0
 
@@ -118,7 +141,7 @@ class beakerrunner(runner):
             logging.warning("FAILED %s/%s on %s", tfailures,
                             len(self.recipes), msg)
 
-        return (ret, result)
+        return ret
 
     def recipe_to_job(self, recipe, samehost = False):
         tmp = recipe.copy()
@@ -266,7 +289,7 @@ class beakerrunner(runner):
 
         if wait == True:
             self.wait(jobid, reschedule)
-            (ret, result) = self.getresults(jobid)
+            ret = self.getresults(jobid)
 
         return (ret, jobid)
 

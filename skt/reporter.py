@@ -55,17 +55,24 @@ class reporter(object):
         result.append("jobid: %s" % jobid)
 
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
-        (retcode, rstr) = runner.getresults(jobid)
+        vresults = runner.getverboseresults([jobid])
 
-        result.append("result: %s" % rstr)
+        result.append("result: %s" % vresults[jobid]["result"])
 
-        consolelog = runner.getconsolelog(jobid)
-        result.append("console log: %s" % consolelog)
+        for (recipe, rdata) in vresults[jobid].iteritems():
+            if recipe == "result":
+                continue
 
-        if rstr == "Panic":
-            logging.info("Panic detected, attaching console log")
-            r = requests.get(consolelog)
-            self.attach.append(r.text)
+            result.append("\nrecipe: %s" % recipe)
+            result.append("system: %s" % rdata[1])
+            result.append("result: %s" % rdata[0])
+            if rdata[2] != None:
+                result.append("console.log: %s" % rdata[2])
+                if rdata[0] == "Panic":
+                    logging.info("Panic detected in recipe %s, attaching console log",
+                                 recipe)
+                    r = requests.get(consolelog)
+                    self.attach.append(r.text)
 
         return result
 
