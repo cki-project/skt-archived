@@ -28,6 +28,9 @@ logger = logging.getLogger()
 retcode = 0
 
 def save_state(cfg, state):
+    for (key, val) in state.iteritems():
+        cfg[key] = val
+
     if not cfg.get('state'):
         return
 
@@ -63,8 +66,6 @@ def cmd_merge(cfg):
     save_state(cfg, {'workdir'   : kpath,
                      'buildinfo' : buildinfo})
 
-    return (kpath, buildinfo)
-
 def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
 
@@ -87,9 +88,6 @@ def cmd_build(cfg):
                      'buildinfo' : tbuildinfo,
                      'krelease'  : krelease})
 
-    return (ttgz, tbuildinfo, krelease)
-
-
 def cmd_publish(cfg):
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
@@ -102,8 +100,6 @@ def cmd_publish(cfg):
 
     save_state(cfg, {'buildurl' : url,
                      'infourl'  : infourl})
-
-    return (url, infourl)
 
 def cmd_run(cfg):
     global retcode
@@ -141,10 +137,10 @@ def cmd_cleanup(cfg):
         shutil.rmtree(os.path.expanduser(cfg.get('workdir')))
 
 def cmd_all(cfg):
-    (cfg['workdir'], cfg['buildinfo']) = cmd_merge(cfg)
-    (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
-    (cfg['buildurl'], cfg['infourl']) = cmd_publish(cfg)
-    (cfg['retcode'], cfg['result']) = cmd_run(cfg)
+    cmd_merge(cfg)
+    cmd_build(cfg)
+    cmd_publish(cfg)
+    cmd_run(cfg)
     cmd_cleanup(cfg)
 
 def cmd_bisect(cfg):
@@ -159,8 +155,8 @@ def cmd_bisect(cfg):
     cfg['buildinfo'] = None
 
     logging.info("Building good commit: %s", head)
-    (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
-    (cfg['buildurl'], cfg['infourl']) = cmd_publish(cfg)
+    cmd_build(cfg)
+    cmd_publish(cfg)
     os.unlink(cfg.get('tarpkg'))
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
@@ -181,8 +177,8 @@ def cmd_bisect(cfg):
 
     ret = 0
     while ret == 0:
-        (cfg['tarpkg'], cfg['buildinfo'], cfg['krelease']) = cmd_build(cfg)
-        (cfg['buildurl'], cfg['infourl']) = cmd_publish(cfg)
+        cmd_build(cfg)
+        cmd_publish(cfg)
         os.unlink(cfg.get('tarpkg'))
         retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                              wait = True, host = cfg.get('host'),
