@@ -55,7 +55,6 @@ class beakerrunner(runner):
         if not logs:
             args.append("--no-logs")
         args.append(jobid)
-        logging.debug(" ".join(args))
 
         bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = bkr.communicate()
