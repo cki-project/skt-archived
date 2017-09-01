@@ -174,7 +174,7 @@ class beakerrunner(runner):
                 time.sleep(self.watchdelay)
 
             for (cid, reschedule, origin) in self.watchlist.copy():
-                root = self.getresultstree(jobid)
+                root = self.getresultstree(cid)
 
                 if root.attrib.get("status") in ["Completed", "Aborted",
                                                  "Cancelled"]:
