@@ -50,6 +50,24 @@ class beakerrunner(runner):
 
         return xml
 
+    def getconsolelog(self, jobid = None):
+        url = None
+
+        if jobid == None:
+            jobid = self.lastsubmitted
+
+        bkr = subprocess.Popen(["bkr", "job-results",
+                                "--prettyxml", jobid],
+                               stdout=subprocess.PIPE)
+        (stdout, stderr) = bkr.communicate()
+        root = etree.fromstring(stdout)
+
+        el = root.find("recipeSet/recipe/logs/log[@name='console.log']")
+        if el != None:
+            url = el.attrib.get("href")
+
+        return url
+
     def jobresult(self, jobid):
         ret = 0
         result = None
@@ -72,9 +90,9 @@ class beakerrunner(runner):
 
     def getresults(self, jobid = None):
         ret = 0
+        result = None
         fhosts = set()
         tfailures = 0
-        result = None
 
         if jobid != None:
             (ret, result) = self.jobresult(jobid)
@@ -86,8 +104,6 @@ class beakerrunner(runner):
                              data[2], ', '.join(data[1]),
                              "" if len(set(data[0])) > 1
                                 else ": %s" % data[0][0])
-                if result == None:
-                    result = data[1][0]
 
                 fhosts = fhosts.union(set(data[0]))
                 ret = 1
@@ -240,7 +256,6 @@ class beakerrunner(runner):
     def run(self, url, release, wait = False, host = None, uid = "",
             reschedule = True):
         ret = 0
-        result = None
         self.failures = {}
         self.recipes = set()
         self.watchlist = set()
@@ -264,7 +279,7 @@ class beakerrunner(runner):
             self.wait(jobid, reschedule)
             (ret, result) = self.getresults(jobid)
 
-        return (ret, result)
+        return (ret, jobid)
 
 def getrunner(rtype, rarg):
     for cls in runner.__subclasses__():

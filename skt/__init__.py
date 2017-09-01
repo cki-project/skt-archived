@@ -77,7 +77,7 @@ class ktree(object):
         self.git_cmd("reset", "--hard", dstref)
 
         head = self.get_head(dstref)
-        self.info.append(("git", self.uri, head))
+        self.info.append(("base", self.uri, head))
         logging.info("baserepo %s: %s", self.ref, head)
         return str(head).rstrip()
 

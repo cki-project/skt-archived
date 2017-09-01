@@ -21,7 +21,7 @@ import logging
 import os
 import shutil
 import sys
-import skt, skt.runner, skt.publisher
+import skt, skt.runner, skt.publisher, skt.reporter
 
 DEFAULTRC = "~/.sktrc"
 logger = logging.getLogger()
@@ -104,15 +104,23 @@ def cmd_publish(cfg):
 def cmd_run(cfg):
     global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    (retcode, result) = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                                   cfg.get('wait'))
+    (retcode, jobid) = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
+                                  cfg.get('wait'))
 
     save_state(cfg, {'retcode' : retcode,
-                     'result'  : result})
+                     'jobid'   : jobid})
 
     if retcode != 0 and cfg.get('bisect') == True:
         cfg['commitbad'] = cfg.get('mergehead')
         cmd_bisect(cfg)
+
+def cmd_report(cfg):
+    if cfg.get("reporter") == None:
+        return
+
+    cfg['reporter'][1].update({'cfg' : cfg})
+    reporter = skt.reporter.getreporter(*cfg.get('reporter'))
+    reporter.report()
 
 def cmd_cleanup(cfg):
     config = cfg.get('_parser')
@@ -141,6 +149,7 @@ def cmd_all(cfg):
     cmd_build(cfg)
     cmd_publish(cfg)
     cmd_run(cfg)
+    cmd_report(cfg)
     cmd_cleanup(cfg)
 
 def cmd_bisect(cfg):
@@ -161,9 +170,10 @@ def cmd_bisect(cfg):
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
 
-    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                         wait = True, host = cfg.get('host'),
-                         uid = "[bisect] [good %s]" % head, reschedule = False)
+    (retcode, jobid) = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
+                                  wait = True, host = cfg.get('host'),
+                                  uid = "[bisect] [good %s]" % head,
+                                  reschedule = False)
 
     cfg['host'] = runner.gethost()
 
@@ -180,10 +190,10 @@ def cmd_bisect(cfg):
         cmd_build(cfg)
         cmd_publish(cfg)
         os.unlink(cfg.get('tarpkg'))
-        retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                             wait = True, host = cfg.get('host'),
-                             uid = "[bisect] [%s]" % binfo,
-                             reschedule = False)
+        (retcode, jobid) = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
+                                      wait = True, host = cfg.get('host'),
+                                      uid = "[bisect] [%s]" % binfo,
+                                      reschedule = False)
 
         (ret, binfo) = ktree.bisect_iter(retcode)
 
@@ -236,10 +246,15 @@ def setup_parser():
     parser_run.add_argument("--bisect", help="Try to bisect the failure if any.  (Implies --wait)",
                             action="store_true", default=False)
 
+    parser_report = subparsers.add_parser("report", add_help=False)
+    parser_report.add_argument("--reporter", nargs=2, type=str, help="Reporter config in 'type \"{'key' : 'val', ...}\"' format")
+    parser_report.set_defaults(func=cmd_report)
+
     parser_cleanup = subparsers.add_parser("cleanup", add_help=False)
 
     parser_all = subparsers.add_parser("all", parents = [parser_merge,
-        parser_build, parser_publish, parser_run, parser_cleanup])
+        parser_build, parser_publish, parser_run, parser_report,
+        parser_cleanup])
 
     parser_merge.add_argument("-h", "--help", help="Merge sub-command help",
                               action="help")
@@ -248,6 +263,8 @@ def setup_parser():
     parser_publish.add_argument("-h", "--help", help="Publish sub-command help",
                               action="help")
     parser_run.add_argument("-h", "--help", help="Run sub-command help",
+                              action="help")
+    parser_report.add_argument("-h", "--help", help="Report sub-command help",
                               action="help")
 
     parser_merge.set_defaults(func=cmd_merge)
@@ -300,6 +317,18 @@ def load_config(args):
     elif 'runner' in cfg and cfg.get('runner') != None:
         cfg['runner'] = [cfg.get('runner')[0],
                          ast.literal_eval(cfg.get('runner')[1])]
+
+    if config.has_section('reporter') and (cfg.get('reporter') == None):
+        rcfg = {}
+        for (key, val) in config.items('reporter'):
+            if key == 'type':
+                continue
+            rcfg[key] = val
+        cfg['reporter'] = [config.get('reporter', 'type'), rcfg]
+    elif 'reporter' in cfg and cfg.get('reporter') != None:
+        cfg['reporter'] = [cfg.get('reporter')[0],
+                         ast.literal_eval(cfg.get('reporter')[1])]
+
 
     if 'merge_ref' not in cfg or cfg.get('merge_ref') == None:
         cfg['merge_ref'] = []
