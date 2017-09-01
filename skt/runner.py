@@ -50,18 +50,24 @@ class beakerrunner(runner):
 
         return xml
 
+    def getresultstree(self, jobid, logs = False):
+        args = [ "bkr", "job-results" ]
+        if not logs:
+            args.append("--no-logs")
+        args.append(jobid)
+        logging.debug(" ".join(args))
+
+        bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
+        (stdout, stderr) = bkr.communicate()
+        return etree.fromstring(stdout)
+
     def getconsolelog(self, jobid = None):
         url = None
 
         if jobid == None:
             jobid = self.lastsubmitted
 
-        bkr = subprocess.Popen(["bkr", "job-results",
-                                "--prettyxml", jobid],
-                               stdout=subprocess.PIPE)
-        (stdout, stderr) = bkr.communicate()
-        root = etree.fromstring(stdout)
-
+        root = self.getresultstree(jobid, True)
         el = root.find("recipeSet/recipe/logs/log[@name='console.log']")
         if el != None:
             url = el.attrib.get("href")
@@ -73,18 +79,12 @@ class beakerrunner(runner):
         result = None
 
         if jobid != None:
-            bkr = subprocess.Popen(["bkr", "job-results", "--no-logs",
-                                    "--prettyxml", jobid],
-                                   stdout=subprocess.PIPE)
-            (stdout, stderr) = bkr.communicate()
-            for line in stdout.split("\n"):
-                m = re.match('^<job id=.*result="([^"]+)".*>$', line)
-                if m:
-                    result = m.group(1)
-                    if result != "Pass":
-                        ret = 1
-                    logging.info("job result: %s [%d]", result, ret)
-                    break
+            root = self.getresultstree(jobid)
+            result = root.attrib.get("result")
+
+            if result != "Pass":
+                ret = 1
+            logging.info("job result: %s [%d]", result, ret)
 
         return (ret, result)
 
@@ -120,7 +120,6 @@ class beakerrunner(runner):
 
         return (ret, result)
 
-
     def recipe_to_job(self, recipe, samehost = False):
         tmp = recipe.copy()
         if (samehost):
@@ -152,11 +151,7 @@ class beakerrunner(runner):
                 time.sleep(self.watchdelay)
 
             for (cid, reschedule, origin) in self.watchlist.copy():
-                bkr = subprocess.Popen(["bkr", "job-results", "--no-logs",
-                                        cid],
-                                       stdout=subprocess.PIPE)
-                (stdout, stderr) = bkr.communicate()
-                root = etree.fromstring(stdout)
+                root = self.getresultstree(jobid)
 
                 if root.attrib.get("status") in ["Completed", "Aborted",
                                                  "Cancelled"]:
@@ -192,10 +187,7 @@ class beakerrunner(runner):
             iteration += 1
 
     def add_to_watchlist(self, jobid, reschedule = True, origin = None):
-        bkr = subprocess.Popen(["bkr", "job-results", "--no-logs", jobid],
-                               stdout=subprocess.PIPE)
-        (stdout, stderr) = bkr.communicate()
-        root = etree.fromstring(stdout)
+        root = self.getresultstree(jobid)
 
         if self.whiteboard == None:
             self.whiteboard = root.find("whiteboard").text
@@ -219,10 +211,7 @@ class beakerrunner(runner):
             jobid = self.lastsubmitted
 
         logging.info("gethost for %s" % jobid)
-        bkr = subprocess.Popen(["bkr", "job-results", "--no-logs", jobid],
-                               stdout=subprocess.PIPE)
-        (stdout, stderr) = bkr.communicate()
-        root = etree.fromstring(stdout)
+        root = self.getresultstree(jobid)
         recipe = root.find("recipeSet/recipe")
         logging.info("%s: %s" % (jobid, recipe.attrib.get("system")))
 
