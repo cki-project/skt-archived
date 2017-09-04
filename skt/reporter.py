@@ -62,15 +62,15 @@ class reporter(object):
                 if recipe == "result":
                     continue
 
-                result.append("\nrecipe: %s" % recipe)
-                result.append("system: %s" % rdata[1])
-                result.append("result: %s" % rdata[0])
+                result.append("\n  recipe: %s" % recipe)
+                result.append("  system: %s" % rdata[1])
+                result.append("  result: %s" % rdata[0])
                 if rdata[2] != None:
-                    result.append("console.log: %s" % rdata[2])
+                    result.append("  console.log: %s" % rdata[2])
                     if rdata[0] == "Panic":
                         logging.info("Panic detected in recipe %s, attaching console log",
                                      recipe)
-                        r = requests.get(consolelog)
+                        r = requests.get(rdata[2])
                         self.attach.append(r.text)
 
             result.append("")
@@ -105,15 +105,12 @@ class mailreporter(reporter):
 
     def report(self):
         msg = MIMEMultipart()
-        msg['Subject'] = "[skt] result report for kernel %s" % self.cfg.get("krelease")
+        msg['Subject'] = "[skt] result report for kernel %s [%s]" % (
+                         self.cfg.get("krelease"),
+                         "PASS" if self.cfg.get("retcode") == 0 else "FAIL")
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
         msg.attach(MIMEText(self.getreport()))
-
-        if self.cfg.get("retcode") == 0:
-            msg['Subject'] += " [PASS]"
-        else:
-            msg['Subject'] += " [FAIL]"
 
         for att in self.attach:
             msg.attach(MIMEText(att, _charset='utf-8'))

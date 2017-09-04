@@ -298,15 +298,15 @@ def load_config(args):
     if cfg.get('state') and config.has_section('state'):
         for (name, value) in config.items('state'):
             if name not in cfg or cfg.get(name) == None:
+                if name.startswith("jobid_"):
+                    if "jobs" not in cfg:
+                        cfg["jobs"] = set()
+                    cfg["jobs"].add(value)
                 cfg[name] = value
 
     if config.has_section('config'):
         for (name, value) in config.items('config'):
             if name not in cfg or cfg.get(name) == None:
-                if name.startswith("jobid_"):
-                    if "jobs" not in cfg:
-                        cfg["jobs"] = set()
-                    cfg.["jobs"].add(value)
                 cfg[name] = value
 
     if config.has_section('publisher') and ('publisher' not in cfg or
