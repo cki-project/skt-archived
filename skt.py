@@ -107,6 +107,7 @@ def cmd_run(cfg):
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                          cfg.get('wait'))
 
+    save_state(cfg, {'retcode' : retcode})
     idx = 0
     for job in runner.jobs:
         save_state(cfg, {'jobid_%s' % (idx) : job})

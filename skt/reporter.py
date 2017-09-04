@@ -110,6 +110,11 @@ class mailreporter(reporter):
         msg['From'] = self.mailfrom
         msg.attach(MIMEText(self.getreport()))
 
+        if self.cfg.get("retcode") == 0:
+            msg['Subject'] += " [PASS]"
+        else:
+            msg['Subject'] += " [FAIL]"
+
         for att in self.attach:
             msg.attach(MIMEText(att, _charset='utf-8'))
 
