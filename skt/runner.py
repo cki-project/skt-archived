@@ -32,6 +32,7 @@ class beakerrunner(runner):
         self.whiteboard = None
         self.failures = {}
         self.recipes = set()
+        self.jobs = set()
         self.lastsubmitted = None
 
         logging.info("runner type: %s", self.TYPE)
@@ -260,6 +261,7 @@ class beakerrunner(runner):
                 break
 
         logging.info("submitted jobid: %s", jobid)
+        self.jobs.add(jobid)
         self.lastsubmitted = jobid
 
         return jobid
@@ -290,7 +292,7 @@ class beakerrunner(runner):
             self.wait(jobid, reschedule)
             ret = self.getresults(jobid)
 
-        return (ret, jobid)
+        return ret
 
 def getrunner(rtype, rarg):
     for cls in runner.__subclasses__():

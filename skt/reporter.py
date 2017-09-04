@@ -49,30 +49,31 @@ class reporter(object):
 
     def getjobresults(self):
         result = []
-        jobid = self.cfg.get("jobid")
+        runner = skt.runner.getrunner(*self.cfg.get("runner"))
+        vresults = runner.getverboseresults(list(self.cfg.get("jobs")))
 
         result.append("\n-----------------------")
-        result.append("jobid: %s" % jobid)
+        for jobid in self.cfg.get("jobs"):
+            result.append("jobid: %s" % jobid)
 
-        runner = skt.runner.getrunner(*self.cfg.get("runner"))
-        vresults = runner.getverboseresults([jobid])
+            result.append("result: %s" % vresults[jobid]["result"])
 
-        result.append("result: %s" % vresults[jobid]["result"])
+            for (recipe, rdata) in vresults[jobid].iteritems():
+                if recipe == "result":
+                    continue
 
-        for (recipe, rdata) in vresults[jobid].iteritems():
-            if recipe == "result":
-                continue
+                result.append("\nrecipe: %s" % recipe)
+                result.append("system: %s" % rdata[1])
+                result.append("result: %s" % rdata[0])
+                if rdata[2] != None:
+                    result.append("console.log: %s" % rdata[2])
+                    if rdata[0] == "Panic":
+                        logging.info("Panic detected in recipe %s, attaching console log",
+                                     recipe)
+                        r = requests.get(consolelog)
+                        self.attach.append(r.text)
 
-            result.append("\nrecipe: %s" % recipe)
-            result.append("system: %s" % rdata[1])
-            result.append("result: %s" % rdata[0])
-            if rdata[2] != None:
-                result.append("console.log: %s" % rdata[2])
-                if rdata[0] == "Panic":
-                    logging.info("Panic detected in recipe %s, attaching console log",
-                                 recipe)
-                    r = requests.get(consolelog)
-                    self.attach.append(r.text)
+            result.append("")
 
         return result
 

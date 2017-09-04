@@ -104,11 +104,15 @@ def cmd_publish(cfg):
 def cmd_run(cfg):
     global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    (retcode, jobid) = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                                  cfg.get('wait'))
+    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
+                         cfg.get('wait'))
 
-    save_state(cfg, {'retcode' : retcode,
-                     'jobid'   : jobid})
+    idx = 0
+    for job in runner.jobs:
+        save_state(cfg, {'jobid_%s' % (idx) : job})
+        idx += 1
+
+    cfg['jobs'] = runner.jobs
 
     if retcode != 0 and cfg.get('bisect') == True:
         cfg['commitbad'] = cfg.get('mergehead')
@@ -170,10 +174,10 @@ def cmd_bisect(cfg):
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
 
-    (retcode, jobid) = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                                  wait = True, host = cfg.get('host'),
-                                  uid = "[bisect] [good %s]" % head,
-                                  reschedule = False)
+    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
+                         wait = True, host = cfg.get('host'),
+                         uid = "[bisect] [good %s]" % head,
+                         reschedule = False)
 
     cfg['host'] = runner.gethost()
 
@@ -190,10 +194,10 @@ def cmd_bisect(cfg):
         cmd_build(cfg)
         cmd_publish(cfg)
         os.unlink(cfg.get('tarpkg'))
-        (retcode, jobid) = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                                      wait = True, host = cfg.get('host'),
-                                      uid = "[bisect] [%s]" % binfo,
-                                      reschedule = False)
+        retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
+                             wait = True, host = cfg.get('host'),
+                             uid = "[bisect] [%s]" % binfo,
+                             reschedule = False)
 
         (ret, binfo) = ktree.bisect_iter(retcode)
 
@@ -292,12 +296,16 @@ def load_config(args):
     # section values.
     if cfg.get('state') and config.has_section('state'):
         for (name, value) in config.items('state'):
-            if name not in cfg or cfg[name] == None:
+            if name not in cfg or cfg.get(name) == None:
                 cfg[name] = value
 
     if config.has_section('config'):
         for (name, value) in config.items('config'):
-            if name not in cfg or cfg[name] == None:
+            if name not in cfg or cfg.get(name) == None:
+                if name.startswith("jobid_"):
+                    if "jobs" not in cfg:
+                        cfg["jobs"] = set()
+                    cfg.["jobs"].add(value)
                 cfg[name] = value
 
     if config.has_section('publisher') and ('publisher' not in cfg or
