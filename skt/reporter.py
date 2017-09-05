@@ -107,7 +107,7 @@ class mailreporter(reporter):
         msg = MIMEMultipart()
         msg['Subject'] = "[skt] result report for kernel %s [%s]" % (
                          self.cfg.get("krelease"),
-                         "PASS" if self.cfg.get("retcode") == 0 else "FAIL")
+                         "PASS" if self.cfg.get("retcode") == "0" else "FAIL")
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
         msg.attach(MIMEText(self.getreport()))
