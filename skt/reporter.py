@@ -14,11 +14,109 @@
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
+import re
 import requests
 import smtplib
 import tempfile
 import xml.etree.ElementTree as etree
 import skt.runner
+
+class consolelog(object):
+    oopsmsg = [
+	"general protection fault:",
+	"BUG:",
+	"kernel BUG at",
+	"do_IRQ: stack overflow:",
+	"RTNL: assertion failed",
+	"Eeek! page_mapcount\(page\) went negative!",
+	"near stack overflow \(cur:",
+	"double fault:",
+	"Badness at",
+	"NETDEV WATCHDOG",
+	"WARNING: at",
+	"appears to be on the same physical disk",
+	"Unable to handle kernel",
+	"sysctl table check failed",
+	"------------\[ cut here \]------------",
+	"list_del corruption\.",
+	"list_add corruption\.",
+	"NMI watchdog: BUG: soft lockup",
+	"irq [0-9]+: nobody cared",
+	"INFO: task .* blocked for more than [0-9]+ seconds",
+	"vmwrite error: reg ",
+	"page allocation failure: order:",
+	"page allocation stalls for.*order:.*mode:",
+	"INFO: rcu_sched self-detected stall on CPU",
+	"INFO: rcu_sched detected stalls on CPUs/tasks:",
+	"NMI watchdog: Watchdog detected hard LOCKUP",
+	"Kernel panic - not syncing: ",
+	"Oops: Unrecoverable TM Unavailable Exception",
+    ]
+
+    ctvalid = [
+        "\[[\d\ \.]+\].*\[[0-9a-f<>]+\]",
+        "\[[\d\ \.]+\]\s+.+\s+[A-Z]\s[0-9a-fx ]+",
+        "\[[\d\ \.]+\]\s+[0-9a-fx ]+",
+        "\[-- MARK --",
+        "Instruction dump",
+        "handlers:",
+        "Code: [0-9a-z]+",
+        "blocked for",
+        "Workqueue:",
+        "disables this message",
+        "Call Trace",
+        "Hardware name",
+        "task: [0-9a-f]+ ti: [0-9a-f]+ task\.ti: [0-9a-f]+",
+        "^(Traceback)?[0-9a-f\s]+$",
+        "(\[[\d\ \.]+\]\s+)?([A-Z0-9]+: [0-9a-fx ]+)+",
+        "Stack:\s*$",
+        "Modules linked in:"
+    ]
+
+    expend = [
+        "\[ end (trace|Kernel panic)"
+    ]
+
+    def __init__(self, url):
+        self.url = url
+        self.data = None
+        self.oopspattern = re.compile("(%s)" % "|".join(self.oopsmsg))
+        self.ctvpattern  = re.compile("(%s)" % "|".join(self.ctvalid))
+        self.eendpattern = re.compile("(%s)" % "|".join(self.expend))
+
+    def fetchdata(self):
+        r = requests.get(self.url)
+        self.data = r.text
+
+    def gettraces(self):
+        result = []
+        if self.data == None:
+            self.fetchdata()
+
+        insplat = False
+        inct = False
+        tmpdata = []
+        for line in self.data.split('\n'):
+            if self.oopspattern.search(line):
+                insplat = True
+            elif re.search("Call Trace:", line):
+                inct = True
+
+            if insplat and ((inct and not self.ctvpattern.search(line)) or
+                    self.eendpattern.search(line)):
+                tmpdata.append(line)
+                result.append("\n".join(tmpdata))
+                tmpdata = []
+                insplat = False
+                inct = False
+
+            if insplat:
+                tmpdata.append(line)
+
+        if len(tmpdata) > 0:
+            result.append("\n".join(tmpdata))
+
+        return result
 
 class reporter(object):
     TYPE = 'default'
@@ -70,8 +168,8 @@ class reporter(object):
                     if rdata[0] == "Panic":
                         logging.info("Panic detected in recipe %s, attaching console log",
                                      recipe)
-                        r = requests.get(rdata[2])
-                        self.attach.append(r.text)
+                        clog = consolelog(rdata[2])
+                        self.attach += clog.gettraces()
 
             result.append("")
 
