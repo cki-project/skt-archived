@@ -169,7 +169,12 @@ class reporter(object):
                         logging.info("Panic detected in recipe %s, attaching console log",
                                      recipe)
                         clog = consolelog(rdata[2])
-                        self.attach += clog.gettraces()
+                        idx = 0
+                        for trace in clog.gettraces():
+                            self.attach.append(("%s_%d.log" % (
+                                               recipe.replace(":", "_").lower(),
+                                               idx), trace))
+                            idx += 1
 
             result.append("")
 
@@ -210,8 +215,11 @@ class mailreporter(reporter):
         msg['From'] = self.mailfrom
         msg.attach(MIMEText(self.getreport()))
 
-        for att in self.attach:
-            msg.attach(MIMEText(att, _charset='utf-8'))
+        for (name, att) in self.attach:
+            tmp = MIMEText(att, _charset='utf-8')
+            tmp.add_header("content-disposition", "attachment",
+                           filename=name)
+            msg.attach(tmp)
 
         s = smtplib.SMTP('localhost')
         s.sendmail(self.mailfrom, self.mailto, msg.as_string())
