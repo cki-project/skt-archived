@@ -14,6 +14,7 @@
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
+import os
 import re
 import requests
 import smtplib
@@ -132,13 +133,15 @@ class reporter(object):
         for line in r.text.split('\n'):
             if line == "":
                 continue
-            (itype,iurl,idata) = line.split(',')
-            if itype == 'base':
-                result = [ "base repo: %s" % iurl,
-                           "     HEAD: %s" % idata, "" ] + result
-            elif itype == 'git':
-                result += [ "merged git repo: %s" % iurl,
-                            "           HEAD: %s" % idata ]
+            idata = line.split(',')
+            if idata[0] == 'base':
+                result = [ "base repo: %s" % idata[1],
+                           "     HEAD: %s" % idata[2], "" ] + result
+            elif idata[0] == 'git':
+                result += [ "merged git repo: %s" % idata[1],
+                            "           HEAD: %s" % idata[2] ]
+            elif idata[0] == 'patch':
+                result += [ "patch: %s" % os.path.basename(idata[1]) ]
             else:
                 logging.warning("Unknown infotype: %s", itype)
 
