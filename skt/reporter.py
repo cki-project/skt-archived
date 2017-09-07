@@ -151,7 +151,7 @@ class reporter(object):
         vresults = runner.getverboseresults(list(self.cfg.get("jobs")))
 
         result.append("\n-----------------------")
-        for jobid in self.cfg.get("jobs"):
+        for jobid in sorted(self.cfg.get("jobs")):
             result.append("jobid: %s" % jobid)
 
             result.append("result: %s" % vresults[jobid]["result"])
