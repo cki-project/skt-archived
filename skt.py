@@ -54,11 +54,14 @@ def cmd_merge(cfg):
     ktree.checkout()
     for mb in cfg.get('merge_ref'):
         (retcode, head) = ktree.merge_git_ref(*mb)
-        cfg['mergehead'] = head
         save_state(cfg, {'mergehead' : head})
 
         if retcode != 0:
             return
+
+    if cfg.get('patchlist') != None:
+        for patch in cfg.get('patchlist'):
+            ktree.merge_patch_file(patch)
 
     kpath = ktree.getpath()
     buildinfo = ktree.dumpinfo()
@@ -230,6 +233,7 @@ def setup_parser():
     parser_merge = subparsers.add_parser("merge", add_help=False)
     parser_merge.add_argument("-b", "--baserepo", type=str, help="Base repo URL")
     parser_merge.add_argument("--ref", type=str, help="Base repo ref (default: master")
+    parser_merge.add_argument("--patchlist", type=str, nargs="+", help="List of patch paths to apply")
     parser_merge.add_argument("-m", "--merge-ref", nargs="+", help="Merge ref format: 'url [ref]'",
                               action="append")
 

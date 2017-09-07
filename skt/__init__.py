@@ -148,6 +148,10 @@ class ktree(object):
     def merge_patchwork_patch(self, uri):
         pass
 
+    def merge_patch_file(self, path):
+        self.git_cmd("am", path)
+        self.info.append(("patch", path))
+
     def bisect_start(self, good):
         os.chdir(self.wdir)
         binfo = None
