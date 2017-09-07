@@ -201,6 +201,10 @@ class stdioreporter(reporter):
     def report(self):
         print self.getreport()
 
+        for (name, att) in self.attach:
+            print "\n---------------\n%s\n" % name
+            print att
+
 class mailreporter(reporter):
     TYPE = 'mail'
 
