@@ -63,6 +63,10 @@ def cmd_merge(cfg):
         for patch in cfg.get('patchlist'):
             ktree.merge_patch_file(patch)
 
+    if cfg.get('pw') != None:
+        for patch in cfg.get('pw'):
+            ktree.merge_patchwork_patch(patch)
+
     kpath = ktree.getpath()
     buildinfo = ktree.dumpinfo()
 
@@ -235,6 +239,7 @@ def setup_parser():
     parser_merge.add_argument("-b", "--baserepo", type=str, help="Base repo URL")
     parser_merge.add_argument("--ref", type=str, help="Base repo ref (default: master")
     parser_merge.add_argument("--patchlist", type=str, nargs="+", help="List of patch paths to apply")
+    parser_merge.add_argument("--pw", type=str, nargs="+", help="Patchwork urls")
     parser_merge.add_argument("-m", "--merge-ref", nargs="+", help="Merge ref format: 'url [ref]'",
                               action="append")
 

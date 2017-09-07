@@ -142,8 +142,11 @@ class reporter(object):
                             "           HEAD: %s" % idata[2] ]
             elif idata[0] == 'patch':
                 result += [ "patch: %s" % os.path.basename(idata[1]) ]
+            elif idata[0] == 'patchwork':
+                result += [ "patchwork url: %s" % idata[1],
+                            "         name: %s" % idata[2] ]
             else:
-                logging.warning("Unknown infotype: %s", itype)
+                logging.warning("Unknown infotype: %s", idata[0])
 
         result.insert(0, "\n-----------------------")
         return result

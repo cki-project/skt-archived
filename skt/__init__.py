@@ -18,6 +18,7 @@ import shutil
 import subprocess
 import tempfile
 import os
+import xmlrpclib
 
 class ktree(object):
     def __init__(self, uri, ref=None, wdir=None):
@@ -146,7 +147,36 @@ class ktree(object):
         return (0, head)
 
     def merge_patchwork_patch(self, uri):
-        pass
+        m = re.match("^(.*)/patch/(\d+)/?$", uri)
+        if not m:
+            raise Exception("Can't parse patchwork url: '%s'" % uri)
+
+        baseurl = m.group(1)
+        patchid = m.group(2)
+
+        rpc = xmlrpclib.ServerProxy("%s/xmlrpc/" % baseurl)
+        patchinfo = rpc.patch_get(patchid)
+
+        if not patchinfo:
+            raise Exception("Failed to fetch patch info for patch %s" % patchid)
+
+        pdata = rpc.patch_get_mbox(patchid)
+
+
+        gam = subprocess.Popen(["git",
+                                "--work-tree", self.wdir,
+                                "--git-dir", self.gdir,
+                                "am", "-"], stdin = subprocess.PIPE)
+
+        gam.communicate(pdata)
+        retcode = gam.wait()
+
+        if retcode != 0:
+            self.git_cmd("am", "--abort")
+            raise Exception("Failed to apply patch %s" % patchid)
+
+        self.info.append(("patchwork", uri,
+                          patchinfo.get("name").replace(',', ';')))
 
     def merge_patch_file(self, path):
         self.git_cmd("am", path)
