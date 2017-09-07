@@ -157,7 +157,8 @@ def cmd_all(cfg):
     cmd_build(cfg)
     cmd_publish(cfg)
     cmd_run(cfg)
-    cmd_report(cfg)
+    if cfg.get('wait') == True:
+        cmd_report(cfg)
     cmd_cleanup(cfg)
 
 def cmd_bisect(cfg):
