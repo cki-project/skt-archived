@@ -162,6 +162,7 @@ class ktree(object):
 
         pdata = rpc.patch_get_mbox(patchid)
 
+        logging.info("Applying %s", uri)
 
         gam = subprocess.Popen(["git",
                                 "--work-tree", self.wdir,
