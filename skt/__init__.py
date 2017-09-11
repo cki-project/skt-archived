@@ -169,7 +169,7 @@ class ktree(object):
                                 "--git-dir", self.gdir,
                                 "am", "-"], stdin = subprocess.PIPE)
 
-        gam.communicate(pdata)
+        gam.communicate(pdata.encode('utf-8'))
         retcode = gam.wait()
 
         if retcode != 0:
