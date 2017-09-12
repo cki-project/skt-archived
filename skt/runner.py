@@ -189,23 +189,31 @@ class beakerrunner(runner):
                         if origin == None:
                             origin = cid
 
-                        if not self.failures.has_key(origin):
-                            self.failures[origin] = [[], set(), 1]
-
-                        self.failures[origin][0].append(root.attrib.get("system"))
-                        self.failures[origin][1].add(root.attrib.get("result"))
-
-                        if reschedule:
-                            logging.info("%s -> '%s', resubmitting",
-                                         cid, root.attrib.get("result"))
-
+                        tinst = root.find(".//task[@name='/distribution/install']")
+                        if tinst is not None and tinst.attrib.get("result") != "Pass":
+                            logging.warning("%s failed before kernelinstall, resubmitting",
+                                            cid)
                             newjob = self.recipe_to_job(root, False)
                             newjobid = self.jobsubmit(etree.tostring(newjob))
-                            self.add_to_watchlist(newjobid, False, origin)
+                            self.add_to_watchlist(newjobid, False)
+                        else:
+                            if not self.failures.has_key(origin):
+                                self.failures[origin] = [[], set(), 1]
 
-                            newjob = self.recipe_to_job(root, True)
-                            newjobid = self.jobsubmit(etree.tostring(newjob))
-                            self.add_to_watchlist(newjobid, False, origin)
+                            self.failures[origin][0].append(root.attrib.get("system"))
+                            self.failures[origin][1].add(root.attrib.get("result"))
+
+                            if reschedule:
+                                logging.info("%s -> '%s', resubmitting",
+                                             cid, root.attrib.get("result"))
+
+                                newjob = self.recipe_to_job(root, False)
+                                newjobid = self.jobsubmit(etree.tostring(newjob))
+                                self.add_to_watchlist(newjobid, False, origin)
+
+                                newjob = self.recipe_to_job(root, True)
+                                newjobid = self.jobsubmit(etree.tostring(newjob))
+                                self.add_to_watchlist(newjobid, False, origin)
 
             iteration += 1
 
@@ -290,7 +298,7 @@ class beakerrunner(runner):
 
         if wait == True:
             self.wait(jobid, reschedule)
-            ret = self.getresults(jobid)
+            ret = self.getresults()
 
         return ret
 
