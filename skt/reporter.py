@@ -184,7 +184,7 @@ class reporter(object):
                 result.append("\n  recipe: %s" % recipe)
                 result.append("  system: %s" % rdata[1])
                 result.append("  result: %s" % rdata[0])
-                result.append("url: %s/recipes/%d" % (
+                result.append("  url: %s/recipes/%d" % (
                                 bkr.client.conf.get("HUB_URL"),
                                 int(recipe[2:])))
 
