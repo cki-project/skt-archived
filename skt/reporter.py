@@ -11,6 +11,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
+import bkr.client
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
@@ -20,8 +21,8 @@ import requests
 import smtplib
 import tempfile
 import xml.etree.ElementTree as etree
+import zlib
 import skt.runner
-import bkr.client
 
 class consolelog(object):
     oopsmsg = [
@@ -97,6 +98,9 @@ class consolelog(object):
 
             if tkernel == True:
                 self.data.append(line)
+
+    def getfulllog(self):
+        return zlib.compress("\n".join(self.data))
 
     def gettraces(self):
         result = []
@@ -196,6 +200,10 @@ class reporter(object):
                                                recipe.replace(":", "_").lower(),
                                                idx), trace))
                             idx += 1
+
+                        self.attach.append("%s_console.log.gz",
+                                           recipe.replace(":", "_").lower(),
+                                           clog.getfulllog())
 
             result.append("")
 
