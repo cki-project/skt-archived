@@ -12,16 +12,18 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import bkr.client
+from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import gzip
 import logging
 import os
 import re
 import requests
 import smtplib
+import StringIO
 import tempfile
 import xml.etree.ElementTree as etree
-import zlib
 import skt.runner
 
 class consolelog(object):
@@ -101,7 +103,10 @@ class consolelog(object):
                 self.data.append(line)
 
     def getfulllog(self):
-        return zlib.compress("\n".join(self.data))
+        tstr = StringIO.StringIO()
+        with gzip.GzipFile(fileobj = tstr, mode="w") as f:
+            f.write("\n".join(self.data))
+        return tstr.getvalue()
 
     def gettraces(self):
         result = []
@@ -252,9 +257,15 @@ class mailreporter(reporter):
         msg.attach(MIMEText(self.getreport()))
 
         for (name, att) in self.attach:
-            tmp = MIMEText(att, _charset='utf-8')
-            tmp.add_header("content-disposition", "attachment",
-                           filename=name)
+            if (name.endswith('.log') or name.endswith('.txt')):
+		tmp = MIMEText(att, _charset='utf-8')
+		tmp.add_header("content-disposition", "attachment",
+                               filename=name)
+            else:
+		tmp = MIMEApplication(att)
+		tmp.add_header("content-disposition", "attachment",
+                               filename=name)
+
             msg.attach(tmp)
 
         s = smtplib.SMTP('localhost')
