@@ -79,8 +79,9 @@ class consolelog(object):
         "\[ end (trace|Kernel panic)"
     ]
 
-    def __init__(self, url):
+    def __init__(self, kver, url):
         self.url = url
+        self.kver = kver
         self.data = None
         self.oopspattern = re.compile("(%s)" % "|".join(self.oopsmsg))
         self.ctvpattern  = re.compile("(%s)" % "|".join(self.ctvalid))
@@ -88,7 +89,14 @@ class consolelog(object):
 
     def fetchdata(self):
         r = requests.get(self.url)
-        self.data = r.text
+        tkernel = False
+
+        for line in r.text.split('\n'):
+            if tkernel == False and line.find("Linux version %s" % self.kver) != -1:
+                tkernel = True
+
+            if tkernel == True:
+                self.data.append(line)
 
     def gettraces(self):
         result = []
@@ -98,7 +106,7 @@ class consolelog(object):
         insplat = False
         inct = False
         tmpdata = []
-        for line in self.data.split('\n'):
+        for line in self.data:
             if self.oopspattern.search(line):
                 insplat = True
             elif re.search("Call Trace:", line):
@@ -181,7 +189,7 @@ class reporter(object):
                     if rdata[0] == "Panic":
                         logging.info("Panic detected in recipe %s, attaching console log",
                                      recipe)
-                        clog = consolelog(rdata[2])
+                        clog = consolelog(self.cfg.get("krelease"), rdata[2])
                         idx = 0
                         for trace in clog.gettraces():
                             self.attach.append(("%s_%d.log" % (
