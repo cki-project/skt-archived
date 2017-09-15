@@ -21,6 +21,7 @@ import smtplib
 import tempfile
 import xml.etree.ElementTree as etree
 import skt.runner
+import bkr.client
 
 class consolelog(object):
     oopsmsg = [
@@ -161,6 +162,8 @@ class reporter(object):
             result.append("jobid: %s" % jobid)
 
             result.append("result: %s" % vresults[jobid]["result"])
+            result.append("url: %s/jobs/%d" % (bkr.client.conf.get("HUB_URL"),
+                          int(jobid[2:])))
 
             for (recipe, rdata) in vresults[jobid].iteritems():
                 if recipe == "result":
@@ -169,6 +172,10 @@ class reporter(object):
                 result.append("\n  recipe: %s" % recipe)
                 result.append("  system: %s" % rdata[1])
                 result.append("  result: %s" % rdata[0])
+                result.append("url: %s/recipes/%d" % (
+                                bkr.client.conf.get("HUB_URL"),
+                                int(recipe[2:])))
+
                 if rdata[2] != None:
                     result.append("  console.log: %s" % rdata[2])
                     if rdata[0] == "Panic":
