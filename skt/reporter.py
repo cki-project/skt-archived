@@ -228,6 +228,8 @@ class stdioreporter(reporter):
         print self.getreport()
 
         for (name, att) in self.attach:
+            if not (name.endswith('.log') or name.endswith('.txt')):
+                continue
             print "\n---------------\n%s\n" % name
             print att
 
