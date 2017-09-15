@@ -180,7 +180,12 @@ class ktree(object):
                           patchinfo.get("name").replace(',', ';')))
 
     def merge_patch_file(self, path):
-        self.git_cmd("am", path)
+        try:
+            self.git_cmd("am", path)
+        except:
+            self.git_cmd("am", "--abort")
+            raise Exception("Failed to apply patch %s" % path)
+
         self.info.append(("patch", path))
 
     def bisect_start(self, good):
