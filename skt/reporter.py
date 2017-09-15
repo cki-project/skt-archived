@@ -92,6 +92,7 @@ class consolelog(object):
         r = requests.get(self.url)
         tkernel = False
 
+        self.data = []
         for line in r.text.split('\n'):
             if tkernel == False and line.find("Linux version %s" % self.kver) != -1:
                 tkernel = True
@@ -201,9 +202,9 @@ class reporter(object):
                                                idx), trace))
                             idx += 1
 
-                        self.attach.append("%s_console.log.gz",
-                                           recipe.replace(":", "_").lower(),
-                                           clog.getfulllog())
+                        self.attach.append(("%s_console.log.gz" % (
+                                           recipe.replace(":", "_").lower()),
+                                           clog.getfulllog()))
 
             result.append("")
 
