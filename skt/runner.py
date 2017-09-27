@@ -186,17 +186,17 @@ class beakerrunner(runner):
                         continue
 
                     if root.attrib.get("result") != "Pass":
-                        if origin == None:
-                            origin = cid
-
                         tinst = root.find(".//task[@name='/distribution/install']")
                         if tinst is not None and tinst.attrib.get("result") != "Pass":
                             logging.warning("%s failed before kernelinstall, resubmitting",
                                             cid)
                             newjob = self.recipe_to_job(root, False)
                             newjobid = self.jobsubmit(etree.tostring(newjob))
-                            self.add_to_watchlist(newjobid, True)
+                            self.add_to_watchlist(newjobid, origin == None)
                         else:
+                            if origin == None:
+                                origin = cid
+
                             if not self.failures.has_key(origin):
                                 self.failures[origin] = [[], set(), 1]
 
