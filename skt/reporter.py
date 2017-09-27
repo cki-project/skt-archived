@@ -100,7 +100,7 @@ class consolelog(object):
                 tkernel = True
 
             if tkernel == True:
-                self.data.append(line)
+                self.data.append(line.encode('utf-8'))
 
     def getfulllog(self):
         tstr = StringIO.StringIO()
