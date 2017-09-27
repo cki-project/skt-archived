@@ -195,7 +195,7 @@ class beakerrunner(runner):
                                             cid)
                             newjob = self.recipe_to_job(root, False)
                             newjobid = self.jobsubmit(etree.tostring(newjob))
-                            self.add_to_watchlist(newjobid, False)
+                            self.add_to_watchlist(newjobid, True)
                         else:
                             if not self.failures.has_key(origin):
                                 self.failures[origin] = [[], set(), 1]
