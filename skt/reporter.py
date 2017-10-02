@@ -170,6 +170,17 @@ class reporter(object):
         result.insert(0, "\n-----------------------")
         return result
 
+    def gettested(self):
+        result = []
+
+        result.append("\n-----------------------")
+        result.append("Tested:")
+
+        # TODO: Get info from sktrc when we have it there
+        for test in ['Boot test']:
+            result.append("  - %s" % test)
+        return result
+
     def getjobresults(self):
         result = []
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
@@ -222,7 +233,7 @@ class reporter(object):
         msg.append("tarpkg url: %s" % self.cfg.get("buildurl"))
 
         msg += self.getmergeinfo()
-
+        msg += self.gettested()
         msg += self.getjobresults()
 
         return '\n'.join(msg)
