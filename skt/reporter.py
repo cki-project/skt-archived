@@ -181,6 +181,12 @@ class reporter(object):
             result.append("  - %s" % test)
         return result
 
+    def getjobids(self):
+	jobids = []
+        for jobid in sorted(self.cfg.get("jobs")):
+            jobids.append(jobid)
+        return jobids
+
     def getjobresults(self):
         result = []
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
@@ -188,25 +194,14 @@ class reporter(object):
 
         result.append("\n-----------------------")
         for jobid in sorted(self.cfg.get("jobs")):
-            result.append("jobid: %s" % jobid)
-
-            result.append("result: %s" % vresults[jobid]["result"])
-            result.append("url: %s/jobs/%d" % (bkr.client.conf.get("HUB_URL"),
-                          int(jobid[2:])))
-
             for (recipe, rdata) in vresults[jobid].iteritems():
                 if recipe == "result":
                     continue
 
-                result.append("\n  recipe: %s" % recipe)
-                result.append("  system: %s" % rdata[1])
-                result.append("  result: %s" % rdata[0])
-                result.append("  url: %s/recipes/%d" % (
-                                bkr.client.conf.get("HUB_URL"),
-                                int(recipe[2:])))
+                result.append("system: %s" % rdata[1])
+                result.append("result: %s" % rdata[0])
 
                 if rdata[2] != None:
-                    result.append("  console.log: %s" % rdata[2])
                     if rdata[0] == "Panic":
                         logging.info("Panic detected in recipe %s, attaching console log",
                                      recipe)
@@ -222,7 +217,7 @@ class reporter(object):
                                            recipe.replace(":", "_").lower()),
                                            clog.getfulllog()))
 
-            result.append("")
+                result.append("")
 
         return result
 
@@ -265,6 +260,7 @@ class mailreporter(reporter):
                          "PASS" if self.cfg.get("retcode") == "0" else "FAIL")
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
+        msg['X-SKT-JIDS'] = ' '.join(self.getjobids())
         msg.attach(MIMEText(self.getreport()))
 
         for (name, att) in self.attach:
