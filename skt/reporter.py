@@ -202,7 +202,7 @@ class reporter(object):
                 result.append("result: %s" % rdata[0])
 
                 if rdata[2] != None:
-                    if rdata[0] == "Panic":
+                    if rdata[0] != "Pass":
                         logging.info("Panic detected in recipe %s, attaching console log",
                                      recipe)
                         clog = consolelog(self.cfg.get("krelease"), rdata[2])
