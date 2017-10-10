@@ -17,10 +17,13 @@ import ConfigParser
 import argparse
 import ast
 import datetime
+import json
+import junit_xml
 import logging
 import os
 import shutil
 import sys
+import time
 import skt, skt.runner, skt.publisher, skt.reporter
 
 DEFAULTRC = "~/.sktrc"
@@ -46,7 +49,28 @@ def save_state(cfg, state):
     with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
         config.write(fp)
 
+def junit(func):
+    def wrapper(cfg):
+        global retcode
+        if cfg.get('junit') != None:
+            tstart = time.time()
+            tc = junit_xml.TestCase("skt_%s" % func.__name__, classname="skt")
 
+            try:
+                func(cfg)
+            except Exception as e:
+                tc.add_failure_info(str(e))
+                retcode = 1
+
+            tc.stdout = json.dumps(cfg, default=str)
+            tc.elapsed_sec = time.time() - tstart
+            cfg['_testcases'].append(tc)
+        else:
+            func(cfg)
+    return wrapper
+
+
+@junit
 def cmd_merge(cfg):
     global retcode
     ktree = skt.ktree(cfg.get('baserepo'), ref=cfg.get('ref'),
@@ -73,6 +97,7 @@ def cmd_merge(cfg):
     save_state(cfg, {'workdir'   : kpath,
                      'buildinfo' : buildinfo})
 
+@junit
 def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
 
@@ -95,6 +120,7 @@ def cmd_build(cfg):
                      'buildinfo' : tbuildinfo,
                      'krelease'  : krelease})
 
+@junit
 def cmd_publish(cfg):
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
@@ -108,6 +134,7 @@ def cmd_publish(cfg):
     save_state(cfg, {'buildurl' : url,
                      'infourl'  : infourl})
 
+@junit
 def cmd_run(cfg):
     global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
@@ -117,6 +144,8 @@ def cmd_run(cfg):
     save_state(cfg, {'retcode' : retcode})
     idx = 0
     for job in runner.jobs:
+        if cfg.get('wait') and cfg.get('junit') != None:
+            runner.dumpjunitresults(job, cfg.get('junit'))
         save_state(cfg, {'jobid_%s' % (idx) : job})
         idx += 1
 
@@ -165,6 +194,7 @@ def cmd_all(cfg):
         cmd_report(cfg)
     cmd_cleanup(cfg)
 
+@junit
 def cmd_bisect(cfg):
     if len(cfg.get('merge_ref')) != 1:
         raise Exception("Bisecting currently works only with exactly one mergeref")
@@ -227,6 +257,7 @@ def setup_parser():
     parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
     parser.add_argument("-w", "--wipe", help="Clean build (make mrproper before building), remove workdir when finished",
                         action="store_true", default=False)
+    parser.add_argument("--junit", help="Path to dir to store junit results in")
     parser.add_argument("-v", "--verbose", help="Increase verbosity level",
                         action="count", default=0)
     parser.add_argument("--rc", help="Path to rc file", default=DEFAULTRC)
@@ -264,6 +295,7 @@ def setup_parser():
     parser_report = subparsers.add_parser("report", add_help=False)
     parser_report.add_argument("--reporter", nargs=2, type=str, help="Reporter config in 'type \"{'key' : 'val', ...}\"' format")
     parser_report.set_defaults(func=cmd_report)
+    parser_report.set_defaults(_name="report")
 
     parser_cleanup = subparsers.add_parser("cleanup", add_help=False)
 
@@ -283,17 +315,24 @@ def setup_parser():
                               action="help")
 
     parser_merge.set_defaults(func=cmd_merge)
+    parser_merge.set_defaults(_name="merge")
     parser_build.set_defaults(func=cmd_build)
+    parser_build.set_defaults(_name="build")
     parser_publish.set_defaults(func=cmd_publish)
+    parser_publish.set_defaults(_name="publish")
     parser_run.set_defaults(func=cmd_run)
+    parser_run.set_defaults(_name="run")
     parser_cleanup.set_defaults(func=cmd_cleanup)
+    parser_cleanup.set_defaults(_name="cleanup")
     parser_all.set_defaults(func=cmd_all)
+    parser_all.set_defaults(_name="all")
 
     parser_bisect = subparsers.add_parser("bisect", add_help=True)
     parser_bisect.add_argument("commitbad", type=str, help="Bad commit for bisect")
     parser_bisect.add_argument("--commitgood", type=str, help="Good commit for bisect. Default's to baserepo's HEAD")
     parser_bisect.add_argument("--host", type=str, help="If needs to be bisected on specific host")
     parser_bisect.set_defaults(func=cmd_bisect)
+    parser_bisect.set_defaults(_name="bisect")
 
     return parser
 
@@ -302,6 +341,7 @@ def load_config(args):
     config.read(os.path.expanduser(args.rc))
     cfg = vars(args)
     cfg['_parser'] = config
+    cfg['_testcases'] = []
 
     # Read 'state' section first so that it is not overwritten by 'config'
     # section values.
@@ -375,6 +415,11 @@ def main():
     cfg = load_config(args)
 
     args.func(cfg)
+    if cfg.get('junit') != None:
+        ts = junit_xml.TestSuite("skt", cfg.get('_testcases'))
+        with open("%s/%s.xml" % (cfg.get('junit'), args._name), 'w') as fp:
+            junit_xml.TestSuite.to_file(fp, [ts])
+
     sys.exit(retcode)
 
 if __name__ == '__main__':

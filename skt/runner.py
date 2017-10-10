@@ -61,6 +61,15 @@ class beakerrunner(runner):
         (stdout, stderr) = bkr.communicate()
         return etree.fromstring(stdout)
 
+    def dumpjunitresults(self, jobid, junit):
+        args = [ "bkr", "job-results", "--format=junit-xml" ]
+        args.append(jobid)
+
+        fname = "%s/%s.xml" % (junit, jobid.replace(":", "_").lower())
+        with open(fname, 'w') as fp:
+            bkr = subprocess.Popen(args, stdout=fp)
+            (stdout, stderr) = bkr.communicate()
+
     def getconsolelog(self, jobid = None):
         url = None
 
