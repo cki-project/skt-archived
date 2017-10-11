@@ -34,6 +34,7 @@ class beakerrunner(runner):
         self.recipes = set()
         self.jobs = set()
         self.lastsubmitted = None
+        self.j2r = dict()
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -82,6 +83,25 @@ class beakerrunner(runner):
             url = el.attrib.get("href")
 
         return url
+
+    def _forget_cid(self, cid):
+        if cid.startswith("J:"):
+            self.jobs.remove(cid)
+            for rid in self.j2r[cid]:
+                self.recipes.remove(rid)
+        elif cid.startswith("R:"):
+            self.recipes.remove(cid)
+            deljids = set()
+            for (jid, rset) in self.j2r.iteritems():
+                if cid in rset:
+                    rset.remove(cid)
+                    if len(rset) == 0:
+                        deljids.add(jid)
+            for jid in deljids:
+                del self.j2r[jid]
+                self.jobs.remove(jid)
+        else:
+            raise ValueError("Unknown cid type: %s" % cid)
 
     def getverboseresults(self, joblist):
         result = dict()
@@ -199,6 +219,7 @@ class beakerrunner(runner):
                         if tinst is not None and tinst.attrib.get("result") != "Pass":
                             logging.warning("%s failed before kernelinstall, resubmitting",
                                             cid)
+                            self._forget_cid(cid)
                             newjob = self.recipe_to_job(root, False)
                             newjobid = self.jobsubmit(etree.tostring(newjob))
                             self.add_to_watchlist(newjobid, origin == None)
@@ -232,8 +253,10 @@ class beakerrunner(runner):
         if self.whiteboard == None:
             self.whiteboard = root.find("whiteboard").text
 
+        self.j2r[jobid] = set()
         for el in root.findall("recipeSet/recipe"):
             cid = "R:%s" % el.attrib.get("id")
+            self.j2r[jobid].add(cid)
             self.watchlist.add((cid, reschedule, origin))
             self.recipes.add(cid)
             if origin != None:
