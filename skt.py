@@ -62,6 +62,10 @@ def junit(func):
                 tc.add_failure_info(str(e))
                 retcode = 1
 
+            # No exception but retcode != 0, probably tests failed
+            if retcode != 0 and not tc.is_failure():
+                tc.add_failure_info("Step finished with retcode: %d" % retcode)
+
             tc.stdout = json.dumps(cfg, default=str)
             tc.elapsed_sec = time.time() - tstart
             cfg['_testcases'].append(tc)
