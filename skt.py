@@ -54,7 +54,7 @@ def junit(func):
         global retcode
         if cfg.get('junit') != None:
             tstart = time.time()
-            tc = junit_xml.TestCase("skt_%s" % func.__name__, classname="skt")
+            tc = junit_xml.TestCase(func.__name__, classname="skt")
 
             try:
                 func(cfg)
