@@ -79,7 +79,9 @@ def cmd_merge(cfg):
     global retcode
     ktree = skt.ktree(cfg.get('baserepo'), ref=cfg.get('ref'),
                               wdir=cfg.get('workdir'))
-    ktree.checkout()
+    bhead = ktree.checkout()
+    save_state(cfg, {'basehead' : bhead})
+
     for mb in cfg.get('merge_ref'):
         (retcode, head) = ktree.merge_git_ref(*mb)
         save_state(cfg, {'mergehead' : head})
