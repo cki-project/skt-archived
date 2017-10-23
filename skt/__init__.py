@@ -67,6 +67,19 @@ class ktree(object):
 
         return head
 
+    def get_commit_date(self, ref):
+        grs = subprocess.Popen(["git",
+                                "--work-tree", self.wdir,
+                                "--git-dir", self.gdir,
+                                "show",
+                                "--format=%ct",
+                                "-s",
+                                ref],
+                               stdout = subprocess.PIPE)
+        (stdout, stderr) = grs.communicate()
+
+        return int(stdout.rstrip())
+
     def checkout(self):
         dstref = "refs/remotes/origin/%s" % (self.ref.split('/')[-1])
         logging.info("fetching base repo")

@@ -80,7 +80,9 @@ def cmd_merge(cfg):
     ktree = skt.ktree(cfg.get('baserepo'), ref=cfg.get('ref'),
                               wdir=cfg.get('workdir'))
     bhead = ktree.checkout()
-    save_state(cfg, {'basehead' : bhead})
+    commitdate = ktree.get_commit_date(bhead)
+    save_state(cfg, {'basehead' : bhead,
+                     'commitdate' : commitdate})
 
     for mb in cfg.get('merge_ref'):
         (retcode, head) = ktree.merge_git_ref(*mb)
