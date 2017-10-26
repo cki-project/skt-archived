@@ -151,6 +151,9 @@ class beakerrunner(runner):
 
         if jobid == None or ret != 0:
             for (recipe, data) in self.failures.iteritems():
+                # Treat single failure as a fluke during normal run
+                if data[2] >= 3 and len(data[0]) < 2:
+                    continue
                 tfailures += len(data[0])
                 logging.info("%s failed %d/%d (%s)%s", recipe, len(data[0]),
                              data[2], ', '.join(data[1]),
