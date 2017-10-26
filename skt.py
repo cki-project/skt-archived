@@ -101,9 +101,11 @@ def cmd_merge(cfg):
 
     kpath = ktree.getpath()
     buildinfo = ktree.dumpinfo()
+    buildhead = ktree.get_commit()
 
     save_state(cfg, {'workdir'   : kpath,
-                     'buildinfo' : buildinfo})
+                     'buildinfo' : buildinfo,
+                     'buildhead' : buildhead})
 
 @junit
 def cmd_build(cfg):
