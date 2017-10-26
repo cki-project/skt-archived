@@ -115,13 +115,19 @@ def cmd_build(cfg):
                                       cfg.get('cfgtype'))
 
     tgz = builder.mktgz(cfg.get('wipe'))
-    ttgz = addtstamp(tgz, tstamp)
+    if cfg.get('buildhead') != None:
+        ttgz = "%s.tar.gz" % cfg.get('buildhead')
+    else:
+        ttgz = addtstamp(tgz, tstamp)
     os.rename(tgz, ttgz)
     logging.info("tarball path: %s", ttgz)
 
     tbuildinfo = None
     if cfg.get('buildinfo') != None:
-        tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
+        if cfg.get('buildhead') != None:
+            tbuildinfo = "%s.csv" % cfg.get('buildhead')
+        else:
+            tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
         os.rename(cfg.get('buildinfo'), tbuildinfo)
 
     krelease = builder.getrelease()
