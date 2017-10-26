@@ -166,7 +166,8 @@ def cmd_run(cfg):
 
     cfg['jobs'] = runner.jobs
 
-    if retcode != 0 and cfg.get('basehead') and cfg.get('publisher'):
+    if retcode != 0 and cfg.get('basehead') and cfg.get('publisher') \
+            and cfg.get('basehead') != cfg.get('buildhead'):
         # TODO: there is a chance that baseline 'krelease' is different
         baserunner = skt.runner.getrunner(*cfg.get('runner'))
         publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
