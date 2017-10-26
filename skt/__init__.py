@@ -60,25 +60,39 @@ class ktree(object):
                 f.write(','.join(iitem) + "\n")
         return fpath
 
-    def get_head(self, ref):
-        head = None
-        with open(os.path.join(self.gdir, ref), 'r') as f:
-            head = f.readline().rstrip()
+    def get_commit_date(self, ref = None):
+        args = ["git",
+                "--work-tree", self.wdir,
+                "--git-dir", self.gdir,
+                "show",
+                "--format=%ct",
+                "-s"]
 
-        return head
+        if ref != None:
+            args.append(ref)
 
-    def get_commit_date(self, ref):
-        grs = subprocess.Popen(["git",
-                                "--work-tree", self.wdir,
-                                "--git-dir", self.gdir,
-                                "show",
-                                "--format=%ct",
-                                "-s",
-                                ref],
-                               stdout = subprocess.PIPE)
+        logging.debug("git_commit_date: %s", args)
+        grs = subprocess.Popen(args, stdout = subprocess.PIPE)
         (stdout, stderr) = grs.communicate()
 
         return int(stdout.rstrip())
+
+    def get_commit(self, ref = None):
+        args = ["git",
+                "--work-tree", self.wdir,
+                "--git-dir", self.gdir,
+                "show",
+                "--format=%H",
+                "-s"]
+
+        if ref != None:
+            args.append(ref)
+
+        logging.debug("git_commit: %s", args)
+        grs = subprocess.Popen(args, stdout = subprocess.PIPE)
+        (stdout, stderr) = grs.communicate()
+
+        return stdout.rstrip()
 
     def checkout(self):
         dstref = "refs/remotes/origin/%s" % (self.ref.split('/')[-1])
@@ -90,7 +104,7 @@ class ktree(object):
         logging.info("checking out %s", self.ref)
         self.git_cmd("reset", "--hard", dstref)
 
-        head = self.get_head(dstref)
+        head = self.get_commit()
         self.info.append(("base", self.uri, head))
         logging.info("baserepo %s: %s", self.ref, head)
         return str(head).rstrip()
@@ -148,7 +162,7 @@ class ktree(object):
                 logging.getLogger().level > logging.DEBUG else {}
 
             self.git_cmd("merge", "--no-edit", dstref, **grargs)
-            head = self.get_head(dstref)
+            head = self.get_commit(dstref)
             self.info.append(("git", uri, head))
             logging.info("%s %s: %s", rname, ref, head)
         except subprocess.CalledProcessError:
