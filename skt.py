@@ -157,7 +157,6 @@ def cmd_run(cfg):
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                          cfg.get('wait'))
 
-    save_state(cfg, {'retcode' : retcode})
     idx = 0
     for job in runner.jobs:
         if cfg.get('wait') and cfg.get('junit') != None:
@@ -166,6 +165,23 @@ def cmd_run(cfg):
         idx += 1
 
     cfg['jobs'] = runner.jobs
+
+    if retcode != 0 and cfg.get('basehead') and cfg.get('publisher'):
+        # TODO: there is a chance that baseline 'krelease' is different
+        baserunner = skt.runner.getrunner(*cfg.get('runner'))
+        publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
+        baseurl = publisher.geturl("%s.tar.gz" % cfg.get('basehead'))
+        basehost = runner.get_mfhost()
+        baseres = baserunner.run(baseurl, cfg.get('krelease'), cfg.get('wait'),
+                                 host = basehost, uid = "baseline check",
+                                 reschedule = False)
+        save_state(cfg, {'baseretcode' : baseres})
+
+        # If baseline also fails - assume pass
+        if baseres != 0:
+            retcode = 0
+
+    save_state(cfg, {'retcode' : retcode})
 
     if retcode != 0 and cfg.get('bisect') == True:
         cfg['commitbad'] = cfg.get('mergehead')

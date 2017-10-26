@@ -127,6 +127,13 @@ class beakerrunner(runner):
 
         return result
 
+    def get_mfhost(self):
+        fhosts = list()
+        for data in self.failures.values():
+            fhosts += data[0]
+
+        return max(set(fhosts), key=fhosts.count)
+
     def jobresult(self, jobid):
         ret = 0
         result = None
