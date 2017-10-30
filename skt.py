@@ -103,7 +103,7 @@ def cmd_merge(cfg):
         for patch in cfg.get('pw'):
             ktree.merge_patchwork_patch(patch)
 
-    uid = "baseline"
+    uid = "[baseline]"
     if len(utypes):
         uid = " ".join(utypes)
 
