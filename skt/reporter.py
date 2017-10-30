@@ -200,11 +200,13 @@ class reporter(object):
         vresults = runner.getverboseresults(list(self.cfg.get("jobs")))
 
         result.append("\n-----------------------")
+        jidx = 1
         for jobid in sorted(self.cfg.get("jobs")):
             for (recipe, rdata) in vresults[jobid].iteritems():
                 if recipe == "result":
                     continue
 
+                result.append("run index: %d" % jidx)
                 result.append("system: %s" % rdata[1].split(".")[0])
                 result.append("result: %s" % rdata[0])
 
@@ -215,16 +217,17 @@ class reporter(object):
                         clog = consolelog(self.cfg.get("krelease"), rdata[2])
                         idx = 0
                         for trace in clog.gettraces():
-                            self.attach.append(("%s_%d.log" % (
-                                               recipe.replace(":", "_").lower(),
-                                               idx), trace))
+                            ctfname = "%02d_ctrace_%02d.log" % (jidx, idx)
+                            result.append("call trace log attached: %s" % ctfname)
+                            self.attach.append((ctfname, trace))
                             idx += 1
 
-                        self.attach.append(("%s_console.log.gz" % (
-                                           recipe.replace(":", "_").lower()),
-                                           clog.getfulllog()))
+                        clfname = "%02d_console.log.gz" % jidx
+                        result.append("full console log attached: %s" % clfname)
+                        self.attach.append((clfname, clog.getfulllog()))
 
                 result.append("")
+                jidx += 1
 
         return result
 
