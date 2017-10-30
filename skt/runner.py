@@ -114,14 +114,26 @@ class beakerrunner(runner):
             for recipe in root.findall("recipeSet/recipe"):
                 rid = "R:%s" % recipe.attrib.get("id")
                 clogurl = None
+                slshwurl = None
+                llshwurl = None
 
-                clog = recipe.find("logs/log[@name='console.log']")
-                if clog != None:
-                    clogurl = clog.attrib.get("href")
+                tmp = recipe.find("logs/log[@name='console.log']")
+                if tmp != None:
+                    clogurl = tmp.attrib.get("href")
+
+                tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/log[@name='machinedesc.log']")
+                if tmp != None:
+                    slshw = tmp.attrib.get("href")
+
+                tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/log[@name='lshw.log']")
+                if tmp != None:
+                    llshw = tmp.attrib.get("href")
 
                 rdata = (recipe.attrib.get("result"),
                          recipe.attrib.get("system"),
-                         clogurl)
+                         clogurl,
+                         slshwurl,
+                         llshwurl)
 
                 result[jobid][rid] = rdata
 

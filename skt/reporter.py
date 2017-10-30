@@ -206,25 +206,38 @@ class reporter(object):
                 if recipe == "result":
                     continue
 
+                (res, system, clogurl, slshwurl, llshwurl) = rdata
+
                 result.append("run index: %d" % jidx)
-                result.append("system: %s" % rdata[1].split(".")[0])
-                result.append("result: %s" % rdata[0])
+                result.append("system: %s" % system.split(".")[0])
+                result.append("result: %s" % res)
 
-                if rdata[2] != None:
-                    if rdata[0] != "Pass":
-                        logging.info("Panic detected in recipe %s, attaching console log",
-                                     recipe)
-                        clog = consolelog(self.cfg.get("krelease"), rdata[2])
-                        idx = 0
-                        for trace in clog.gettraces():
-                            ctfname = "%02d_ctrace_%02d.log" % (jidx, idx)
-                            result.append("call trace log attached: %s" % ctfname)
-                            self.attach.append((ctfname, trace))
-                            idx += 1
+                if slshwurl != None:
+                    r = requests.get(slshwurl)
+                    if r != None:
+                        result.append("machine info:")
+                        result += r.text.split('\n')
 
-                        clfname = "%02d_console.log.gz" % jidx
-                        result.append("full console log attached: %s" % clfname)
-                        self.attach.append((clfname, clog.getfulllog()))
+                if llshwurl != None:
+                    r = requests.get(llshwurl)
+                    if r != None:
+                        lshwfname = "%02d_lshw.log" % jidx
+                        self.attach.append((lshwfname, r.text))
+
+                if clogurl != None and res != "Pass":
+                    logging.info("Panic detected in recipe %s, attaching console log",
+                                 recipe)
+                    clog = consolelog(self.cfg.get("krelease"), clogurl)
+                    idx = 0
+                    for trace in clog.gettraces():
+                        ctfname = "%02d_ctrace_%02d.log" % (jidx, idx)
+                        result.append("call trace log attached: %s" % ctfname)
+                        self.attach.append((ctfname, trace))
+                        idx += 1
+
+                    clfname = "%02d_console.log.gz" % jidx
+                    result.append("full console log attached: %s" % clfname)
+                    self.attach.append((clfname, clog.getfulllog()))
 
                 result.append("")
                 jidx += 1
