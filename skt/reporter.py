@@ -232,7 +232,6 @@ class reporter(object):
         msg = list()
 
         msg.append("result report for kernel %s" % self.cfg.get("krelease"))
-        msg.append("tarpkg url: %s" % self.cfg.get("buildurl"))
 
         msg += self.getmergeinfo()
         msg += self.gettested()
