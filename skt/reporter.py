@@ -167,6 +167,13 @@ class reporter(object):
             else:
                 logging.warning("Unknown infotype: %s", idata[0])
 
+
+        r = requests.get(self.cfg.get("cfgurl"))
+        if r != None:
+            cfgname = ".config"
+            result.append("config: see attached '%s'" % cfgname)
+            self.attach.append((cfgname, r.text))
+
         result.insert(0, "\n-----------------------")
         return result
 
@@ -240,7 +247,8 @@ class stdioreporter(reporter):
         print self.getreport()
 
         for (name, att) in self.attach:
-            if not (name.endswith('.log') or name.endswith('.txt')):
+            if not (name.endswith('.log') or name.endswith('.txt') or \
+                    name.endswith('.config')):
                 continue
             print "\n---------------\n%s\n" % name
             print att
@@ -264,7 +272,8 @@ class mailreporter(reporter):
         msg.attach(MIMEText(self.getreport()))
 
         for (name, att) in self.attach:
-            if (name.endswith('.log') or name.endswith('.txt')):
+            if (name.endswith('.log') or name.endswith('.txt') or \
+                    name.endswith('.config')):
 		tmp = MIMEText(att, _charset='utf-8')
 		tmp.add_header("content-disposition", "attachment",
                                filename=name)
