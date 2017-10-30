@@ -232,7 +232,7 @@ class beakerrunner(runner):
                             self._forget_cid(cid)
                             newjob = self.recipe_to_job(root, False)
                             newjobid = self.jobsubmit(etree.tostring(newjob))
-                            self.add_to_watchlist(newjobid, origin == None)
+                            self.add_to_watchlist(newjobid, reschedule, None)
                         else:
                             if origin == None:
                                 origin = cid
