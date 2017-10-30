@@ -288,6 +288,9 @@ class kbuilder(object):
         subprocess.check_call(["make", "-C", self.path, self.cfgtype])
         self._ready = 1
 
+    def get_cfgpath(self):
+        return "%s/.config" % self.path
+
     def getrelease(self):
         krelease = None
         if not self._ready:

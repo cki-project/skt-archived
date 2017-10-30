@@ -130,10 +130,14 @@ def cmd_build(cfg):
             tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
         os.rename(cfg.get('buildinfo'), tbuildinfo)
 
+    tconfig = "%s.config" % cfg.get('buildinfo', timestamp)
+    shutil.copyfile(builder.get_cfgpath(), tconfig)
+
     krelease = builder.getrelease()
 
     save_state(cfg, {'tarpkg'    : ttgz,
                      'buildinfo' : tbuildinfo,
+                     'buildconf' : tconfig,
                      'krelease'  : krelease})
 
 @junit
@@ -147,7 +151,11 @@ def cmd_publish(cfg):
     if cfg.get('buildinfo') != None:
         infourl = publisher.publish(cfg.get('buildinfo'))
 
+    if cfg.get('buildconf') != None:
+        cfgurl = publisher.publish(cfg.get('buildconf'))
+
     save_state(cfg, {'buildurl' : url,
+                     'cfgurl'   : cfgurl,
                      'infourl'  : infourl})
 
 @junit
