@@ -171,7 +171,7 @@ class reporter(object):
         r = requests.get(self.cfg.get("cfgurl"))
         if r != None:
             cfgname = ".config"
-            result.append("config: see attached '%s'" % cfgname)
+            result.append("\nconfig: see attached '%s'" % cfgname)
             self.attach.append((cfgname, r.text))
 
         result.insert(0, "\n-----------------------")
@@ -205,7 +205,7 @@ class reporter(object):
                 if recipe == "result":
                     continue
 
-                result.append("system: %s" % rdata[1])
+                result.append("system: %s" % rdata[1].split(".")[0])
                 result.append("result: %s" % rdata[0])
 
                 if rdata[2] != None:
