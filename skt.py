@@ -77,6 +77,7 @@ def junit(func):
 @junit
 def cmd_merge(cfg):
     global retcode
+    utypes = []
     ktree = skt.ktree(cfg.get('baserepo'), ref=cfg.get('ref'),
                               wdir=cfg.get('workdir'))
     bhead = ktree.checkout()
@@ -88,16 +89,23 @@ def cmd_merge(cfg):
         (retcode, head) = ktree.merge_git_ref(*mb)
         save_state(cfg, {'mergehead' : head})
 
+        utypes.append("[git]")
         if retcode != 0:
             return
 
     if cfg.get('patchlist') != None:
+        utypes.append("[local patch]")
         for patch in cfg.get('patchlist'):
             ktree.merge_patch_file(patch)
 
     if cfg.get('pw') != None:
+        utypes.append("[patchwork]")
         for patch in cfg.get('pw'):
             ktree.merge_patchwork_patch(patch)
+
+    uid = "baseline"
+    if len(utypes):
+        uid = " ".join(utypes)
 
     kpath = ktree.getpath()
     buildinfo = ktree.dumpinfo()
@@ -105,7 +113,8 @@ def cmd_merge(cfg):
 
     save_state(cfg, {'workdir'   : kpath,
                      'buildinfo' : buildinfo,
-                     'buildhead' : buildhead})
+                     'buildhead' : buildhead,
+                     'uid'       : uid})
 
 @junit
 def cmd_build(cfg):
@@ -163,7 +172,7 @@ def cmd_run(cfg):
     global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                         cfg.get('wait'))
+                         cfg.get('wait'), uid = cfg.get('uid'))
 
     idx = 0
     for job in runner.jobs:
