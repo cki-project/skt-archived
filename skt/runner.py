@@ -123,11 +123,11 @@ class beakerrunner(runner):
 
                 tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/log[@name='machinedesc.log']")
                 if tmp != None:
-                    slshw = tmp.attrib.get("href")
+                    slshwurl = tmp.attrib.get("href")
 
                 tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/log[@name='lshw.log']")
                 if tmp != None:
-                    llshw = tmp.attrib.get("href")
+                    llshwurl = tmp.attrib.get("href")
 
                 rdata = (recipe.attrib.get("result"),
                          recipe.attrib.get("system"),

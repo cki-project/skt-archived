@@ -222,6 +222,8 @@ class reporter(object):
                     r = requests.get(llshwurl)
                     if r != None:
                         lshwfname = "%02d_lshw.log" % jidx
+                        result.append("full machine info attached: %s" %
+                                      lshwfname)
                         self.attach.append((lshwfname, r.text))
 
                 if clogurl != None and res != "Pass":
