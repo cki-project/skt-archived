@@ -230,8 +230,10 @@ class reporter(object):
                     clog = consolelog(self.cfg.get("krelease"), clogurl)
                     idx = 0
                     for trace in clog.gettraces():
+                        if idx == 0:
+                            result.append("call trace logs attached:")
                         ctfname = "%02d_ctrace_%02d.log" % (jidx, idx)
-                        result.append("call trace log attached: %s" % ctfname)
+                        result.append("  %s" % ctfname)
                         self.attach.append((ctfname, trace))
                         idx += 1
 
