@@ -200,6 +200,7 @@ class reporter(object):
         vresults = runner.getverboseresults(list(self.cfg.get("jobs")))
 
         result.append("\n-----------------------")
+        minfo = { "short": {}, "long": {} }
         jidx = 1
         for jobid in sorted(self.cfg.get("jobs")):
             for (recipe, rdata) in vresults[jobid].iteritems():
@@ -207,24 +208,32 @@ class reporter(object):
                     continue
 
                 (res, system, clogurl, slshwurl, llshwurl) = rdata
+                ssys = system.split(".")[0]
 
                 result.append("run index: %d" % jidx)
-                result.append("system: %s" % system.split(".")[0])
+                result.append("system: %s" % ssys)
                 result.append("result: %s" % res)
 
                 if slshwurl != None:
-                    r = requests.get(slshwurl)
-                    if r != None:
-                        result.append("machine info:")
-                        result += r.text.split('\n')
+                    if system not in minfo["short"]:
+                        r = requests.get(slshwurl)
+                        if r != None:
+                            result.append("machine info:")
+                            result += r.text.split('\n')
+                            minfo["short"][system] = jidx
+                    else:
+                        result.append("machine info: same as %d" %
+                                      minfo["short"].get(system))
 
                 if llshwurl != None:
-                    r = requests.get(llshwurl)
-                    if r != None:
-                        lshwfname = "%02d_lshw.log" % jidx
-                        result.append("full machine info attached: %s" %
-                                      lshwfname)
-                        self.attach.append((lshwfname, r.text))
+                    lshwfname = "%s_lshw.log" % ssys
+                    if system not in minfo["long"]:
+                        r = requests.get(llshwurl)
+                        if r != None:
+                            self.attach.append((lshwfname, r.text))
+                            minfo["long"][system] = jidx
+                    result.append("full machine info attached: %s" %
+                                  lshwfname)
 
                 if clogurl != None and res != "Pass":
                     logging.info("Panic detected in recipe %s, attaching console log",
