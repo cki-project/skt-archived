@@ -210,7 +210,7 @@ class reporter(object):
                 (res, system, clogurl, slshwurl, llshwurl) = rdata
                 ssys = system.split(".")[0]
 
-                result.append("run index: %d" % jidx)
+                result.append("index: #%d" % jidx)
                 result.append("system: %s" % ssys)
                 result.append("result: %s" % res)
 
@@ -218,11 +218,11 @@ class reporter(object):
                     if system not in minfo["short"]:
                         r = requests.get(slshwurl)
                         if r != None:
-                            result.append("machine info:")
+                            result.append("\nmachine info:")
                             result += r.text.split('\n')
                             minfo["short"][system] = jidx
                     else:
-                        result.append("machine info: same as %d" %
+                        result.append("machine info: same as #%d" %
                                       minfo["short"].get(system))
 
                 if llshwurl != None:
@@ -252,7 +252,7 @@ class reporter(object):
                     result.append("full console log attached: %s" % clfname)
                     self.attach.append((clfname, clog.getfulllog()))
 
-                result.append("")
+                result.append("---")
                 jidx += 1
 
         return result
