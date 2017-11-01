@@ -239,14 +239,12 @@ class reporter(object):
                     logging.info("Panic detected in recipe %s, attaching console log",
                                  recipe)
                     clog = consolelog(self.cfg.get("krelease"), clogurl)
-                    idx = 0
-                    for trace in clog.gettraces():
-                        if idx == 0:
-                            result.append("call trace logs attached:")
-                        ctfname = "%02d_ctrace_%02d.log" % (jidx, idx)
-                        result.append("  %s" % ctfname)
-                        self.attach.append((ctfname, trace))
-                        idx += 1
+                    ctraces = clog.gettraces()
+                    if len(ctraces) > 0:
+                        ctfname = "%02d_ctrace_%02d.log" % (jidx, 1)
+                        result.append("first encountered call trace attached: %s",
+                                      ctfname)
+                        self.attach.append((ctfname, ctraces[0]))
 
                     clfname = "%02d_console.log.gz" % jidx
                     result.append("full console log attached: %s" % clfname)
