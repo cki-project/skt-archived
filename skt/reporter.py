@@ -331,7 +331,8 @@ class reporter(object):
     def getreport(self):
         msg = list()
 
-        msg.append("result report for kernel %s" % self.cfg.get("krelease"))
+        if self.cfg.get("krelease"):
+            msg.append("result report for kernel %s" % self.cfg.get("krelease"))
 
         msg += self.getmergeinfo()
 
@@ -366,11 +367,24 @@ class mailreporter(reporter):
         self.mailto = [to.strip() for to in mailto.split(",")]
         super(mailreporter, self).__init__(cfg)
 
+    def getsubject(self):
+	subject = "[skt] [%s] " % ("PASS" if self.cfg.get("retcode") == "0" \
+                                          else "FAIL")
+
+	if self.cfg.get("mergelog"):
+            subject += "patch application failed"
+        elif self.cfg.get("buildlog"):
+            subject += "build failed"
+        else:
+            subject += "result report"
+            if self.cfg.get("krelease"):
+                subject += " for kernel %s" % self.cfg.get("krelease")
+
+	return subject
+
     def report(self):
         msg = MIMEMultipart()
-        msg['Subject'] = "[skt] result report for kernel %s [%s]" % (
-                         self.cfg.get("krelease"),
-                         "PASS" if self.cfg.get("retcode") == "0" else "FAIL")
+        msg['Subject'] = self.getsubject()
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
         msg['X-SKT-JIDS'] = ' '.join(self.getjobids())
