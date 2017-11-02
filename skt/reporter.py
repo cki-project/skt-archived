@@ -241,10 +241,8 @@ class reporter(object):
                     clog = consolelog(self.cfg.get("krelease"), clogurl)
                     ctraces = clog.gettraces()
                     if len(ctraces) > 0:
-                        ctfname = "%02d_ctrace_%02d.log" % (jidx, 1)
-                        result.append("first encountered call trace attached: %s",
-                                      ctfname)
-                        self.attach.append((ctfname, ctraces[0]))
+                        result.append("first encountered call trace:")
+                        result.append(ctraces[0])
 
                     clfname = "%02d_console.log.gz" % jidx
                     result.append("full console log attached: %s" % clfname)
