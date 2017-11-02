@@ -24,6 +24,7 @@ import smtplib
 import StringIO
 import tempfile
 import xml.etree.ElementTree as etree
+import skt
 import skt.runner
 
 class consolelog(object):
@@ -145,34 +146,87 @@ class reporter(object):
         self.cfg = cfg
         self.attach = list()
 
-    def getmergeinfo(self):
-        result = []
-
+    def infourldata(self, mergedata):
         r = requests.get(self.cfg.get("infourl"))
         for line in r.text.split('\n'):
             if line == "":
                 continue
             idata = line.split(',')
             if idata[0] == 'base':
-                result = [ "base repo: %s" % idata[1],
-                           "     HEAD: %s" % idata[2], "" ] + result
+                mergedata['base'] = (idata[1], idata[2])
             elif idata[0] == 'git':
-                result += [ "merged git repo: %s" % idata[1],
-                            "           HEAD: %s" % idata[2] ]
+                mergedata['merge_git'].append((idata[1], idata[2]))
             elif idata[0] == 'patch':
-                result += [ "patch: %s" % os.path.basename(idata[1]) ]
+                mergedata['localpatch'].append(os.path.basename(idata[1]))
             elif idata[0] == 'patchwork':
-                result += [ "patchwork url: %s" % idata[1],
-                            "         name: %s" % idata[2] ]
+                mergedata['patchwork'].append((idata[1], idata[2]))
             else:
                 logging.warning("Unknown infotype: %s", idata[0])
 
+        return mergedata
 
-        r = requests.get(self.cfg.get("cfgurl"))
-        if r != None:
-            cfgname = ".config"
-            result.append("\nconfig: see attached '%s'" % cfgname)
-            self.attach.append((cfgname, r.text))
+    def stateconfigdata(self, mergedata):
+        mergedata['base'] = (self.cfg.get("baserepo"), self.cfg.get("basehead"))
+	if self.cfg.get("mergerepos"):
+            mrl = self.cfg.get("mergerepos")
+            mhl = self.cfg.get("mergeheads")
+            for idx in range(0, len(mrl)):
+                mergedata['merge_git'].append((mrl[idx], mhl[idx]))
+
+	if self.cfg.get("localpatches"):
+            mergedata['localpatch'] = self.cfg.get("localpatches")
+
+	if self.cfg.get("patchworks"):
+            for purl in self.cfg.get("patchworks"):
+                (baseurl, patchid) = skt.parse_patchwork_url(purl)
+                rpc = xmlrpclib.ServerProxy("%s/xmlrpc/" % baseurl)
+                pinfo = rpc.patch_get(patchid)
+                mergedata['patchwork'].append((purl, pinfo.get("name")))
+
+        return mergedata
+
+    def getmergeinfo(self):
+        result = []
+        mergedata = {
+                'base' : None,
+                'merge_git' : [],
+                'localpatch' : [],
+                'patchwork' : [],
+                'config' : None,
+                }
+
+        if self.cfg.get("infourl"):
+            mergedata = self.infourldata(mergedata)
+        else:
+            mergedata = self.stateconfigdata(mergedata)
+
+        print mergedata
+
+        if self.cfg.get("cfgurl"):
+            r = requests.get(self.cfg.get("cfgurl"))
+            if r != None:
+                mergedata['config'] = r.text
+        else:
+            with open("%s/.config" % self.cfg.get("workdir"), "r") as fp:
+                mergedata['config'] = fp.read()
+
+        result += [ "base repo: %s" % mergedata['base'][0],
+                    "     HEAD: %s" % mergedata['base'][1] ]
+
+        for (repo, head) in mergedata['merge_git']:
+            result += [ "\nmerged git repo: %s" % repo,
+                        "           HEAD: %s" % head ]
+
+        for (patchpath) in mergedata['localpatch']:
+            result += [ "\npatch: %s" % patchpath ]
+
+        for (purl, pname) in mergedata['patchwork']:
+            result += [ "\npatchwork url: %s" % purl,
+                        "         name: %s" % pname ]
+
+        cfgname = ".config"
+        result.append("\nconfig: see attached '%s'" % cfgname)
+        self.attach.append((cfgname, mergedata["config"]))
 
         result.insert(0, "\n-----------------------")
         return result
@@ -193,6 +247,27 @@ class reporter(object):
         for jobid in sorted(self.cfg.get("jobs")):
             jobids.append(jobid)
         return jobids
+
+    def getmergefailure(self):
+        result = []
+
+        result.append("\n-----------------------")
+        result.append("Merge failed:")
+        with open(self.cfg.get("mergelog"), 'r') as fp:
+            result.append(fp.read())
+        return result
+
+    def getbuildfailure(self):
+        result = []
+
+        attname = "build.log"
+        result.append("\n-----------------------")
+        result.append("Build failed: see attached %s" % attname)
+
+        with open(self.cfg.get("buildlog"), 'r') as fp:
+            self.attach.append((attname, fp.read()))
+
+        return result
 
     def getjobresults(self):
         result = []
@@ -258,8 +333,14 @@ class reporter(object):
         msg.append("result report for kernel %s" % self.cfg.get("krelease"))
 
         msg += self.getmergeinfo()
-        msg += self.gettested()
-        msg += self.getjobresults()
+
+        if self.cfg.get("mergelog"):
+            msg += self.getmergefailure()
+        elif self.cfg.get("buildlog"):
+            msg += self.getbuildfailure()
+        else:
+            msg += self.gettested()
+            msg += self.getjobresults()
 
         return '\n'.join(msg)
 

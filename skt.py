@@ -82,26 +82,40 @@ def cmd_merge(cfg):
                               wdir=cfg.get('workdir'))
     bhead = ktree.checkout()
     commitdate = ktree.get_commit_date(bhead)
-    save_state(cfg, {'basehead' : bhead,
+    save_state(cfg, {'baserepo' : cfg.get('baserepo'),
+                     'basehead' : bhead,
                      'commitdate' : commitdate})
 
-    for mb in cfg.get('merge_ref'):
-        (retcode, head) = ktree.merge_git_ref(*mb)
-        save_state(cfg, {'mergehead' : head})
+    try:
+        idx = 0
+        for mb in cfg.get('merge_ref'):
+            (retcode, head) = ktree.merge_git_ref(*mb)
+            save_state(cfg, {'meregerepo_%02d' % idx : mb[0],
+                             'mergehead_%02d' % idx : head})
 
-        utypes.append("[git]")
-        if retcode != 0:
-            return
+            utypes.append("[git]")
+            idx += 1
+            if retcode != 0:
+                return
 
-    if cfg.get('patchlist') != None:
-        utypes.append("[local patch]")
-        for patch in cfg.get('patchlist'):
-            ktree.merge_patch_file(patch)
+        if cfg.get('patchlist') != None:
+            utypes.append("[local patch]")
+            idx = 0
+            for patch in cfg.get('patchlist'):
+                save_state(cfg, {'localpatch_%02d' % idx : patch})
+                ktree.merge_patch_file(patch)
+                idx += 1
 
-    if cfg.get('pw') != None:
-        utypes.append("[patchwork]")
-        for patch in cfg.get('pw'):
-            ktree.merge_patchwork_patch(patch)
+        if cfg.get('pw') != None:
+            utypes.append("[patchwork]")
+            idx = 0
+            for patch in cfg.get('pw'):
+                ktree.merge_patchwork_patch(patch)
+                save_state(cfg, {'patchwork_%02d' % idx : patch})
+                idx += 1
+    except Exception as e:
+        save_state(cfg, {'mergelog' : ktree.mergelog})
+        raise e
 
     uid = "[baseline]"
     if len(utypes):
@@ -123,7 +137,12 @@ def cmd_build(cfg):
     builder = skt.kbuilder(cfg.get('workdir'), cfg.get('baseconfig'),
                                       cfg.get('cfgtype'))
 
-    tgz = builder.mktgz(cfg.get('wipe'))
+    try:
+        tgz = builder.mktgz(cfg.get('wipe'))
+    except Exception as e:
+        save_state(cfg, {'buildlog' : builder.buildlog})
+        raise e
+
     if cfg.get('buildhead') != None:
         ttgz = "%s.tar.gz" % cfg.get('buildhead')
     else:
@@ -402,6 +421,22 @@ def load_config(args):
                     if "jobs" not in cfg:
                         cfg["jobs"] = set()
                     cfg["jobs"].add(value)
+                elif name.startswith("mergerepo_"):
+                    if "mergerepos" not in cfg:
+                        cfg["mergerepos"] = list()
+                    cfg["mergerepos"].append(value)
+                elif name.startswith("mergehead_"):
+                    if "mergeheads" not in cfg:
+                        cfg["mergeheads"] = list()
+                    cfg["mergeheads"].append(value)
+                elif name.startswith("localpatch_"):
+                    if "localpatches" not in cfg:
+                        cfg["localpatches"] = list()
+                    cfg["localpatches"].append(value)
+                elif name.startswith("patchwork_"):
+                    if "patchworks" not in cfg:
+                        cfg["patchworks"] = list()
+                    cfg["patchworks"].append(value)
                 cfg[name] = value
 
     if config.has_section('config'):

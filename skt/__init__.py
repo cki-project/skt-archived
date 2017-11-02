@@ -20,6 +20,13 @@ import tempfile
 import os
 import xmlrpclib
 
+def parse_patchwork_url(uri):
+    m = re.match("^(.*)/patch/(\d+)/?$", uri)
+    if not m:
+        raise Exception("Can't parse patchwork url: '%s'" % uri)
+
+    return (m.group(1), m.group(2))
+
 class ktree(object):
     def __init__(self, uri, ref=None, wdir=None):
         self.wdir = os.path.expanduser(wdir) if wdir != None else tempfile.mkdtemp()
@@ -180,12 +187,7 @@ class ktree(object):
         return (0, head)
 
     def merge_patchwork_patch(self, uri):
-        m = re.match("^(.*)/patch/(\d+)/?$", uri)
-        if not m:
-            raise Exception("Can't parse patchwork url: '%s'" % uri)
-
-        baseurl = m.group(1)
-        patchid = m.group(2)
+        (baseurl, patchid) = parse_patchwork_url(uri)
 
         rpc = xmlrpclib.ServerProxy("%s/xmlrpc/" % baseurl)
         patchinfo = rpc.patch_get(patchid)
