@@ -27,9 +27,15 @@ class ktree(object):
         self.uri = uri
         self.ref = ref if ref != None else "master"
         self.info = []
+        self.mergelog = "%s/merge.log" % self.wdir
 
         try:
             os.mkdir(self.wdir)
+        except OSError:
+            pass
+
+        try:
+            os.unlink(self.mergelog)
         except OSError:
             pass
 
@@ -194,13 +200,20 @@ class ktree(object):
         gam = subprocess.Popen(["git",
                                 "--work-tree", self.wdir,
                                 "--git-dir", self.gdir,
-                                "am", "-"], stdin = subprocess.PIPE)
+                                "am", "-"],
+                                stdin = subprocess.PIPE,
+                                stdout = subprocess.PIPE,
+                                stderr = subprocess.STDOUT)
 
-        gam.communicate(pdata.encode('utf-8'))
+        (stdout, stderr) = gam.communicate(pdata.encode('utf-8'))
         retcode = gam.wait()
 
         if retcode != 0:
             self.git_cmd("am", "--abort")
+
+            with open(self.mergelog, "w") as fp:
+                fp.write(stdout)
+
             raise Exception("Failed to apply patch %s" % patchid)
 
         self.info.append(("patchwork", uri,
@@ -275,6 +288,12 @@ class kbuilder(object):
         self.basecfg = os.path.expanduser(basecfg)
         self.cfgtype = cfgtype if cfgtype != None else "olddefconfig"
         self._ready = 0
+        self.buildlog = "%s/build.log" % self.path
+
+        try:
+            os.unlink(self.buildlog)
+        except OSError:
+            pass
 
         logging.info("basecfg: %s", self.basecfg)
         logging.info("cfgtype: %s", self.cfgtype)
@@ -323,7 +342,8 @@ class kbuilder(object):
                                "-j%d" % multiprocessing.cpu_count(),
                                "-C", self.path,
                                "targz-pkg"],
-                              stdout = subprocess.PIPE)
+                              stdout = subprocess.PIPE,
+                              stderr = subprocess.STDOUT)
         (stdout, stderr) = mk.communicate()
         for line in stdout.split("\n"):
             m = re.match("^Tarball successfully created in (.*)$", line)
@@ -332,6 +352,9 @@ class kbuilder(object):
                 break
 
         if tgzpath == None:
+            with open(self.buildlog, "w") as fp:
+                fp.write(stdout)
+
             raise Exception("Failed to find tgz path in stdout")
 
         return "/".join([self.path, tgzpath])
