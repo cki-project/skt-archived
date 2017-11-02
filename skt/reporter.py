@@ -244,8 +244,9 @@ class reporter(object):
 
     def getjobids(self):
 	jobids = []
-        for jobid in sorted(self.cfg.get("jobs")):
-            jobids.append(jobid)
+        if self.cfg.get("jobs"):
+            for jobid in sorted(self.cfg.get("jobs")):
+                jobids.append(jobid)
         return jobids
 
     def getmergefailure(self):
