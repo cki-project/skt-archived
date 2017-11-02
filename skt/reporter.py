@@ -211,7 +211,6 @@ class reporter(object):
                 ssys = system.split(".")[0]
 
                 result.append("index: #%d" % jidx)
-                result.append("system: %s" % ssys)
                 result.append("result: %s" % res)
 
                 if slshwurl != None:
@@ -226,7 +225,7 @@ class reporter(object):
                                       minfo["short"].get(system))
 
                 if llshwurl != None:
-                    lshwfname = "%s_lshw.log" % ssys
+                    lshwfname = "%02d_lshw.log" % jidx
                     if system not in minfo["long"]:
                         r = requests.get(llshwurl)
                         if r != None:
