@@ -348,6 +348,9 @@ class reporter(object):
             msg += self.gettested()
             msg += self.getjobresults()
 
+        if self.attach[0][0] == "config":
+            self.attach.append(self.attach.pop(0))
+
         return '\n'.join(msg)
 
 class stdioreporter(reporter):
