@@ -225,7 +225,7 @@ class reporter(object):
             result += [ "\npatchwork url: %s" % purl,
                         "         name: %s" % pname ]
 
-        cfgname = ".config"
+        cfgname = "config"
         result.append("\nconfig: see attached '%s'" % cfgname)
         self.attach.append((cfgname, mergedata["config"]))
 
@@ -358,7 +358,7 @@ class stdioreporter(reporter):
 
         for (name, att) in self.attach:
             if not (name.endswith('.log') or name.endswith('.txt') or \
-                    name.endswith('.config')):
+                    name.endswith('config')):
                 continue
             print "\n---------------\n%s\n" % name
             print att
@@ -396,7 +396,7 @@ class mailreporter(reporter):
 
         for (name, att) in self.attach:
             if (name.endswith('.log') or name.endswith('.txt') or \
-                    name.endswith('.config')):
+                    name.endswith('config')):
 		tmp = MIMEText(att, _charset='utf-8')
 		tmp.add_header("content-disposition", "attachment",
                                filename=name)
