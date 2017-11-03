@@ -24,6 +24,7 @@ import smtplib
 import StringIO
 import tempfile
 import xml.etree.ElementTree as etree
+import xmlrpclib
 import skt
 import skt.runner
 
