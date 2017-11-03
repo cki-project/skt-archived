@@ -89,9 +89,9 @@ def cmd_merge(cfg):
     try:
         idx = 0
         for mb in cfg.get('merge_ref'):
-            (retcode, head) = ktree.merge_git_ref(*mb)
             save_state(cfg, {'meregerepo_%02d' % idx : mb[0],
                              'mergehead_%02d' % idx : head})
+            (retcode, head) = ktree.merge_git_ref(*mb)
 
             utypes.append("[git]")
             idx += 1
@@ -110,8 +110,8 @@ def cmd_merge(cfg):
             utypes.append("[patchwork]")
             idx = 0
             for patch in cfg.get('pw'):
-                ktree.merge_patchwork_patch(patch)
                 save_state(cfg, {'patchwork_%02d' % idx : patch})
+                ktree.merge_patchwork_patch(patch)
                 idx += 1
     except Exception as e:
         save_state(cfg, {'mergelog' : ktree.mergelog})
