@@ -104,11 +104,14 @@ class consolelog(object):
             if tkernel == True:
                 self.data.append(line.encode('utf-8'))
 
-    def getfulllog(self):
+    def gzipdata(self, data):
         tstr = StringIO.StringIO()
         with gzip.GzipFile(fileobj = tstr, mode="w") as f:
-            f.write("\n".join(self.data))
+            f.write(data)
         return tstr.getvalue()
+
+    def getfulllog(self):
+	return self.gzipdata("\n".join(self.data))
 
     def gettraces(self):
         result = []
