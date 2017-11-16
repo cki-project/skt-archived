@@ -304,19 +304,6 @@ class reporter(object):
                         result.append("machine info: same as #%d" %
                                       minfo["short"].get(system))
 
-                if llshwurl != None:
-                    if system not in minfo["long"]:
-                        r = requests.get(llshwurl)
-                        if r != None:
-                            lshwfname = "%02d_lshw.log" % jidx
-                            self.attach.append((lshwfname, r.text))
-                            minfo["long"][system] = jidx
-                            result.append("full machine info attached: %s" %
-                                          lshwfname)
-                    else:
-                        result.append("full machine info same as: #%d" %
-                                      minfo["long"].get(system))
-
                 if clogurl != None and res != "Pass":
                     logging.info("Panic detected in recipe %s, attaching console log",
                                  recipe)
