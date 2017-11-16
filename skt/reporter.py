@@ -313,9 +313,10 @@ class reporter(object):
                         result.append("first encountered call trace:")
                         result.append(ctraces[0])
 
-                    clfname = "%02d_console.log.gz" % jidx
-                    result.append("full console log attached: %s" % clfname)
-                    self.attach.append((clfname, clog.getfulllog()))
+                    if jidx == 1:
+                        clfname = "%02d_console.log.gz" % jidx
+                        result.append("full console log attached: %s" % clfname)
+                        self.attach.append((clfname, clog.getfulllog()))
 
                 result.append("---")
                 jidx += 1
