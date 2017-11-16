@@ -28,6 +28,12 @@ import xmlrpclib
 import skt
 import skt.runner
 
+def gzipdata(data):
+    tstr = StringIO.StringIO()
+    with gzip.GzipFile(fileobj = tstr, mode="w") as f:
+        f.write(data)
+    return tstr.getvalue()
+
 class consolelog(object):
     oopsmsg = [
 	"general protection fault:",
@@ -104,14 +110,8 @@ class consolelog(object):
             if tkernel == True:
                 self.data.append(line.encode('utf-8'))
 
-    def gzipdata(self, data):
-        tstr = StringIO.StringIO()
-        with gzip.GzipFile(fileobj = tstr, mode="w") as f:
-            f.write(data)
-        return tstr.getvalue()
-
     def getfulllog(self):
-	return self.gzipdata("\n".join(self.data))
+	return gzipdata("\n".join(self.data))
 
     def gettraces(self):
         result = []
@@ -228,9 +228,9 @@ class reporter(object):
             result += [ "\npatchwork url: %s" % purl,
                         "         name: %s" % pname ]
 
-        cfgname = "config"
+        cfgname = "config.gz"
         result.append("\nconfig: see attached '%s'" % cfgname)
-        self.attach.append((cfgname, mergedata["config"]))
+        self.attach.append((cfgname, gzipdata(mergedata["config"])))
 
         result.insert(0, "\n-----------------------")
         return result
