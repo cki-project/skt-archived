@@ -362,7 +362,7 @@ class kbuilder(object):
                 tgzpath = m.group(1)
                 break
 
-        if tgzpath == None:
+        if tgzpath == None or not os.path.isfile(tgzpath):
             with open(self.buildlog, "w") as fp:
                 fp.write(stdout)
 
