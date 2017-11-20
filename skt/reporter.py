@@ -204,8 +204,6 @@ class reporter(object):
         else:
             mergedata = self.stateconfigdata(mergedata)
 
-        print mergedata
-
         if self.cfg.get("cfgurl"):
             r = requests.get(self.cfg.get("cfgurl"))
             if r != None:
