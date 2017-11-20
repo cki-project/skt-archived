@@ -149,6 +149,7 @@ class reporter(object):
     def __init__(self, cfg):
         self.cfg = cfg
         self.attach = list()
+        self.mergedata = None
 
     def infourldata(self, mergedata):
         r = requests.get(self.cfg.get("infourl"))
@@ -189,8 +190,7 @@ class reporter(object):
 
         return mergedata
 
-    def getmergeinfo(self):
-        result = []
+    def update_mergedata(self):
         mergedata = {
                 'base' : None,
                 'merge_git' : [],
@@ -212,23 +212,28 @@ class reporter(object):
             with open("%s/.config" % self.cfg.get("workdir"), "r") as fp:
                 mergedata['config'] = fp.read()
 
-        result += [ "base repo: %s" % mergedata['base'][0],
-                    "     HEAD: %s" % mergedata['base'][1] ]
+        self.mergedata = mergedata
 
-        for (repo, head) in mergedata['merge_git']:
+    def getmergeinfo(self):
+        result = []
+
+        result += [ "base repo: %s" % self.mergedata['base'][0],
+                    "     HEAD: %s" % self.mergedata['base'][1] ]
+
+        for (repo, head) in self.mergedata['merge_git']:
             result += [ "\nmerged git repo: %s" % repo,
                         "           HEAD: %s" % head ]
 
-        for (patchpath) in mergedata['localpatch']:
+        for (patchpath) in self.mergedata['localpatch']:
             result += [ "\npatch: %s" % patchpath ]
 
-        for (purl, pname) in mergedata['patchwork']:
+        for (purl, pname) in self.mergedata['patchwork']:
             result += [ "\npatchwork url: %s" % purl,
                         "         name: %s" % pname ]
 
         cfgname = "config.gz"
         result.append("\nconfig: see attached '%s'" % cfgname)
-        self.attach.append((cfgname, gzipdata(mergedata["config"])))
+        self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
 
         result.insert(0, "\n-----------------------")
         return result
@@ -346,6 +351,7 @@ class stdioreporter(reporter):
     TYPE = 'stdio'
 
     def report(self):
+        self.update_mergeinfo()
         print self.getreport()
 
         for (name, att) in self.attach:
@@ -364,10 +370,13 @@ class mailreporter(reporter):
         super(mailreporter, self).__init__(cfg)
 
     def getsubject(self):
-	subject = "[skt] [%s] " % ("PASS" if self.cfg.get("retcode") == "0" \
+        subject = "[skt] [%s] " % ("PASS" if self.cfg.get("retcode") == "0" \
                                           else "FAIL")
 
-	if self.cfg.get("mergelog"):
+        if self.mergedata.get("base"):
+            subject += "[%s] " % self.mergedata['base'][0].split("/")[-1]
+
+        if self.cfg.get("mergelog"):
             subject += "patch application failed"
         elif self.cfg.get("buildlog"):
             subject += "build failed"
@@ -376,9 +385,10 @@ class mailreporter(reporter):
             if self.cfg.get("krelease"):
                 subject += " for kernel %s" % self.cfg.get("krelease")
 
-	return subject
+        return subject
 
     def report(self):
+        self.update_mergeinfo()
         msg = MIMEMultipart()
         msg['Subject'] = self.getsubject()
         msg['To'] = ', '.join(self.mailto)
