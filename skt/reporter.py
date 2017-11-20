@@ -351,7 +351,7 @@ class stdioreporter(reporter):
     TYPE = 'stdio'
 
     def report(self):
-        self.update_mergeinfo()
+        self.update_mergedata()
         print self.getreport()
 
         for (name, att) in self.attach:
@@ -388,7 +388,7 @@ class mailreporter(reporter):
         return subject
 
     def report(self):
-        self.update_mergeinfo()
+        self.update_mergedata()
         msg = MIMEMultipart()
         msg['Subject'] = self.getsubject()
         msg['To'] = ', '.join(self.mailto)
