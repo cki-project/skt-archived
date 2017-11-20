@@ -135,7 +135,7 @@ def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(), "%Y%m%d%H%M%S")
 
     builder = skt.kbuilder(cfg.get('workdir'), cfg.get('baseconfig'),
-                                      cfg.get('cfgtype'))
+                           cfg.get('cfgtype'), cfg.get('makeopts'))
 
     try:
         tgz = builder.mktgz(cfg.get('wipe'))
@@ -346,6 +346,7 @@ def setup_parser():
     parser_build = subparsers.add_parser("build", add_help=False)
     parser_build.add_argument("-c", "--baseconfig", type=str, help="Path to kernel config to use")
     parser_build.add_argument("--cfgtype", type=str, help="How to process default config (default: olddefconfig)")
+    parser_build.add_argument("--makeopts", type=str, help="Additional options to pass to make")
 
     parser_publish = subparsers.add_parser("publish", add_help=False)
     parser_publish.add_argument("-p", "--publisher", type=str, nargs=3, help="Publisher config string in 'type destination baseurl' format")

@@ -285,11 +285,12 @@ class ktree(object):
         return (ret, binfo)
 
 class kbuilder(object):
-    def __init__(self, path, basecfg, cfgtype = None):
+    def __init__(self, path, basecfg, cfgtype = None, makeopts = None):
         self.path = os.path.expanduser(path)
         self.basecfg = os.path.expanduser(basecfg)
         self.cfgtype = cfgtype if cfgtype != None else "olddefconfig"
         self._ready = 0
+        self.makeopts = makeopts
         self.buildlog = "%s/build.log" % self.path
 
         try:
@@ -338,12 +339,20 @@ class kbuilder(object):
     def mktgz(self, clean=True):
         tgzpath = None
         self.prepare(clean)
-        logging.info("building kernel")
-        mk = subprocess.Popen(["make",
-                               "INSTALL_MOD_STRIP=1",
-                               "-j%d" % multiprocessing.cpu_count(),
-                               "-C", self.path,
-                               "targz-pkg"],
+
+        args = ["make"]
+
+        if self.makeopts != None:
+            args.append(self.makeopts)
+
+        args += ["INSTALL_MOD_STRIP=1",
+                 "-j%d" % multiprocessing.cpu_count(),
+                 "-C", self.path,
+                 "targz-pkg"]
+
+        logging.info("building kernel: %s", args)
+
+        mk = subprocess.Popen(args,
                               stdout = subprocess.PIPE,
                               stderr = subprocess.STDOUT)
         (stdout, stderr) = mk.communicate()
