@@ -293,7 +293,7 @@ class reporter(object):
                 (res, system, clogurl, slshwurl, llshwurl) = rdata
                 ssys = system.split(".")[0]
 
-                result.append("index: #%d" % jidx)
+                result.append("Test Run: #%d" % jidx)
                 result.append("result: %s" % res)
 
                 if clogurl != None and res != "Pass":
