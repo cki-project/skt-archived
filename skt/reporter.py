@@ -296,17 +296,6 @@ class reporter(object):
                 result.append("index: #%d" % jidx)
                 result.append("result: %s" % res)
 
-                if slshwurl != None:
-                    if system not in minfo["short"]:
-                        r = requests.get(slshwurl)
-                        if r != None:
-                            result.append("\nmachine info:")
-                            result += r.text.split('\n')
-                            minfo["short"][system] = jidx
-                    else:
-                        result.append("machine info: same as #%d" %
-                                      minfo["short"].get(system))
-
                 if clogurl != None and res != "Pass":
                     logging.info("Panic detected in recipe %s, attaching console log",
                                  recipe)
@@ -320,6 +309,17 @@ class reporter(object):
                         clfname = "%02d_console.log.gz" % jidx
                         result.append("full console log attached: %s" % clfname)
                         self.attach.append((clfname, clog.getfulllog()))
+
+                if slshwurl != None:
+                    if system not in minfo["short"]:
+                        r = requests.get(slshwurl)
+                        if r != None:
+                            result.append("\nmachine info:")
+                            result += r.text.split('\n')
+                            minfo["short"][system] = jidx
+                    else:
+                        result.append("machine info: same as #%d" %
+                                      minfo["short"].get(system))
 
                 result.append("---")
                 jidx += 1
