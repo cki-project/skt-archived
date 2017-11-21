@@ -362,10 +362,14 @@ class kbuilder(object):
                 tgzpath = m.group(1)
                 break
 
-        if tgzpath == None:
+        fpath = None
+        if tgzpath != None:
+            fpath = "/".join([self.path, tgzpath])
+
+        if fpath == None or not os.path.isfile(fpath):
             with open(self.buildlog, "w") as fp:
                 fp.write(stdout)
 
             raise Exception("Failed to find tgz path in stdout")
 
-        return "/".join([self.path, tgzpath])
+        return fpath
