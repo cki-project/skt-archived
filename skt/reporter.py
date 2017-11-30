@@ -260,7 +260,7 @@ class reporter(object):
         result = []
 
         result.append("\n-----------------------")
-        result.append("Merge failed:")
+        result.append("Merge failed during application of the last patch above:\n")
         with open(self.cfg.get("mergelog"), 'r') as fp:
             result.append(fp.read())
         return result
