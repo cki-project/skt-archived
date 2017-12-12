@@ -348,28 +348,6 @@ class reporter(object):
 
         return '\n'.join(msg)
 
-class stdioreporter(reporter):
-    TYPE = 'stdio'
-
-    def report(self):
-        self.update_mergedata()
-        print self.getreport()
-
-        for (name, att) in self.attach:
-            if not (name.endswith('.log') or name.endswith('.txt') or \
-                    name.endswith('config')):
-                continue
-            print "\n---------------\n%s\n" % name
-            print att
-
-class mailreporter(reporter):
-    TYPE = 'mail'
-
-    def __init__(self, cfg, mailfrom, mailto):
-        self.mailfrom = mailfrom
-        self.mailto = [to.strip() for to in mailto.split(",")]
-        super(mailreporter, self).__init__(cfg)
-
     def getsubject(self):
         subject = "[skt] [%s] " % ("PASS" if self.cfg.get("retcode") == "0" \
                                           else "FAIL")
@@ -387,6 +365,29 @@ class mailreporter(reporter):
                 subject += " for kernel %s" % self.cfg.get("krelease")
 
         return subject
+
+class stdioreporter(reporter):
+    TYPE = 'stdio'
+
+    def report(self):
+        self.update_mergedata()
+        print "Subject: %s\n" % self.getsubject()
+        print self.getreport()
+
+        for (name, att) in self.attach:
+            if not (name.endswith('.log') or name.endswith('.txt') or \
+                    name.endswith('config')):
+                continue
+            print "\n---------------\n%s\n" % name
+            print att
+
+class mailreporter(reporter):
+    TYPE = 'mail'
+
+    def __init__(self, cfg, mailfrom, mailto):
+        self.mailfrom = mailfrom
+        self.mailto = [to.strip() for to in mailto.split(",")]
+        super(mailreporter, self).__init__(cfg)
 
     def report(self):
         self.update_mergedata()
