@@ -158,7 +158,7 @@ def cmd_build(cfg):
             tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
         os.rename(cfg.get('buildinfo'), tbuildinfo)
 
-    tconfig = "%s.config" % cfg.get('buildinfo', tstamp)
+    tconfig = "%s.config" % tbuildinfo
     shutil.copyfile(builder.get_cfgpath(), tconfig)
 
     krelease = builder.getrelease()
