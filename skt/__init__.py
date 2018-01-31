@@ -290,8 +290,15 @@ class kbuilder(object):
         self.basecfg = os.path.expanduser(basecfg)
         self.cfgtype = cfgtype if cfgtype != None else "olddefconfig"
         self._ready = 0
-        self.makeopts = makeopts
+        self.makeopts = None
         self.buildlog = "%s/build.log" % self.path
+        self.defmakeargs = ["make", "-C", self.path]
+
+        if makeopts != None:
+            # FIXME: Might want something a bit smarter here, something that
+            # would parse it the same way bash does
+            self.makeopts = makeopts.split(' ')
+            self.defmakeargs += self.makeopts
 
         try:
             os.unlink(self.buildlog)
@@ -303,11 +310,15 @@ class kbuilder(object):
 
     def prepare(self, clean=True):
         if (clean):
-            logging.info("cleaning up tree with mrproper")
-            subprocess.check_call(["make", "-C", self.path, "mrproper"])
+            args = self.defmakeargs + ["mrproper"]
+            logging.info("cleaning up tree: %s", args)
+            subprocess.check_call(args)
+
         shutil.copyfile(self.basecfg, "%s/.config" % self.path)
-        logging.info("prepare config: make %s", self.cfgtype)
-        subprocess.check_call(["make", "-C", self.path, self.cfgtype])
+
+        args = self.defmakeargs + [self.cfgtype]
+        logging.info("prepare config: %s", args)
+        subprocess.check_call(args)
         self._ready = 1
 
     def get_cfgpath(self):
@@ -318,11 +329,8 @@ class kbuilder(object):
         if not self._ready:
             self.prepare(False)
 
-        mk = subprocess.Popen(["make",
-                               "-C",
-                               self.path,
-                               "kernelrelease"],
-                              stdout = subprocess.PIPE)
+        args = self.defmakeargs + ["kernelrelease"]
+        mk = subprocess.Popen(args, stdout = subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
         for line in stdout.split("\n"):
             m = re.match('^\d+\.\d+\.\d+.*$', line)
@@ -340,15 +348,9 @@ class kbuilder(object):
         tgzpath = None
         self.prepare(clean)
 
-        args = ["make"]
-
-        if self.makeopts != None:
-            args.append(self.makeopts)
-
-        args += ["INSTALL_MOD_STRIP=1",
-                 "-j%d" % multiprocessing.cpu_count(),
-                 "-C", self.path,
-                 "targz-pkg"]
+        args = self.defmakeargs + ["INSTALL_MOD_STRIP=1",
+                                   "-j%d" % multiprocessing.cpu_count(),
+                                   "targz-pkg"]
 
         logging.info("building kernel: %s", args)
 
