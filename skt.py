@@ -59,6 +59,7 @@ def junit(func):
             try:
                 func(cfg)
             except Exception as e:
+                logging.error("Exception caught: %s", e)
                 tc.add_failure_info(str(e))
                 retcode = 1
 
