@@ -115,6 +115,7 @@ class ktree(object):
                       (self.ref, dstref))
 
         logging.info("checking out %s", self.ref)
+        self.git_cmd("checkout", "-q", "--detach", dstref)
         self.git_cmd("reset", "--hard", dstref)
 
         head = self.get_commit()
