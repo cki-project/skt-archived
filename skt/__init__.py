@@ -20,12 +20,79 @@ import tempfile
 import os
 import xmlrpclib
 
+def stringfy(v):
+    """Convert any value to a str object
+
+    xmlrpc is not consistent: sometimes the same field
+    is returned a str, sometimes as unicode. We need to
+    handle both cases properly.
+    """
+    if type(v) is str:
+        return v
+    elif type(v) is unicode:
+        return v.encode('utf-8')
+    else:
+        return str(v)
+
+#PatchWork adds a magic API version with each call
+#this class just magically adds/removes it
+class RpcWrapper:
+    def __init__(self, real_rpc):
+        self.rpc = real_rpc
+        #patchwork api coded to
+        self.version = 1010
+
+    def _wrap_call(self, rpc, name):
+        #Wrap a RPC call, adding the expected version number as argument
+        fn = getattr(rpc, name)
+        def wrapper(*args, **kwargs):
+            return fn(self.version, *args, **kwargs)
+        return wrapper
+
+    def _return_check(self, r):
+        #Returns just the real return value, without the version info.
+        v = self.version
+        if r[0] != v:
+            raise RpcProtocolMismatch('Patchwork API mismatch (%i, expected %i)' % (r[0], v))
+        return r[1]
+
+    def _return_unwrapper(self, fn):
+        def unwrap(*args, **kwargs):
+            return self._return_check(fn(*args, **kwargs))
+        return unwrap
+
+    def __getattr__(self, name):
+        #Add the RPC version checking call/return wrappers
+        return self._return_unwrapper(self._wrap_call(self.rpc, name))
+
+
 def parse_patchwork_url(uri):
     m = re.match("^(.*)/patch/(\d+)/?$", uri)
     if not m:
         raise Exception("Can't parse patchwork url: '%s'" % uri)
 
-    return (m.group(1), m.group(2))
+    baseurl = m.group(1)
+    patchid = m.group(2)
+
+    rpc = xmlrpclib.ServerProxy("%s/xmlrpc/" % baseurl)
+    try:
+        ver = rpc.pw_rpc_version()
+        # check for normal patchwork1 xmlrpc version numbers
+        if not (ver == [1,3,0] or ver == 1):
+            raise Exception("Unknown xmlrpc version %s", ver)
+
+    except xmlrpclib.Fault as err:
+        if err.faultCode == 1 and \
+           re.search("index out of range", err.faultString):
+            # possible internal RH instance
+            rpc = RpcWrapper(rpc)
+            ver = rpc.pw_rpc_version()
+            if ver < 1010:
+                raise Exception("Unsupported xmlrpc version %s", ver)
+        else:
+             raise Exception("Unknown xmlrpc fault: %s", err.faultString)
+
+    return (rpc, patchid)
 
 class ktree(object):
     def __init__(self, uri, ref=None, wdir=None):
@@ -188,15 +255,14 @@ class ktree(object):
         return (0, head)
 
     def merge_patchwork_patch(self, uri):
-        (baseurl, patchid) = parse_patchwork_url(uri)
+        (rpc, patchid) = parse_patchwork_url(uri)
 
-        rpc = xmlrpclib.ServerProxy("%s/xmlrpc/" % baseurl)
         patchinfo = rpc.patch_get(patchid)
 
         if not patchinfo:
             raise Exception("Failed to fetch patch info for patch %s" % patchid)
 
-        pdata = rpc.patch_get_mbox(patchid)
+        pdata = stringfy(rpc.patch_get_mbox(patchid))
 
         logging.info("Applying %s", uri)
 
@@ -208,7 +274,7 @@ class ktree(object):
                                 stdout = subprocess.PIPE,
                                 stderr = subprocess.STDOUT)
 
-        (stdout, stderr) = gam.communicate(pdata.encode('utf-8'))
+        (stdout, stderr) = gam.communicate(pdata)
         retcode = gam.wait()
 
         if retcode != 0:

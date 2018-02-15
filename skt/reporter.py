@@ -183,8 +183,7 @@ class reporter(object):
 
 	if self.cfg.get("patchworks"):
             for purl in self.cfg.get("patchworks"):
-                (baseurl, patchid) = skt.parse_patchwork_url(purl)
-                rpc = xmlrpclib.ServerProxy("%s/xmlrpc/" % baseurl)
+                (rpc, patchid) = skt.parse_patchwork_url(purl)
                 pinfo = rpc.patch_get(patchid)
                 mergedata['patchwork'].append((purl, pinfo.get("name")))
 
