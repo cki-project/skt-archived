@@ -96,6 +96,8 @@ def parse_patchwork_url(uri):
 
 class ktree(object):
     def __init__(self, uri, ref=None, wdir=None):
+        # FIXME Move expansion up the call stack, as this limits the class
+        # usefulness, because tilde is a valid path character.
         self.wdir = os.path.expanduser(wdir) if wdir != None else tempfile.mkdtemp()
         self.gdir = "%s/.git" % self.wdir
         self.uri = uri
@@ -353,7 +355,11 @@ class ktree(object):
 
 class kbuilder(object):
     def __init__(self, path, basecfg, cfgtype = None, makeopts = None):
+        # FIXME Move expansion up the call stack, as this limits the class
+        # usefulness, because tilde is a valid path character.
         self.path = os.path.expanduser(path)
+        # FIXME Move expansion up the call stack, as this limits the class
+        # usefulness, because tilde is a valid path character.
         self.basecfg = os.path.expanduser(basecfg)
         self.cfgtype = cfgtype if cfgtype != None else "olddefconfig"
         self._ready = 0

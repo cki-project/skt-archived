@@ -20,7 +20,11 @@ import xml.etree.ElementTree as etree
 
 class runner(object):
     """An abstract test runner"""
+    # TODO This probably shouldn't be here as we never use it, and it should
+    # not be inherited
     TYPE = 'default'
+
+    # TODO Define abstract "run" method.
 
 class beakerrunner(runner):
     TYPE = 'beaker'
@@ -35,6 +39,8 @@ class beakerrunner(runner):
                             the current user's home directory.
         """
         # Beaker job template file path
+        # FIXME Move expansion up the call stack, as this limits the class
+        # usefulness, because tilde is a valid path character.
         self.template = os.path.expanduser(jobtemplate)
         # Name of a Beaker user on whose behalf the job should be submitted,
         # or None, if the owner should be the current user.

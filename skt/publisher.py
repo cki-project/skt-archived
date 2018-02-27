@@ -18,6 +18,8 @@ import subprocess
 
 class publisher(object):
     """An abstract result publisher"""
+    # TODO This probably shouldn't be here as we never use it, and it should
+    # not be inherited
     TYPE = 'default'
 
     def __init__(self, dest, url):
@@ -47,10 +49,14 @@ class publisher(object):
         """
         return "%s/%s" % (self.baseurl, os.path.basename(source))
 
+    # TODO Define abstract "publish" method.
+
 class cppublisher(publisher):
     TYPE = 'cp'
 
     def publish(self, source):
+        # FIXME Move expansion up the call stack, as this limits the class
+        # usefulness, because tilde is a valid path character.
         shutil.copy(os.path.expanduser(source), self.destination)
         return self.geturl(source)
 
@@ -58,6 +64,8 @@ class scppublisher(publisher):
     TYPE = 'scp'
 
     def publish(self, source):
+        # FIXME Move expansion up the call stack, as this limits the class
+        # usefulness, because tilde is a valid path character.
         subprocess.check_call(["scp", os.path.expanduser(source), self.destination])
         return self.geturl(source)
 

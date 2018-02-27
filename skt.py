@@ -46,6 +46,8 @@ def save_state(cfg, state):
             logging.debug("state: %s -> %s", key, val)
             config.set('state', key, val)
 
+    # FIXME Move expansion up the call stack, as this limits the function
+    # usefulness, because tilde is a valid path character.
     with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
         config.write(fp)
 
@@ -237,6 +239,8 @@ def cmd_cleanup(cfg):
     config = cfg.get('_parser')
     if config.has_section('state'):
         config.remove_section('state')
+        # FIXME Move expansion up the call stack, as this limits the function
+        # usefulness, because tilde is a valid path character.
         with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
             config.write(fp)
 
@@ -253,6 +257,8 @@ def cmd_cleanup(cfg):
             pass
 
     if cfg.get('wipe'):
+        # FIXME Move expansion up the call stack, as this limits the function
+        # usefulness, because tilde is a valid path character.
         shutil.rmtree(os.path.expanduser(cfg.get('workdir')))
 
 def cmd_all(cfg):
@@ -343,6 +349,10 @@ def setup_parser():
     parser.add_argument("-v", "--verbose", help="Increase verbosity level",
                         action="count", default=0)
     parser.add_argument("--rc", help="Path to rc file", default=DEFAULTRC)
+    # FIXME Storing state in config file can break the whole system in case
+    #       state saving aborts. It's better to save state separately.
+    #       It also breaks separation of concerns, as in principle skt doesn't
+    #       need to modify its own configuration otherwise.
     parser.add_argument("--state", help="Save/read state from 'state' section of rc file",
                         action="store_true", default=False)
 

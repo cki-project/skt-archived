@@ -154,6 +154,8 @@ class consolelog(object):
             A list of oops and call stack output strings.
         """
         result = []
+        # FIXME Remove implicit fetching as it can hide bugs, as is the case
+        # right now in reporter.getjobresults()
         if self.data == None:
             self.fetchdata()
 
@@ -184,6 +186,8 @@ class consolelog(object):
 
 class reporter(object):
     """Abstract test result reporter"""
+    # TODO This probably shouldn't be here as we never use it, and it should
+    # not be inherited
     TYPE = 'default'
 
     def __init__(self, cfg):
@@ -194,10 +198,12 @@ class reporter(object):
             cfg:    The skt configuration and state.
         """
         # skt configuration and state
+        # FIXME Switch to using an explicitly-defined type
         self.cfg = cfg
         # List of attachment tuples, each containing attachment file name and
         # contents.
         self.attach = list()
+        # TODO Describe
         self.mergedata = None
 
     def infourldata(self, mergedata):
@@ -414,6 +420,8 @@ class reporter(object):
 
         return subject
 
+    # TODO Define abstract "report" method.
+
 class stdioreporter(reporter):
     """A reporter sending results to stdout"""
     TYPE = 'stdio'
@@ -460,6 +468,7 @@ class mailreporter(reporter):
         msg.attach(MIMEText(self.getreport()))
 
         for (name, att) in self.attach:
+            # TODO Store content type and charset when adding attachments
             if (name.endswith('.log') or name.endswith('.txt') or \
                     name.endswith('config')):
 		tmp = MIMEText(att, _charset='utf-8')
