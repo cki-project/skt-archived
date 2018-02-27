@@ -29,12 +29,25 @@ import skt
 import skt.runner
 
 def gzipdata(data):
+    """
+    Compress a string with gzip.
+
+    Args:
+        data:   The string to compress.
+
+    Returns:
+        String containing gzip-compressed data.
+    """
     tstr = StringIO.StringIO()
     with gzip.GzipFile(fileobj = tstr, mode="w") as f:
         f.write(data)
     return tstr.getvalue()
 
 class consolelog(object):
+    """Console log parser"""
+
+    # List of regular expression strings matching
+    # lines beginning an oops or a call trace output
     oopsmsg = [
 	"general protection fault:",
 	"BUG:",
@@ -66,6 +79,8 @@ class consolelog(object):
 	"Oops: Unrecoverable TM Unavailable Exception",
     ]
 
+    # List of regular expression strings matching
+    # lines appearing in a call trace output
     ctvalid = [
         "\[[\d\ \.]+\].*\[[0-9a-f<>]+\]",
         "\[[\d\ \.]+\]\s+.+\s+[A-Z]\s[0-9a-fx ]+",
@@ -86,11 +101,21 @@ class consolelog(object):
         "Modules linked in:"
     ]
 
+    # List of regular expression strings matching
+    # lines ending a call trace output
     expend = [
         "\[ end (trace|Kernel panic)"
     ]
 
     def __init__(self, kver, url):
+        """
+        Initialize a console log parser
+
+        Args:
+            kver:   Kernel version string to use to find the beginning of the
+                    kernel log.
+            url:    URL of the console log file to fetch and parse.
+        """
         self.url = url
         self.kver = kver
         self.data = None
@@ -99,6 +124,9 @@ class consolelog(object):
         self.eendpattern = re.compile("(%s)" % "|".join(self.expend))
 
     def fetchdata(self):
+        """
+        Fetch the console log and extract the specified kernel's log from it.
+        """
         r = requests.get(self.url)
         tkernel = False
 
@@ -111,9 +139,20 @@ class consolelog(object):
                 self.data.append(line.encode('utf-8'))
 
     def getfulllog(self):
+        """
+        Get the gzip-compressed text of the kernel console log.
+        Can only be called after fetchdata().
+        """
 	return gzipdata("\n".join(self.data))
 
     def gettraces(self):
+        """
+        Get a list of oops and call stack outputs extracted from the kernel
+        console log.
+
+        Returns:
+            A list of oops and call stack output strings.
+        """
         result = []
         if self.data == None:
             self.fetchdata()
@@ -144,10 +183,20 @@ class consolelog(object):
         return result
 
 class reporter(object):
+    """Abstract test result reporter"""
     TYPE = 'default'
 
     def __init__(self, cfg):
+        """
+        Initialize an abstract result reporter.
+
+        Args:
+            cfg:    The skt configuration and state.
+        """
+        # skt configuration and state
         self.cfg = cfg
+        # List of attachment tuples, each containing attachment file name and
+        # contents.
         self.attach = list()
         self.mergedata = None
 
@@ -366,6 +415,7 @@ class reporter(object):
         return subject
 
 class stdioreporter(reporter):
+    """A reporter sending results to stdout"""
     TYPE = 'stdio'
 
     def report(self):
@@ -381,10 +431,22 @@ class stdioreporter(reporter):
             print att
 
 class mailreporter(reporter):
+    """A reporter sending results by e-mail"""
     TYPE = 'mail'
 
     def __init__(self, cfg, mailfrom, mailto):
+        """
+        Initialize an e-mail reporter
+
+        Args:
+            cfg:        The skt configuration and state.
+            mailfrom:   A string containing the From: address for e-mails.
+            mailto:     A string containing comma-separated e-mail addresses
+                        to send the result messages to.
+        """
+        # The From: address string
         self.mailfrom = mailfrom
+        # A list of addresses to send reports to
         self.mailto = [to.strip() for to in mailto.split(",")]
         super(mailreporter, self).__init__(cfg)
 
@@ -415,6 +477,19 @@ class mailreporter(reporter):
         s.quit()
 
 def getreporter(rtype, rarg):
+    """
+    Create an instance of a "reporter" subclass with specified arguments.
+
+    Args:
+        rtype:  The value of the class "TYPE" member to match.
+        rarg:   A dictionary with the instance creation arguments.
+
+    Returns:
+        The created class instance.
+
+    Raises:
+        ValueError if the rtype match wasn't found.
+    """
     for cls in reporter.__subclasses__():
         if cls.TYPE == rtype:
             return cls(**rarg)

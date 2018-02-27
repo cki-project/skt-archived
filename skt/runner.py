@@ -19,15 +19,32 @@ import time
 import xml.etree.ElementTree as etree
 
 class runner(object):
+    """An abstract test runner"""
     TYPE = 'default'
 
 class beakerrunner(runner):
     TYPE = 'beaker'
 
     def __init__(self, jobtemplate, jobowner = None):
+        """
+        Initialize a runner executing tests on Beaker.
+
+        Args:
+            jobtemplate:    Path to a Beaker job template. Can contain a tilde
+                            expression ('~' or '~user') to be expanded into
+                            the current user's home directory.
+        """
+        # Beaker job template file path
         self.template = os.path.expanduser(jobtemplate)
+        # Name of a Beaker user on whose behalf the job should be submitted,
+        # or None, if the owner should be the current user.
         self.jobowner = jobowner
+        # Delay between checks of Beaker job statuses, seconds
         self.watchdelay = 60
+        # A set of Beaker jobs to watch, each a 3-tuple containing:
+        # * Taskspec (universal ID) of the job
+        # * True if the job should be rescheduled when failing, false if not
+        # * Taskspec of the origin job - the job this job is a resubmission of
         self.watchlist = set()
         self.whiteboard = None
         self.failures = {}
@@ -357,6 +374,19 @@ class beakerrunner(runner):
         return ret
 
 def getrunner(rtype, rarg):
+    """
+    Create an instance of a "runner" subclass with specified arguments.
+
+    Args:
+        rtype:  The value of the class "TYPE" member to match.
+        rarg:   A dictionary with the instance creation arguments.
+
+    Returns:
+        The created class instance.
+
+    Raises:
+        ValueError if the rtype match wasn't found.
+    """
     for cls in runner.__subclasses__():
         if cls.TYPE == rtype:
             return cls(**rarg)

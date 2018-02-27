@@ -17,9 +17,18 @@ import shutil
 import subprocess
 
 class publisher(object):
+    """An abstract result publisher"""
     TYPE = 'default'
 
     def __init__(self, dest, url):
+        """
+        Initialize an abstract result publisher.
+
+        Args:
+            dest:   Type-specific destination string.
+            url:    Base URL prefix of the published result,
+                    without '/' on the end.
+        """
         self.destination = dest
         self.baseurl = url
 
@@ -27,6 +36,15 @@ class publisher(object):
         logging.info("publisher destination: %s", self.destination)
 
     def geturl(self, source):
+        """
+        Get published URL for a source file path.
+
+        Args:
+            source: Source file path.
+
+        Returns:
+            Published URL corresponding to the specified source.
+        """
         return "%s/%s" % (self.baseurl, os.path.basename(source))
 
 class cppublisher(publisher):
@@ -44,6 +62,19 @@ class scppublisher(publisher):
         return self.geturl(source)
 
 def getpublisher(ptype, parg, pburl):
+    """
+    Create an instance of a "publisher" subclass with specified arguments.
+
+    Args:
+        rtype:  The value of the class "TYPE" member to match.
+        rarg:   A dictionary with the instance creation arguments.
+
+    Returns:
+        The created class instance.
+
+    Raises:
+        ValueError if the rtype match wasn't found.
+    """
     for cls in publisher.__subclasses__():
         if cls.TYPE == ptype:
             return cls(parg, pburl)

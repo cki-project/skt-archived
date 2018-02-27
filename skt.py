@@ -317,11 +317,23 @@ def addtstamp(path, tstamp):
                         "%s-%s" % (tstamp, os.path.basename(path)))
 
 def setup_logging(verbose):
+    """
+    Setup the root logger.
+
+    Args:
+        verbose:    Verbosity level to setup log message filtering.
+    """
     logging.basicConfig(format="%(asctime)s %(levelname)8s   %(message)s")
     logger.setLevel(logging.WARNING - (verbose * 10))
 
 
 def setup_parser():
+    """
+    Create an skt command line parser.
+
+    Returns:
+        The created parser.
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
@@ -408,6 +420,16 @@ def setup_parser():
     return parser
 
 def load_config(args):
+    """
+    Load skt configuration from the command line and the configuration file.
+
+    Args:
+        args:   Parsed command-line configuration, including the path to the
+                configuration file.
+
+    Returns:
+        Loaded configuration dictionary.
+    """
     config = ConfigParser.ConfigParser()
     config.read(os.path.expanduser(args.rc))
     cfg = vars(args)
