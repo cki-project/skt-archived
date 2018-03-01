@@ -20,7 +20,7 @@ import tempfile
 import os
 import xmlrpclib
 
-def stringfy(v):
+def stringify(v):
     """Convert any value to a str object
 
     xmlrpc is not consistent: sometimes the same field
@@ -264,7 +264,7 @@ class ktree(object):
         if not patchinfo:
             raise Exception("Failed to fetch patch info for patch %s" % patchid)
 
-        pdata = stringfy(rpc.patch_get_mbox(patchid))
+        pdata = stringify(rpc.patch_get_mbox(patchid))
 
         logging.info("Applying %s", uri)
 
