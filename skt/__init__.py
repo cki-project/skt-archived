@@ -67,6 +67,21 @@ class RpcWrapper:
 
 
 def parse_patchwork_url(uri):
+    """
+    Create a Patchwork XML RPC interface and extract the patch ID from a
+    Patchwork patch URL.
+
+    Args:
+        uri:    The Patchwork patch URL.
+
+    Returns:
+        The created Patchwork XML RPC interface and the patch ID string.
+
+    Raises:
+        str: URL format was not recognized, or an XML RPC
+             compatibility/communication error has occurred and the string
+             describes it.
+    """
     m = re.match("^(.*)/patch/(\d+)/?$", uri)
     if not m:
         raise Exception("Can't parse patchwork url: '%s'" % uri)
@@ -95,12 +110,30 @@ def parse_patchwork_url(uri):
     return (rpc, patchid)
 
 class ktree(object):
+    """
+    Ktree - a kernel git repository "checkout", i.e. a clone with a working
+    directory
+    """
     def __init__(self, uri, ref=None, wdir=None):
+        """
+        Initialize a ktree.
+
+        Args:
+            uri:    The Git URI of the repository's origin remote.
+            ref:    The remote reference to checkout. Assumed to be "master",
+                    if not specified.
+            wdir:   The directory to house the clone and to checkout into.
+                    Creates and uses a temporary directory if not specified.
+        """
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
+        # The git "working directory" (the "checkout")
         self.wdir = os.path.expanduser(wdir) if wdir != None else tempfile.mkdtemp()
+        # The cloned git repository
         self.gdir = "%s/.git" % self.wdir
+        # The origin remote's URL
         self.uri = uri
+        # The remote reference to checkout
         self.ref = ref if ref != None else "master"
         self.info = []
         self.mergelog = "%s/merge.log" % self.wdir
@@ -143,6 +176,17 @@ class ktree(object):
         return fpath
 
     def get_commit_date(self, ref = None):
+        """
+        Get the committer date of the commit pointed at by the specified
+        reference, or of the currently checked-out commit, if not specified.
+
+        Args:
+            ref:    The reference to commit to get the committer date of,
+                    or None, if the currently checked-out commit should be
+                    used instead.
+        Return:
+            The epoch timestamp string of the commit's committer date.
+        """
         args = ["git",
                 "--work-tree", self.wdir,
                 "--git-dir", self.gdir,
@@ -160,6 +204,16 @@ class ktree(object):
         return int(stdout.rstrip())
 
     def get_commit(self, ref = None):
+        """
+        Get the full hash of the commit pointed at by the specified reference,
+        or of the currently checked-out commit, if not specified.
+
+        Args:
+            ref:    The reference to commit to get the hash of, or None, if
+                    the currently checked-out commit should be used instead.
+        Return:
+            The commit's full hash string.
+        """
         args = ["git",
                 "--work-tree", self.wdir,
                 "--git-dir", self.gdir,
@@ -177,6 +231,14 @@ class ktree(object):
         return stdout.rstrip()
 
     def checkout(self):
+        """
+        Clone and checkout the specified reference from the specified repo URL
+        to the specified working directory. Requires "ref" (reference) to be
+        specified upon creation.
+
+        Returns:
+            Full hash of the last commit.
+        """
         dstref = "refs/remotes/origin/%s" % (self.ref.split('/')[-1])
         logging.info("fetching base repo")
         self.git_cmd("fetch", "-n", "origin",

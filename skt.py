@@ -52,6 +52,29 @@ def save_state(cfg, state):
         config.write(fp)
 
 def junit(func):
+    """
+    Create a function accepting a configuration object and passing it to
+    the specified function, putting the call results into a JUnit test case,
+    if configuration has JUnit result directory specified, simply calling the
+    function otherwise.
+
+    The generated test case is named "skt.<function-name>". The case stdout is
+    set to JSON representation of the configuration object after the function
+    call has completed. The created test case is appended to the
+    "_testcases" list in the configuration object after that. Sets the global
+    "retcode" to 1 in case the function throws an exception. The testcase is
+    considered failed if the function throws an exeption or if the global
+    "retcode" is set to anything but zero after function returns.
+
+    Args:
+        func:   The function to call in the created function. Must accept
+                a configuration object as the argument. Return value would be
+                ignored. Can set the global "retcode" to indicate success
+                (zero) or failure (non-zero).
+
+    Return:
+        The created function.
+    """
     def wrapper(cfg):
         global retcode
         if cfg.get('junit') != None:
