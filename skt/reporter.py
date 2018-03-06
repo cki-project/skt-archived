@@ -162,6 +162,8 @@ class consolelog(object):
         insplat = False
         inct = False
         tmpdata = []
+        # FIXME Check if line == True otherwise it adds an empty line at the
+        # end of the extracted trace.
         for line in self.data:
             if self.oopspattern.search(line):
                 insplat = True
