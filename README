@@ -11,6 +11,10 @@ Here's how to install the dependencies of skt like this:
 
     $ sudo yum install python2 python2-junit_xml beaker-client
 
+Extra dependencies needed for running the testsuite:
+
+    $ sudo yum install python2-mock
+
 Run tests
 ---------
 
