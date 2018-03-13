@@ -3,4 +3,8 @@ python:
     - "2.7"
 install:
     - pip install requests junit_xml beaker-client mock
-script: python -m unittest discover tests
+    - pip install pylint pycodestyle
+script:
+    - python -m unittest discover tests
+    - pylint tests
+    - pycodestyle tests
