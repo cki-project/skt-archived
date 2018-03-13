@@ -1,18 +1,19 @@
 """
 Test cases for reporter module.
 """
-# Copyright (c) 2018 Red Hat, Inc. All rights reserved. This copyrighted material
-# is made available to anyone wishing to use, modify, copy, or
-# redistribute it subject to the terms and conditions of the GNU General
-# Public License v.2 or later.
+# Copyright (c) 2018 Red Hat, Inc. All rights reserved. This copyrighted
+# material is made available to anyone wishing to use, modify, copy, or
+# redistribute it subject to the terms and conditions of the GNU General Public
+# License v.2 or later.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc., 51
+# Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 import unittest
 from contextlib import contextmanager
 import re
@@ -34,6 +35,7 @@ class TestConsoleLog(unittest.TestCase):
             filename: Asset's filename.
         """
         get_mocked = mock.Mock()
+
         def remove_nt_marker(line):
             """Filter function for removing the 'nt ' markers on assets"""
             return not re.match(r'^nt ', line)
@@ -65,7 +67,9 @@ class TestConsoleLog(unittest.TestCase):
         return expected_traces
 
     def test_kernel_version_unmatch(self):
-        """Check it doesn't catch any trace when kernel version doesn't match"""
+        """Check it doesn't catch any trace when kernel version doesn't
+        match.
+        """
         consolelog = reporter.consolelog('4-4', 'someurl')
         with self.request_get_mocked('x86_one_trace.txt'):
             traces = consolelog.gettraces()
@@ -77,7 +81,8 @@ class TestConsoleLog(unittest.TestCase):
         with self.request_get_mocked('x86_one_trace.txt'):
             traces = consolelog.gettraces()
             self.assertEqual(len(traces), 1)
-        expected_trace = self.get_expected_traces('x86_one_trace.txt')[0] + '\n'
+        expected_trace = self.get_expected_traces('x86_one_trace.txt')[0]
+        expected_trace += '\n'
         self.assertEqual(expected_trace, traces[0])
 
     def test_match_three_traces(self):
