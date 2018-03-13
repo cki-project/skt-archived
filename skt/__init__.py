@@ -203,6 +203,7 @@ class ktree(object):
 
         return int(stdout.rstrip())
 
+    # FIXME Rename to say the hash is being retrieved
     def get_commit(self, ref = None):
         """
         Get the full hash of the commit pointed at by the specified reference,
