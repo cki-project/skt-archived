@@ -31,6 +31,68 @@ For running some specific tests you can do this as following:
 
     $ python -m unittest tests.test_publisher
 
+Usage
+-----
+
+A simple workflow would be checking out a base repository,
+applying patches from Patchwork, and building the kernel.
+
+To checkout a kernel tree run:
+
+    $ skt.py --workdir <WORKDIR> -vv \
+             merge --baserepo <REPO_URL> --ref <REPO_REF>
+
+Here `<WORKDIR>` would be the directory to clone and checkout the kernel repo
+to, `<REPO_URL>` would be the source kernel Git repo URL, and `<REPO_REF>`
+would be the refernce to checkout.
+
+E.g. to checkout "master" branch of the "net-next" repo:
+
+    $ skt.py --workdir skt-workdir -vv \
+             merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
+                   --ref master
+
+To apply a patch from Patchwork run:
+
+    $ skt.py --workdir <WORKDIR> -vv \
+             merge --baserepo <REPO_URL> \
+                   --ref <REPO_REF> \
+                   --pw <PATCHWORK_PATCH_URL>
+
+Here, `<REPO_REF>` would be the reference to checkout, and to apply the patch
+on top of, and `<PATCHWORK_PATCH_URL>` would be a URL pointing to a patch on a
+Patchwork instance.
+
+E.g. to apply a particular patch to a particular, known-good commit from the
+"net-next" repo, run:
+
+    $ skt.py --workdir skt-workdir -vv \
+             merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
+                   --ref a870a02cc963de35452bbed932560ed69725c4f2 \
+                   --pw https://patchwork.ozlabs.org/patch/886637
+
+And to build the kernel run:
+
+    $ skt.py --workdir skt-workdir -vv \
+             build -c `<CONFIG_FILE>`
+
+Where `<CONFIG_FILE>` would be the kernel configuration file to build the
+kernel with. The configuration will be applied with `make olddefconfig`, by
+default.
+
+E.g. to build with the current system's config file run:
+
+    $ skt.py --workdir skt-workdir -vv \
+             build -c /boot/config-`uname -r`
+
+All the above commands use the `-vv` option to increase verbosity of the
+command's output, so it's easier to debug problems. Remove the option for
+quiter, shorter output.
+
+You can make skt output junit-compatible results by adding a `--junit
+<JUNIT_DIR>` option to any of the above commands. The results will be written
+to the `<JUNIT_DIR>` directory.
+
 License
 -------
 skt is distributed under GPLv2 license.
