@@ -1,8 +1,8 @@
 skt - sonic kernel testing
 ==========================
 
-The goal of a project is to provide tools to automatically fetch, build and
-test specified patches on top of a base tree.
+Skt is a tool for automatically fetching, building, and testing kernel
+patches published on Patchwork instances.
 
 Dependencies
 ------------
