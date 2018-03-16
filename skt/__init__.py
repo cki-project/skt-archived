@@ -66,6 +66,7 @@ class RpcWrapper:
         return self._return_unwrapper(self._wrap_call(self.rpc, name))
 
 
+# FIXME This doesn't just "parse" patchwork URL. Rename/refactor.
 def parse_patchwork_url(uri):
     """
     Create a Patchwork XML RPC interface and extract the patch ID from a
