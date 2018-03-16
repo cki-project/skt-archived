@@ -7,13 +7,18 @@ patches published on Patchwork instances.
 Dependencies
 ------------
 
-Here's how to install the dependencies of skt like this:
+Install dependencies needed for running skt like this:
 
-    $ sudo yum install python2 python2-junit_xml beaker-client
+    $ sudo dnf install python2 python2-junit_xml beaker-client
+
+Dependencies needed to build kernels:
+
+    $ sudo dnf builddep kernel-`uname -r`
+    $ sudo dnf install bison flex
 
 Extra dependencies needed for running the testsuite:
 
-    $ sudo yum install python2-mock
+    $ sudo dnf install python2-mock
 
 Run tests
 ---------
