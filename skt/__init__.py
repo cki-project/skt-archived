@@ -1,24 +1,26 @@
-# Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted material
-# is made available to anyone wishing to use, modify, copy, or
+# Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted
+# material is made available to anyone wishing to use, modify, copy, or
 # redistribute it subject to the terms and conditions of the GNU General
 # Public License v.2 or later.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import logging
 import multiprocessing
+import os
 import re
 import shutil
 import subprocess
 import tempfile
-import os
 import xmlrpclib
+
 
 def stringify(v):
     """Convert any value to a str object
@@ -34,26 +36,30 @@ def stringify(v):
     else:
         return str(v)
 
-#PatchWork adds a magic API version with each call
-#this class just magically adds/removes it
+
+# PatchWork adds a magic API version with each call
+# this class just magically adds/removes it
 class RpcWrapper:
     def __init__(self, real_rpc):
         self.rpc = real_rpc
-        #patchwork api coded to
+        # patchwork api coded to
         self.version = 1010
 
     def _wrap_call(self, rpc, name):
-        #Wrap a RPC call, adding the expected version number as argument
+        # Wrap a RPC call, adding the expected version number as argument
         fn = getattr(rpc, name)
+
         def wrapper(*args, **kwargs):
             return fn(self.version, *args, **kwargs)
         return wrapper
 
     def _return_check(self, r):
-        #Returns just the real return value, without the version info.
+        # Returns just the real return value, without the version info.
         v = self.version
         if r[0] != v:
-            raise RpcProtocolMismatch('Patchwork API mismatch (%i, expected %i)' % (r[0], v))
+            raise RpcProtocolMismatch(
+                'Patchwork API mismatch (%i, expected %i)' % (r[0], v)
+            )
         return r[1]
 
     def _return_unwrapper(self, fn):
@@ -62,7 +68,7 @@ class RpcWrapper:
         return unwrap
 
     def __getattr__(self, name):
-        #Add the RPC version checking call/return wrappers
+        # Add the RPC version checking call/return wrappers
         return self._return_unwrapper(self._wrap_call(self.rpc, name))
 
 
@@ -94,7 +100,7 @@ def parse_patchwork_url(uri):
     try:
         ver = rpc.pw_rpc_version()
         # check for normal patchwork1 xmlrpc version numbers
-        if not (ver == [1,3,0] or ver == 1):
+        if not (ver == [1, 3, 0] or ver == 1):
             raise Exception("Unknown xmlrpc version %s", ver)
 
     except xmlrpclib.Fault as err:
@@ -106,9 +112,10 @@ def parse_patchwork_url(uri):
             if ver < 1010:
                 raise Exception("Unsupported xmlrpc version %s", ver)
         else:
-             raise Exception("Unknown xmlrpc fault: %s", err.faultString)
+            raise Exception("Unknown xmlrpc fault: %s", err.faultString)
 
     return (rpc, patchid)
+
 
 class ktree(object):
     """
@@ -129,13 +136,15 @@ class ktree(object):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         # The git "working directory" (the "checkout")
-        self.wdir = os.path.expanduser(wdir) if wdir != None else tempfile.mkdtemp()
+        self.wdir = (os.path.expanduser(wdir)
+                     if wdir is not None
+                     else tempfile.mkdtemp())
         # The cloned git repository
         self.gdir = "%s/.git" % self.wdir
         # The origin remote's URL
         self.uri = uri
         # The remote reference to checkout
-        self.ref = ref if ref != None else "master"
+        self.ref = ref if ref is not None else "master"
         self.info = []
         self.mergelog = "%s/merge.log" % self.wdir
 
@@ -162,7 +171,7 @@ class ktree(object):
 
     def git_cmd(self, *args, **kwargs):
         args = list(["git", "--work-tree", self.wdir, "--git-dir",
-                    self.gdir]) + list(args)
+                     self.gdir]) + list(args)
         logging.debug("executing: %s", " ".join(args))
         subprocess.check_call(args, **kwargs)
 
@@ -176,7 +185,7 @@ class ktree(object):
                 f.write(','.join(iitem) + "\n")
         return fpath
 
-    def get_commit_date(self, ref = None):
+    def get_commit_date(self, ref=None):
         """
         Get the committer date of the commit pointed at by the specified
         reference, or of the currently checked-out commit, if not specified.
@@ -195,17 +204,17 @@ class ktree(object):
                 "--format=%ct",
                 "-s"]
 
-        if ref != None:
+        if ref is not None:
             args.append(ref)
 
         logging.debug("git_commit_date: %s", args)
-        grs = subprocess.Popen(args, stdout = subprocess.PIPE)
+        grs = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = grs.communicate()
 
         return int(stdout.rstrip())
 
     # FIXME Rename to say the hash is being retrieved
-    def get_commit(self, ref = None):
+    def get_commit(self, ref=None):
         """
         Get the full hash of the commit pointed at by the specified reference,
         or of the currently checked-out commit, if not specified.
@@ -223,11 +232,11 @@ class ktree(object):
                 "--format=%H",
                 "-s"]
 
-        if ref != None:
+        if ref is not None:
             args.append(ref)
 
         logging.debug("git_commit: %s", args)
-        grs = subprocess.Popen(args, stdout = subprocess.PIPE)
+        grs = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = grs.communicate()
 
         return stdout.rstrip()
@@ -244,8 +253,7 @@ class ktree(object):
         dstref = "refs/remotes/origin/%s" % (self.ref.split('/')[-1])
         logging.info("fetching base repo")
         self.git_cmd("fetch", "-n", "origin",
-                     "+%s:%s" %
-                      (self.ref, dstref))
+                     "+%s:%s" % (self.ref, dstref))
 
         logging.info("checking out %s", self.ref)
         self.git_cmd("checkout", "-q", "--detach", dstref)
@@ -267,8 +275,8 @@ class ktree(object):
                                     "--work-tree", self.wdir,
                                     "--git-dir", self.gdir,
                                     "remote", "show", remote],
-                                   stdout = subprocess.PIPE,
-                                   stderr = subprocess.PIPE)
+                                   stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
             (stdout, stderr) = grs.communicate()
             for line in stdout.split("\n"):
                 m = re.match('Fetch URL: (.*)', line)
@@ -281,9 +289,12 @@ class ktree(object):
         return rurl
 
     def getrname(self, uri):
-        rname = uri.split('/')[-1].replace('.git', '') if not uri.endswith('/') else uri.split('/')[-2].replace('.git', '')
+        rname = (uri.split('/')[-1].replace('.git', '')
+                 if not uri.endswith('/')
+                 else uri.split('/')[-2].replace('.git', ''))
         while self.get_remote_url(rname) == uri:
-            logging.warning("remote '%s' already exists with a different uri, adding '_'" % rname)
+            logging.warning("remote '%s' already exists with a different uri, "
+                            "adding '_'" % rname)
             rname += '_'
 
         return rname
@@ -293,19 +304,18 @@ class ktree(object):
         head = None
 
         try:
-            self.git_cmd("remote", "add", rname, uri, stderr = subprocess.PIPE)
+            self.git_cmd("remote", "add", rname, uri, stderr=subprocess.PIPE)
         except subprocess.CalledProcessError:
             pass
 
         dstref = "refs/remotes/%s/%s" % (rname, ref.split('/')[-1])
         logging.info("fetching %s", dstref)
         self.git_cmd("fetch", "-n", rname,
-                     "+%s:%s" %
-                      (ref, dstref))
+                     "+%s:%s" % (ref, dstref))
 
         logging.info("merging %s: %s", rname, ref)
         try:
-            grargs = { 'stdout' : subprocess.PIPE } if \
+            grargs = {'stdout': subprocess.PIPE} if \
                 logging.getLogger().level > logging.DEBUG else {}
 
             self.git_cmd("merge", "--no-edit", dstref, **grargs)
@@ -326,7 +336,9 @@ class ktree(object):
         patchinfo = rpc.patch_get(patchid)
 
         if not patchinfo:
-            raise Exception("Failed to fetch patch info for patch %s" % patchid)
+            raise Exception(
+                "Failed to fetch patch info for patch %s" % patchid
+            )
 
         pdata = stringify(rpc.patch_get_mbox(patchid))
 
@@ -336,9 +348,9 @@ class ktree(object):
                                 "--work-tree", self.wdir,
                                 "--git-dir", self.gdir,
                                 "am", "-"],
-                                stdin = subprocess.PIPE,
-                                stdout = subprocess.PIPE,
-                                stderr = subprocess.STDOUT)
+                               stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
 
         (stdout, stderr) = gam.communicate(pdata)
         retcode = gam.wait()
@@ -357,7 +369,7 @@ class ktree(object):
     def merge_patch_file(self, path):
         try:
             self.git_cmd("am", path)
-        except:
+        except subprocess.CalledProcessError:
             self.git_cmd("am", "--abort")
             raise Exception("Failed to apply patch %s" % path)
 
@@ -370,7 +382,7 @@ class ktree(object):
                                 "--work-tree", self.wdir,
                                 "--git-dir", self.gdir,
                                 "bisect", "start", "HEAD", good],
-                               stdout = subprocess.PIPE)
+                               stdout=subprocess.PIPE)
         (stdout, stderr) = gbs.communicate()
 
         for line in stdout.split("\n"):
@@ -397,7 +409,7 @@ class ktree(object):
                                 "--work-tree", self.wdir,
                                 "--git-dir", self.gdir,
                                 "bisect", status],
-                               stdout = subprocess.PIPE)
+                               stdout=subprocess.PIPE)
         (stdout, stderr) = gbs.communicate()
 
         for line in stdout.split("\n"):
@@ -417,21 +429,22 @@ class ktree(object):
 
         return (ret, binfo)
 
+
 class kbuilder(object):
-    def __init__(self, path, basecfg, cfgtype = None, makeopts = None):
+    def __init__(self, path, basecfg, cfgtype=None, makeopts=None):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         self.path = os.path.expanduser(path)
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         self.basecfg = os.path.expanduser(basecfg)
-        self.cfgtype = cfgtype if cfgtype != None else "olddefconfig"
+        self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
         self.makeopts = None
         self.buildlog = "%s/build.log" % self.path
         self.defmakeargs = ["make", "-C", self.path]
 
-        if makeopts != None:
+        if makeopts is not None:
             # FIXME: Might want something a bit smarter here, something that
             # would parse it the same way bash does
             self.makeopts = makeopts.split(' ')
@@ -467,7 +480,7 @@ class kbuilder(object):
             self.prepare(False)
 
         args = self.defmakeargs + ["kernelrelease"]
-        mk = subprocess.Popen(args, stdout = subprocess.PIPE)
+        mk = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
         for line in stdout.split("\n"):
             m = re.match('^\d+\.\d+\.\d+.*$', line)
@@ -475,11 +488,10 @@ class kbuilder(object):
                 krelease = m.group()
                 break
 
-        if krelease == None:
+        if krelease is None:
             raise Exception("Failed to find kernel release in stdout")
 
         return krelease
-
 
     def mktgz(self, clean=True):
         tgzpath = None
@@ -492,8 +504,8 @@ class kbuilder(object):
         logging.info("building kernel: %s", args)
 
         mk = subprocess.Popen(args,
-                              stdout = subprocess.PIPE,
-                              stderr = subprocess.STDOUT)
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
         (stdout, stderr) = mk.communicate()
         for line in stdout.split("\n"):
             m = re.match("^Tarball successfully created in (.*)$", line)
@@ -502,10 +514,10 @@ class kbuilder(object):
                 break
 
         fpath = None
-        if tgzpath != None:
+        if tgzpath is not None:
             fpath = "/".join([self.path, tgzpath])
 
-        if fpath == None or not os.path.isfile(fpath):
+        if fpath is None or not os.path.isfile(fpath):
             with open(self.buildlog, "w") as fp:
                 fp.write(stdout)
 

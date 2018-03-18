@@ -1,15 +1,16 @@
-# Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted material
-# is made available to anyone wishing to use, modify, copy, or
+# Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted
+# material is made available to anyone wishing to use, modify, copy, or
 # redistribute it subject to the terms and conditions of the GNU General
 # Public License v.2 or later.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A  PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import bkr.client
 from email.mime.application import MIMEApplication
@@ -28,6 +29,7 @@ import xmlrpclib
 import skt
 import skt.runner
 
+
 def gzipdata(data):
     """
     Compress a string with gzip.
@@ -39,45 +41,45 @@ def gzipdata(data):
         String containing gzip-compressed data.
     """
     tstr = StringIO.StringIO()
-    with gzip.GzipFile(fileobj = tstr, mode="w") as f:
+    with gzip.GzipFile(fileobj=tstr, mode="w") as f:
         f.write(data)
     return tstr.getvalue()
+
 
 class consolelog(object):
     """Console log parser"""
 
     # List of regular expression strings matching
     # lines beginning an oops or a call trace output
-    oopsmsg = [
-	"general protection fault:",
-	"BUG:",
-	"kernel BUG at",
-	"do_IRQ: stack overflow:",
-	"RTNL: assertion failed",
-	"Eeek! page_mapcount\(page\) went negative!",
-	"near stack overflow \(cur:",
-	"double fault:",
-	"Badness at",
-	"NETDEV WATCHDOG",
-	"WARNING: at",
-	"appears to be on the same physical disk",
-	"Unable to handle kernel",
-	"sysctl table check failed",
-	"------------\[ cut here \]------------",
-	"list_del corruption\.",
-	"list_add corruption\.",
-	"NMI watchdog: BUG: soft lockup",
-	"irq [0-9]+: nobody cared",
-	"INFO: task .* blocked for more than [0-9]+ seconds",
-	"vmwrite error: reg ",
-	"page allocation failure: order:",
-	"page allocation stalls for.*order:.*mode:",
-	"INFO: rcu_sched self-detected stall on CPU",
-	"INFO: rcu_sched detected stalls on CPUs/tasks:",
-	"NMI watchdog: Watchdog detected hard LOCKUP",
-	"Kernel panic - not syncing: ",
-	"Oops: Unrecoverable TM Unavailable Exception",
-    ]
+    oopsmsg = ["general protection fault:",
+               "BUG:",
+               "kernel BUG at",
+               "do_IRQ: stack overflow:",
+               "RTNL: assertion failed",
+               "Eeek! page_mapcount\(page\) went negative!",
+               "near stack overflow \(cur:",
+               "double fault:",
+               "Badness at",
+               "NETDEV WATCHDOG",
+               "WARNING: at",
+               "appears to be on the same physical disk",
+               "Unable to handle kernel",
+               "sysctl table check failed",
+               "------------\[ cut here \]------------",
+               "list_del corruption\.",
+               "list_add corruption\.",
+               "NMI watchdog: BUG: soft lockup",
+               "irq [0-9]+: nobody cared",
+               "INFO: task .* blocked for more than [0-9]+ seconds",
+               "vmwrite error: reg ",
+               "page allocation failure: order:",
+               "page allocation stalls for.*order:.*mode:",
+               "INFO: rcu_sched self-detected stall on CPU",
+               "INFO: rcu_sched detected stalls on CPUs/tasks:",
+               "NMI watchdog: Watchdog detected hard LOCKUP",
+               "Kernel panic - not syncing: ",
+               "Oops: Unrecoverable TM Unavailable Exception"
+               ]
 
     # List of regular expression strings matching
     # lines appearing in a call trace output
@@ -120,7 +122,7 @@ class consolelog(object):
         self.kver = kver
         self.data = None
         self.oopspattern = re.compile("(%s)" % "|".join(self.oopsmsg))
-        self.ctvpattern  = re.compile("(%s)" % "|".join(self.ctvalid))
+        self.ctvpattern = re.compile("(%s)" % "|".join(self.ctvalid))
         self.eendpattern = re.compile("(%s)" % "|".join(self.expend))
 
     def fetchdata(self):
@@ -132,10 +134,10 @@ class consolelog(object):
 
         self.data = []
         for line in r.text.split('\n'):
-            if tkernel == False and line.find("Linux version %s" % self.kver) != -1:
+            if not tkernel and line.find("Linux version %s" % self.kver) != -1:
                 tkernel = True
 
-            if tkernel == True:
+            if tkernel:
                 self.data.append(line.encode('utf-8'))
 
     def getfulllog(self):
@@ -143,7 +145,7 @@ class consolelog(object):
         Get the gzip-compressed text of the kernel console log.
         Can only be called after fetchdata().
         """
-	return gzipdata("\n".join(self.data))
+        return gzipdata("\n".join(self.data))
 
     def gettraces(self):
         """
@@ -156,7 +158,7 @@ class consolelog(object):
         result = []
         # FIXME Remove implicit fetching as it can hide bugs, as is the case
         # right now in reporter.getjobresults()
-        if self.data == None:
+        if self.data is None:
             self.fetchdata()
 
         insplat = False
@@ -171,7 +173,7 @@ class consolelog(object):
                 inct = True
 
             if insplat and ((inct and not self.ctvpattern.search(line)) or
-                    self.eendpattern.search(line)):
+                            self.eendpattern.search(line)):
                 tmpdata.append(line)
                 result.append("\n".join(tmpdata))
                 tmpdata = []
@@ -185,6 +187,7 @@ class consolelog(object):
             result.append("\n".join(tmpdata))
 
         return result
+
 
 class reporter(object):
     """Abstract test result reporter"""
@@ -228,17 +231,18 @@ class reporter(object):
         return mergedata
 
     def stateconfigdata(self, mergedata):
-        mergedata['base'] = (self.cfg.get("baserepo"), self.cfg.get("basehead"))
-	if self.cfg.get("mergerepos"):
+        mergedata['base'] = (self.cfg.get("baserepo"),
+                             self.cfg.get("basehead"))
+        if self.cfg.get("mergerepos"):
             mrl = self.cfg.get("mergerepos")
             mhl = self.cfg.get("mergeheads")
             for idx in range(0, len(mrl)):
                 mergedata['merge_git'].append((mrl[idx], mhl[idx]))
 
-	if self.cfg.get("localpatches"):
+        if self.cfg.get("localpatches"):
             mergedata['localpatch'] = self.cfg.get("localpatches")
 
-	if self.cfg.get("patchworks"):
+        if self.cfg.get("patchworks"):
             for purl in self.cfg.get("patchworks"):
                 (rpc, patchid) = skt.parse_patchwork_url(purl)
                 pinfo = rpc.patch_get(patchid)
@@ -248,11 +252,11 @@ class reporter(object):
 
     def update_mergedata(self):
         mergedata = {
-                'base' : None,
-                'merge_git' : [],
-                'localpatch' : [],
-                'patchwork' : [],
-                'config' : None,
+                'base': None,
+                'merge_git': [],
+                'localpatch': [],
+                'patchwork': [],
+                'config': None,
                 }
 
         if self.cfg.get("infourl"):
@@ -262,7 +266,7 @@ class reporter(object):
 
         if self.cfg.get("cfgurl"):
             r = requests.get(self.cfg.get("cfgurl"))
-            if r != None:
+            if r is not None:
                 mergedata['config'] = r.text
         else:
             with open("%s/.config" % self.cfg.get("workdir"), "r") as fp:
@@ -273,19 +277,19 @@ class reporter(object):
     def getmergeinfo(self):
         result = []
 
-        result += [ "base repo: %s" % self.mergedata['base'][0],
-                    "     HEAD: %s" % self.mergedata['base'][1] ]
+        result += ["base repo: %s" % self.mergedata['base'][0],
+                   "     HEAD: %s" % self.mergedata['base'][1]]
 
         for (repo, head) in self.mergedata['merge_git']:
-            result += [ "\nmerged git repo: %s" % repo,
-                        "           HEAD: %s" % head ]
+            result += ["\nmerged git repo: %s" % repo,
+                       "           HEAD: %s" % head]
 
         for (patchpath) in self.mergedata['localpatch']:
-            result += [ "\npatch: %s" % patchpath ]
+            result += ["\npatch: %s" % patchpath]
 
         for (purl, pname) in self.mergedata['patchwork']:
-            result += [ "\npatchwork url: %s" % purl,
-                        "         name: %s" % pname ]
+            result += ["\npatchwork url: %s" % purl,
+                       "         name: %s" % pname]
 
         if not self.cfg.get("mergelog"):
             cfgname = "config.gz"
@@ -307,7 +311,7 @@ class reporter(object):
         return result
 
     def getjobids(self):
-	jobids = []
+        jobids = []
         if self.cfg.get("jobs"):
             for jobid in sorted(self.cfg.get("jobs")):
                 jobids.append(jobid)
@@ -317,7 +321,9 @@ class reporter(object):
         result = []
 
         result.append("\n-----------------------")
-        result.append("Merge failed during application of the last patch above:\n")
+        result.append(
+            "Merge failed during application of the last patch above:\n"
+        )
         with open(self.cfg.get("mergelog"), 'r') as fp:
             result.append(fp.read())
         return result
@@ -340,7 +346,7 @@ class reporter(object):
         vresults = runner.getverboseresults(list(self.cfg.get("jobs")))
 
         result.append("\n-----------------------")
-        minfo = { "short": {}, "long": {} }
+        minfo = {"short": {}, "long": {}}
         jidx = 1
         for jobid in sorted(self.cfg.get("jobs")):
             for (recipe, rdata) in vresults[jobid].iteritems():
@@ -353,8 +359,9 @@ class reporter(object):
                 result.append("Test Run: #%d" % jidx)
                 result.append("result: %s" % res)
 
-                if clogurl != None and res != "Pass":
-                    logging.info("Panic detected in recipe %s, attaching console log",
+                if clogurl is not None and res != "Pass":
+                    logging.info("Panic detected in recipe %s, "
+                                 "attaching console log",
                                  recipe)
                     clog = consolelog(self.cfg.get("krelease"), clogurl)
                     ctraces = clog.gettraces()
@@ -364,13 +371,14 @@ class reporter(object):
 
                     if jidx == 1:
                         clfname = "%02d_console.log.gz" % jidx
-                        result.append("full console log attached: %s" % clfname)
+                        result.append("full console log attached: %s"
+                                      % clfname)
                         self.attach.append((clfname, clog.getfulllog()))
 
-                if slshwurl != None:
+                if slshwurl is not None:
                     if system not in minfo["short"]:
                         r = requests.get(slshwurl)
-                        if r != None:
+                        if r is not None:
                             result.append("\nmachine info:")
                             result += r.text.split('\n')
                             minfo["short"][system] = jidx
@@ -387,7 +395,8 @@ class reporter(object):
         msg = list()
 
         if self.cfg.get("krelease"):
-            msg.append("result report for kernel %s" % self.cfg.get("krelease"))
+            msg.append("result report for kernel %s"
+                       % self.cfg.get("krelease"))
 
         msg += self.getmergeinfo()
 
@@ -405,8 +414,9 @@ class reporter(object):
         return '\n'.join(msg)
 
     def getsubject(self):
-        subject = "[skt] [%s] " % ("PASS" if self.cfg.get("retcode") == "0" \
-                                          else "FAIL")
+        subject = "[skt] [%s] " % ("PASS"
+                                   if self.cfg.get("retcode") == "0"
+                                   else "FAIL")
 
         if self.mergedata.get("base"):
             subject += "[%s] " % self.mergedata['base'][0].split("/")[-1]
@@ -424,6 +434,7 @@ class reporter(object):
 
     # TODO Define abstract "report" method.
 
+
 class stdioreporter(reporter):
     """A reporter sending results to stdout"""
     TYPE = 'stdio'
@@ -434,11 +445,12 @@ class stdioreporter(reporter):
         print self.getreport()
 
         for (name, att) in self.attach:
-            if not (name.endswith('.log') or name.endswith('.txt') or \
+            if not (name.endswith('.log') or name.endswith('.txt') or
                     name.endswith('config')):
                 continue
             print "\n---------------\n%s\n" % name
             print att
+
 
 class mailreporter(reporter):
     """A reporter sending results by e-mail"""
@@ -471,14 +483,14 @@ class mailreporter(reporter):
 
         for (name, att) in self.attach:
             # TODO Store content type and charset when adding attachments
-            if (name.endswith('.log') or name.endswith('.txt') or \
+            if (name.endswith('.log') or name.endswith('.txt') or
                     name.endswith('config')):
-		tmp = MIMEText(att, _charset='utf-8')
-		tmp.add_header("content-disposition", "attachment",
+                tmp = MIMEText(att, _charset='utf-8')
+                tmp.add_header("content-disposition", "attachment",
                                filename=name)
             else:
-		tmp = MIMEApplication(att)
-		tmp.add_header("content-disposition", "attachment",
+                tmp = MIMEApplication(att)
+                tmp.add_header("content-disposition", "attachment",
                                filename=name)
 
             msg.attach(tmp)
@@ -486,6 +498,7 @@ class mailreporter(reporter):
         s = smtplib.SMTP('localhost')
         s.sendmail(self.mailfrom, self.mailto, msg.as_string())
         s.quit()
+
 
 def getreporter(rtype, rarg):
     """

@@ -1,15 +1,16 @@
-# Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted material
-# is made available to anyone wishing to use, modify, copy, or
+# Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted
+# material is made available to anyone wishing to use, modify, copy, or
 # redistribute it subject to the terms and conditions of the GNU General
 # Public License v.2 or later.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import logging
 import os
@@ -17,6 +18,7 @@ import re
 import subprocess
 import time
 import xml.etree.ElementTree as etree
+
 
 class runner(object):
     """An abstract test runner"""
@@ -26,10 +28,11 @@ class runner(object):
 
     # TODO Define abstract "run" method.
 
+
 class beakerrunner(runner):
     TYPE = 'beaker'
 
-    def __init__(self, jobtemplate, jobowner = None):
+    def __init__(self, jobtemplate, jobowner=None):
         """
         Initialize a runner executing tests on Beaker.
 
@@ -69,14 +72,14 @@ class beakerrunner(runner):
                 for match in re.finditer("##(\w+)##", line):
                     if match.group(1) in replacements:
                         line = line.replace(match.group(0),
-                                replacements[match.group(1)])
+                                            replacements[match.group(1)])
 
                 xml += line
 
         return xml
 
-    def getresultstree(self, jobid, logs = False):
-        args = [ "bkr", "job-results" ]
+    def getresultstree(self, jobid, logs=False):
+        args = ["bkr", "job-results"]
         if not logs:
             args.append("--no-logs")
         args.append(jobid)
@@ -86,7 +89,7 @@ class beakerrunner(runner):
         return etree.fromstring(stdout)
 
     def dumpjunitresults(self, jobid, junit):
-        args = [ "bkr", "job-results", "--format=junit-xml" ]
+        args = ["bkr", "job-results", "--format=junit-xml"]
         args.append(jobid)
 
         fname = "%s/%s.xml" % (junit, jobid.replace(":", "_").lower())
@@ -94,15 +97,15 @@ class beakerrunner(runner):
             bkr = subprocess.Popen(args, stdout=fp)
             (stdout, stderr) = bkr.communicate()
 
-    def getconsolelog(self, jobid = None):
+    def getconsolelog(self, jobid=None):
         url = None
 
-        if jobid == None:
+        if jobid is None:
             jobid = self.lastsubmitted
 
         root = self.getresultstree(jobid, True)
         el = root.find("recipeSet/recipe/logs/log[@name='console.log']")
-        if el != None:
+        if el is not None:
             url = el.attrib.get("href")
 
         return url
@@ -141,15 +144,17 @@ class beakerrunner(runner):
                 llshwurl = None
 
                 tmp = recipe.find("logs/log[@name='console.log']")
-                if tmp != None:
+                if tmp is not None:
                     clogurl = tmp.attrib.get("href")
 
-                tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/log[@name='machinedesc.log']")
-                if tmp != None:
+                tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/"
+                                  "log[@name='machinedesc.log']")
+                if tmp is not None:
                     slshwurl = tmp.attrib.get("href")
 
-                tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/log[@name='lshw.log']")
-                if tmp != None:
+                tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/"
+                                  "log[@name='lshw.log']")
+                if tmp is not None:
                     llshwurl = tmp.attrib.get("href")
 
                 rdata = (recipe.attrib.get("result"),
@@ -173,7 +178,7 @@ class beakerrunner(runner):
         ret = 0
         result = None
 
-        if jobid != None:
+        if jobid is not None:
             root = self.getresultstree(jobid)
             result = root.attrib.get("result")
 
@@ -183,15 +188,15 @@ class beakerrunner(runner):
 
         return (ret, result)
 
-    def getresults(self, jobid = None):
+    def getresults(self, jobid=None):
         ret = 0
         fhosts = set()
         tfailures = 0
 
-        if jobid != None:
+        if jobid is not None:
             (ret, result) = self.jobresult(jobid)
 
-        if jobid == None or ret != 0:
+        if jobid is None or ret != 0:
             for (recipe, data) in self.failures.iteritems():
                 # Treat single failure as a fluke during normal run
                 if data[2] >= 3 and len(data[0]) < 2:
@@ -199,8 +204,9 @@ class beakerrunner(runner):
                 tfailures += len(data[0])
                 logging.info("%s failed %d/%d (%s)%s", recipe, len(data[0]),
                              data[2], ', '.join(data[1]),
-                             "" if len(set(data[0])) > 1
-                                else ": %s" % data[0][0])
+                             ""
+                             if len(set(data[0])) > 1
+                             else ": %s" % data[0][0])
 
                 fhosts = fhosts.union(set(data[0]))
                 ret = 1
@@ -217,7 +223,7 @@ class beakerrunner(runner):
 
         return ret
 
-    def recipe_to_job(self, recipe, samehost = False):
+    def recipe_to_job(self, recipe, samehost=False):
         tmp = recipe.copy()
         if (samehost):
             hreq = tmp.find("hostRequires")
@@ -252,50 +258,62 @@ class beakerrunner(runner):
 
                 if root.attrib.get("status") in ["Completed", "Aborted",
                                                  "Cancelled"]:
-                    logging.info("%s status changed to '%s', removing from watchlist",
+                    logging.info("%s status changed to '%s', "
+                                 "removing from watchlist",
                                  cid, root.attrib.get("status"))
                     self.watchlist.remove((cid, reschedule, origin))
 
-                    if root.attrib.get("status") ==  "Cancelled":
+                    if root.attrib.get("status") == "Cancelled":
                         continue
 
                     if root.attrib.get("result") != "Pass":
-                        tinst = root.find(".//task[@name='/distribution/install']")
-                        if tinst is not None and tinst.attrib.get("result") != "Pass":
-                            logging.warning("%s failed before kernelinstall, resubmitting",
-                                            cid)
+                        tinst = root.find(
+                            ".//task[@name='/distribution/install']"
+                        )
+                        if tinst is not None and \
+                                tinst.attrib.get("result") != "Pass":
+                            logging.warning("%s failed before kernelinstall, "
+                                            "resubmitting", cid)
                             self._forget_cid(cid)
                             newjob = self.recipe_to_job(root, False)
                             newjobid = self.jobsubmit(etree.tostring(newjob))
                             self.add_to_watchlist(newjobid, reschedule, None)
                         else:
-                            if origin == None:
+                            if origin is None:
                                 origin = cid
 
-                            if not self.failures.has_key(origin):
+                            if origin not in self.failures:
                                 self.failures[origin] = [[], set(), 1]
 
-                            self.failures[origin][0].append(root.attrib.get("system"))
-                            self.failures[origin][1].add(root.attrib.get("result"))
+                            self.failures[origin][0].append(root.attrib.get(
+                                "system"
+                            ))
+                            self.failures[origin][1].add(root.attrib.get(
+                                "result"
+                            ))
 
                             if reschedule:
                                 logging.info("%s -> '%s', resubmitting",
                                              cid, root.attrib.get("result"))
 
                                 newjob = self.recipe_to_job(root, False)
-                                newjobid = self.jobsubmit(etree.tostring(newjob))
+                                newjobid = self.jobsubmit(etree.tostring(
+                                    newjob
+                                ))
                                 self.add_to_watchlist(newjobid, False, origin)
 
                                 newjob = self.recipe_to_job(root, True)
-                                newjobid = self.jobsubmit(etree.tostring(newjob))
+                                newjobid = self.jobsubmit(etree.tostring(
+                                    newjob
+                                ))
                                 self.add_to_watchlist(newjobid, False, origin)
 
             iteration += 1
 
-    def add_to_watchlist(self, jobid, reschedule = True, origin = None):
+    def add_to_watchlist(self, jobid, reschedule=True, origin=None):
         root = self.getresultstree(jobid)
 
-        if self.whiteboard == None:
+        if self.whiteboard is None:
             self.whiteboard = root.find("whiteboard").text
 
         self.j2r[jobid] = set()
@@ -304,18 +322,18 @@ class beakerrunner(runner):
             self.j2r[jobid].add(cid)
             self.watchlist.add((cid, reschedule, origin))
             self.recipes.add(cid)
-            if origin != None:
+            if origin is not None:
                 self.failures[origin][2] += 1
             logging.info("added %s to watchlist", cid)
 
-    def wait(self, jobid = None, reschedule = True):
-        if jobid == None:
+    def wait(self, jobid=None, reschedule=True):
+        if jobid is None:
             jobid = self.lastsubmitted
         self.add_to_watchlist(jobid, reschedule)
         self.watchloop()
 
-    def gethost(self, jobid = None):
-        if jobid == None:
+    def gethost(self, jobid=None):
+        if jobid is None:
             jobid = self.lastsubmitted
 
         logging.info("gethost for %s" % jobid)
@@ -329,7 +347,7 @@ class beakerrunner(runner):
         jobid = None
         args = ["bkr", "job-submit"]
 
-        if self.jobowner != None:
+        if self.jobowner is not None:
             args += ["--job-owner=%s" % self.jobowner]
 
         args += ["-"]
@@ -351,8 +369,8 @@ class beakerrunner(runner):
 
         return jobid
 
-    def run(self, url, release, wait = False, host = None, uid = "",
-            reschedule = True):
+    def run(self, url, release, wait=False, host=None, uid="",
+            reschedule=True):
         ret = 0
         self.failures = {}
         self.recipes = set()
@@ -360,24 +378,25 @@ class beakerrunner(runner):
 
         uid += " %s" % url.split('/')[-1]
 
-        if host == None:
+        if host is None:
             hostname = ""
             hostnametag = ""
         else:
             hostname = "(%s) " % host
             hostnametag = '<hostname op="=" value="%s"/>' % host
 
-        jobid = self.jobsubmit(self.getxml({'KVER' : release,
-                                            'KPKG_URL' : url,
+        jobid = self.jobsubmit(self.getxml({'KVER': release,
+                                            'KPKG_URL': url,
                                             'UID': uid,
-                                            'HOSTNAME' : hostname,
-                                            'HOSTNAMETAG' : hostnametag}))
+                                            'HOSTNAME': hostname,
+                                            'HOSTNAMETAG': hostnametag}))
 
-        if wait == True:
+        if wait:
             self.wait(jobid, reschedule)
             ret = self.getresults()
 
         return ret
+
 
 def getrunner(rtype, rarg):
     """

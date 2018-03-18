@@ -1,20 +1,22 @@
-# Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted material
-# is made available to anyone wishing to use, modify, copy, or
+# Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted
+# material is made available to anyone wishing to use, modify, copy, or
 # redistribute it subject to the terms and conditions of the GNU General
 # Public License v.2 or later.
 #
-# This program is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
-# PARTICULAR PURPOSE. See the GNU General Public License for more details.
+# This program is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
+# details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import logging
 import os
 import shutil
 import subprocess
+
 
 class publisher(object):
     """An abstract result publisher"""
@@ -51,6 +53,7 @@ class publisher(object):
 
     # TODO Define abstract "publish" method.
 
+
 class cppublisher(publisher):
     TYPE = 'cp'
 
@@ -60,14 +63,18 @@ class cppublisher(publisher):
         shutil.copy(os.path.expanduser(source), self.destination)
         return self.geturl(source)
 
+
 class scppublisher(publisher):
     TYPE = 'scp'
 
     def publish(self, source):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
-        subprocess.check_call(["scp", os.path.expanduser(source), self.destination])
+        subprocess.check_call(["scp",
+                               os.path.expanduser(source),
+                               self.destination])
         return self.geturl(source)
+
 
 def getpublisher(ptype, parg, pburl):
     """
