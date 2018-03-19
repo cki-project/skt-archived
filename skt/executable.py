@@ -24,6 +24,7 @@ import os
 import shutil
 import sys
 import time
+import traceback
 
 import junit_xml
 
@@ -91,9 +92,9 @@ def junit(func):
 
             try:
                 func(cfg)
-            except Exception as e:
-                logging.error("Exception caught: %s", e)
-                tc.add_failure_info(str(e))
+            except Exception:
+                logging.error("Exception caught: %s", traceback.format_exc())
+                tc.add_failure_info(traceback.format_exc())
                 retcode = 1
 
             # No exception but retcode != 0, probably tests failed
