@@ -1,0 +1,9 @@
+version: '2.1'
+
+services:
+  skt-dev:
+    image: agustinhenze/skt-dev
+    working_dir: /tmp
+    volumes:
+      - ../..:/usr/src/skt
+    command: /usr/src/skt/tests/smoke/merge-apply-build.sh
