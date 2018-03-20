@@ -1,10 +1,25 @@
 language: python
 python:
     - "2.7"
-install:
-    - pip install requests junit_xml beaker-client mock
-    - pip install pylint pycodestyle
-script:
-    - python -m unittest discover tests
-    - pylint tests
-    - pycodestyle tests
+
+sudo: required
+
+services:
+  - docker
+
+before_install:
+
+env:
+  global:
+    - secure: "n1m6zXIL/C36i3ZE7ral7jZjqGD/LE6wQkMy9ol3PDu3/zKikOeApC4G3bpQi+fpADRpR39IyLk6zzGMM8lwYOzhvp7eKfTv7xa0D5EmWKTUKlE5d/Ja/xL7trnE+8cXynU8nzEihaqHS3Tgo/sL88djpbTr8QCdPATdLwp0tgAaczcLWW0BKm0B3n7CQOIwqIK0WodiCM+/Vqish6LgeDKJqQBq3ubWhbDdkMd4v3H3h9weYbr4r+TMEplNF8+Otf6szZKk16UA4ORsIoZbThqUEqZ1Xn5jyUNc2c3EvbPQ0kD6NlXeZUuJo9/gb5VvN4BRvqzXh94hA9LJpcrl2MjQ4Z5OcIXuF2dhCClZ/tYHVqS0TLXeB2dVk7zswnj8nttLMQcRvZbHBDgxQWMbYCIjNpgtwKTfa9v9CO62ReVLBkPe4gPiVpKHRllBf9W4D670PHupXG3iu7OLjy5lCs6tYBLy+wihqWILminYacb7Bibpw4Pde1+qmznaSkHUbQwSjXQKKxXD92oML7gc2kN5U09G0NrUWFx/ObLNu3oaj5/MGaKy3PN90ZsYX6OUh9nnfhWVF2FKyEZeFDvZuq97vg8vRGtPoX2iJND6OPKqF5CbEmnpAJE8PJAilxhfm/D4bQP7Knvz3rxOIU/COFks2sXDgdJkYqM0OnLR5+c="
+    - secure: "AHfdo575WxJLeBaDgrUqhu/50vmkkj7RacfmLAgWbJa7nuET/EwTYau3bFLp+Ow/DY5YLeAv4zXUKzR/LovJYc7kfPk5dw5cPPmjKnN5Jt05fH7xBmlX8rBjmnpmgDMCUayfhyZ9j9NJhdtz6RTRLMMUx4NWj7XcVfYmNCep78fdfDysZKvDtxdW62SaRJ5GFWP/BkBw5OVXpJVd7fLQqjJI8ZxpNP8RQGMCHvriRMWvdiCz6HUw3r9TihgDA+nDslTf+gMQZvm3cNxD+io0ENudjBLQ01Ef19xLMJnIYAfKTqkxdcCgHr65Ihsu51+sv2yUC24NNoLeDu45tGzhUc1HDBFz+d4ENGHmzrLPZoC12S07mia73+Ld/A8CnWKSNO2Gg+w3JXYXz6NBrZsKimx9gEGRSQxje2S9fbwn+AGpkayX9i3usw5anoZAvTyIshTauro6JCxatafu2neqSnqnj4mmABNS49yYAvma6gfwQ7GvLsY+uMLeeBQ/wgsgzW9AhbQ4zBGtU8FXfGTLe8hzXGuWzhd+zKx3o8N9U0efZBc37wHlUVvctkt8CeOgPqj3P/GrRghSlOrCMBacOnHdrV1H7dbAhSvjYCZ204ZV3KfTAxOl8BT1KuJu7ZzI03aqHN0q0suLPs/ARr3LAL0koqTna/p3zcH6j6weJCY="
+    - DOCKER_RUN="docker run --rm -w /usr/src/skt -v ${PWD}:/usr/src/skt ${DOCKER_USER}/skt-dev"
+
+jobs:
+  include:
+    - stage: build docker image
+      script: ./dockerfiles/build-push.sh
+    - stage: test
+      script: ${DOCKER_RUN} python -m unittest discover tests
+    - script: ${DOCKER_RUN} pylint-2 tests
+    - script: ${DOCKER_RUN} pycodestyle tests
