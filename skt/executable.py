@@ -274,6 +274,10 @@ def cmd_report(cfg):
     if cfg.get("reporter") is None:
         return
 
+    # FIXME This is violation of composition. This basically passes the whole
+    # configuration object to reporter, so it can access anything. Pass the
+    # needed data explicitly instead, or deal with it outside reporter, if
+    # that is unsuitable.
     cfg['reporter'][1].update({'cfg': cfg})
     reporter = skt.reporter.getreporter(*cfg.get('reporter'))
     reporter.report()

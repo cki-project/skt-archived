@@ -413,6 +413,7 @@ class BeakerRunner(Runner):
         self.recipes = set()
         self.watchlist = set()
 
+        # FIXME Pass or retrieve this explicitly
         uid += " %s" % url.split('/')[-1]
 
         if host is None:
