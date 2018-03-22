@@ -7,4 +7,4 @@ install:
 script:
     - python -m unittest discover tests
     - pylint tests
-    - pycodestyle tests
+    - pycodestyle .
