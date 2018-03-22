@@ -11,21 +11,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-
-import bkr.client
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import StringIO
 import gzip
 import logging
 import os
 import re
-import requests
 import smtplib
-import StringIO
-import tempfile
-import xml.etree.ElementTree as etree
-import xmlrpclib
+
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+import requests
+
 import skt
 import skt.runner
 
@@ -354,7 +352,6 @@ class reporter(object):
                     continue
 
                 (res, system, clogurl, slshwurl, llshwurl) = rdata
-                ssys = system.split(".")[0]
 
                 result.append("Test Run: #%d" % jidx)
                 result.append("result: %s" % res)
