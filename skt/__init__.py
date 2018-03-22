@@ -37,6 +37,10 @@ def stringify(v):
         return str(v)
 
 
+class RpcProtocolMismatch(Exception):
+    """Exception for Patchwork API mismatch errors"""
+
+
 # PatchWork adds a magic API version with each call
 # this class just magically adds/removes it
 class RpcWrapper:

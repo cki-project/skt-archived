@@ -19,16 +19,18 @@ import argparse
 import ast
 import datetime
 import json
-import junit_xml
 import logging
 import os
 import shutil
 import sys
 import time
+
+import junit_xml
+
+import skt
 import skt.publisher
 import skt.reporter
 import skt.runner
-import skt
 
 DEFAULTRC = "~/.sktrc"
 logger = logging.getLogger()

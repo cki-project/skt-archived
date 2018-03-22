@@ -14,11 +14,15 @@ Test cases for reporter module.
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-import unittest
-from contextlib import contextmanager
 import re
+import unittest
+
+from contextlib import contextmanager
+
 import mock
+
 from skt import reporter
+
 from tests import misc
 
 
