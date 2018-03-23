@@ -363,6 +363,26 @@ virtual environment for skt quickly:
 
 To deactivate the virtual environment, simply run `deactivate`.
 
+Container
+---------
+
+The skt command and all its requirements, as well as a ready for use kernel
+git tree are available in a container. You can run skt commands agains the
+container environment like this:
+
+    % sudo docker run docker.io/kerneltest/skt -vv build
+
+If you want to enter into the container and play with skt, for debugging
+purposes, or looking at intermediate files:
+
+    $ sudo docker run -ti --entrypoint=/bin/bash docker.io/kerneltest/skt
+
+If you change the Dockerfile that defines the container, you can rebuild
+the container, and/or push a new version it if you have appropriate credentials:
+
+    $ sudo docker build -t docker.io/kerneltest/skt:latest .
+    $ sudo docker push docker.io/kerneltest/skt:latest
+
 License
 -------
 skt is distributed under GPLv2 license.
