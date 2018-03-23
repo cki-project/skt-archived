@@ -1,0 +1,38 @@
+# This is an Openshift template that creates a job to pull a
+# specific patch down from a patchworks server, merge it, build it
+apiVersion: v1
+kind: Template
+metadata:
+  name: merge-build-report
+objects:
+ - apiVersion: batch/v1
+   kind: Job
+   metadata:
+     name: skt-merge-build-report
+   spec:
+     parallelism: 1
+     completions: 1
+     template:
+       metadata:
+         name: skt-merge-build-report
+       spec:
+         containers:
+         - name: skt
+           image: docker.io/kerneltest/skt
+           command: [ "/usr/bin/skt", "-vv", "merge", "--baserepo", "${BASEREPO}", "--ref", "${REF}", "--pw", "${PW}", "build" ]
+         volumeMounts:
+          - name: build
+            mountPath: /var/build
+            readOnly: false
+         restartPolicy: Never
+       volumes:
+        - name: build
+          emptyDir: { }
+parameters:
+ - description: Base Linux Kernel repository to pull from
+   name: BASEREPO
+   value: git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git
+ - description: Commit ref to merge into base repository
+   name: REF
+ - description: Patchwork URL pointing to a patch on a patchworks instance
+   name: PW

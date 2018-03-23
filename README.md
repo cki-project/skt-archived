@@ -368,6 +368,17 @@ the container, and/or push a new version it if you have appropriate credentials:
     $ sudo docker build -t docker.io/kerneltest/skt:latest .
     $ sudo docker push docker.io/kerneltest/skt:latest
 
+Running the containers in Kubernetes is possible, both as a pod (for
+experimentation) and as a Job. This is an example build:
+
+    $ oc create -f job/example-build.yaml
+
+This is a real job with parameters:
+
+    $ oc process -f job/merge-build-report.yaml \
+        --param BASEREPO=git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
+        --param REF=master --param PW=https://patchwork.ozlabs.org/patch/886637 | oc create -f -
+
 License
 -------
 skt is distributed under GPLv2 license.

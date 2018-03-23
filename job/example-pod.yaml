@@ -1,0 +1,20 @@
+# This is an example Kubernetes/Openshift pod for use of SKT
+# in a container infrastructure. It does nothing but start
+# the skt container, and allow you to shell into it for testing
+# various commands or getting used to the infrastructure in Openshift
+apiVersion: v1
+kind: Pod
+metadata:
+  name: skt-playground
+spec:
+  containers:
+  - name: skt
+    image: docker.io/kerneltest/skt
+    command: [ "/bin/sh", "-c", "sleep 600000" ]
+    volumeMounts:
+     - name: build
+       mountPath: /var/build
+       readOnly: false
+  volumes:
+   - name: build
+     emptyDir: { }

@@ -1,0 +1,26 @@
+# This is an initial Kubernetes/Openshift Job for the SKT build
+# command. It does nothing more than simply build the a Linux
+# kernel in Openshift using SKT. Meant for experimentation
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: skt-example-build
+spec:
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+      name: skt-build
+    spec:
+      containers:
+      - name: skt
+        image: docker.io/kerneltest/skt
+        command: [ "/usr/bin/skt", "-vv", "build" ]
+      volumeMounts:
+       - name: build
+         mountPath: /var/build
+         readOnly: false
+      restartPolicy: Never
+    volumes:
+     - name: build
+       emptyDir: { }
