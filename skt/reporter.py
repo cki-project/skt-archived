@@ -439,20 +439,25 @@ class mailreporter(reporter):
     """A reporter sending results by e-mail"""
     TYPE = 'mail'
 
-    def __init__(self, cfg, mailfrom, mailto):
+    def __init__(self, cfg, mailfrom, mailto, mailinreplyto=None):
         """
         Initialize an e-mail reporter
 
         Args:
-            cfg:        The skt configuration and state.
-            mailfrom:   A string containing the From: address for e-mails.
-            mailto:     A string containing comma-separated e-mail addresses
-                        to send the result messages to.
+            cfg:            The skt configuration and state.
+            mailfrom:       A string containing the From: address for e-mails.
+            mailto:         A string containing comma-separated e-mail
+                            addresses to send the result messages to.
+            mailinreplyto:  A string containing the value of the "In-Reply-To"
+                            header to add to the message. No header is added
+                            if evaluates to False.
         """
         # The From: address string
         self.mailfrom = mailfrom
         # A list of addresses to send reports to
         self.mailto = [to.strip() for to in mailto.split(",")]
+        # The value of "In-Reply-To" header
+        self.mailinreplyto = mailinreplyto
         super(mailreporter, self).__init__(cfg)
 
     def report(self):
@@ -461,6 +466,8 @@ class mailreporter(reporter):
         msg['Subject'] = self.getsubject()
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
+        if self.mailinreplyto:
+            msg['In-Reply-To'] = self.mailinreplyto
         msg['X-SKT-JIDS'] = ' '.join(self.getjobids())
         msg.attach(MIMEText(self.getreport()))
 
