@@ -13,8 +13,8 @@ Install dependencies needed for running skt like this:
 
 Dependencies needed to build kernels:
 
+    $ sudo dnf install bison flex dnf-plugins-core
     $ sudo dnf builddep kernel-`uname -r`
-    $ sudo dnf install bison flex
 
 Extra dependencies needed for running the testsuite:
 
