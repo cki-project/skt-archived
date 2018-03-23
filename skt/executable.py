@@ -426,7 +426,8 @@ def setup_parser():
 
     parser_build = subparsers.add_parser("build", add_help=False)
     parser_build.add_argument("-c", "--baseconfig", type=str,
-                              help="Path to kernel config to use")
+                              help="Path to kernel config to use",
+                              default=os.environ.get("SKT_BASECONFIG"))
     parser_build.add_argument("--cfgtype", type=str, help="How to process "
                               "default config (default: olddefconfig)")
     parser_build.add_argument("--makeopts", type=str,
