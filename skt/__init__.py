@@ -136,9 +136,8 @@ class ktree(object):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         # The git "working directory" (the "checkout")
-        self.wdir = (os.path.expanduser(wdir)
-                     if wdir is not None
-                     else tempfile.mkdtemp())
+        self.wdir = (os.path.expanduser(wdir) if wdir is not None else
+                     tempfile.mkdtemp())
         # The cloned git repository
         self.gdir = "%s/.git" % self.wdir
         # The origin remote's URL
@@ -431,18 +430,25 @@ class ktree(object):
 
 
 class kbuilder(object):
-    def __init__(self, path, basecfg, cfgtype=None, makeopts=None):
+    def __init__(self, wdir, builddir, basecfg, cfgtype=None, makeopts=None):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
-        self.path = os.path.expanduser(path)
+        self.wdir = os.path.expanduser(wdir)
+        # FIXME Move expansion up the call stack, as this limits the class
+        # usefulness, because tilde is a valid path character.
+        self.builddir = os.path.expanduser(builddir)
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         self.basecfg = os.path.expanduser(basecfg)
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
         self.makeopts = None
-        self.buildlog = "%s/build.log" % self.path
-        self.defmakeargs = ["make", "-C", self.path]
+        self.buildlog = "%s/build.log" % self.builddir
+        self.defmakeargs = ["make", "-C", self.wdir]
+
+        # Every make command has to have this, if we build out of tree
+        if self.wdir != self.builddir:
+            self.defmakeargs.append("O=" + self.builddir)
 
         if makeopts is not None:
             # FIXME: Might want something a bit smarter here, something that
@@ -472,7 +478,7 @@ class kbuilder(object):
         self._ready = 1
 
     def get_cfgpath(self):
-        return "%s/.config" % self.path
+        return "%s/.config" % self.builddir
 
     def getrelease(self):
         krelease = None
@@ -515,7 +521,7 @@ class kbuilder(object):
 
         fpath = None
         if tgzpath is not None:
-            fpath = "/".join([self.path, tgzpath])
+            fpath = "/".join([self.builddir, tgzpath])
 
         if fpath is None or not os.path.isfile(fpath):
             with open(self.buildlog, "w") as fp:

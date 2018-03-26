@@ -159,6 +159,7 @@ def cmd_merge(cfg):
     buildhead = ktree.get_commit()
 
     save_state(cfg, {'workdir': kpath,
+                     'builddir': cfg.get('builddir'),
                      'buildinfo': buildinfo,
                      'buildhead': buildhead,
                      'uid': uid})
@@ -169,8 +170,9 @@ def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
 
-    builder = skt.kbuilder(cfg.get('workdir'), cfg.get('baseconfig'),
-                           cfg.get('cfgtype'), cfg.get('makeopts'))
+    builder = skt.kbuilder(cfg.get('workdir'), cfg.get('builddir'),
+                           cfg.get('baseconfig'), cfg.get('cfgtype'),
+                           cfg.get('makeopts'))
 
     try:
         tgz = builder.mktgz(cfg.get('wipe'))
@@ -295,7 +297,7 @@ def cmd_cleanup(cfg):
     if cfg.get('wipe'):
         # FIXME Move expansion up the call stack, as this limits the function
         # usefulness, because tilde is a valid path character.
-        shutil.rmtree(os.path.expanduser(cfg.get('workdir')))
+        shutil.rmtree(os.path.expanduser(cfg.get('builddir')))
 
 
 def cmd_all(cfg):
@@ -385,10 +387,15 @@ def setup_parser():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
+    parser.add_argument("-d", "--workdir", type=str,
+                        help="Path to work dir with kernel source git tree",
+                        default=os.environ.get("SKT_WORKDIR"))
+    parser.add_argument("-b", "--builddir", type=str,
+                        help="Path to the build directory (default: WORKDIR)",
+                        default=os.environ.get("SKT_BUILDDIR"))
     parser.add_argument("-w", "--wipe",
                         help="Clean build (make mrproper before building), "
-                        "remove workdir when finished",
+                        "remove BUILDDIR when finished",
                         action="store_true", default=False)
     parser.add_argument("--junit",
                         help="Path to dir to store junit results in")
@@ -589,6 +596,10 @@ def load_config(args):
 
     if cfg.get("bisect"):
         cfg['wait'] = True
+
+    # Default BUILDDIR = WORKDIR
+    if not cfg.get("builddir"):
+        cfg["builddir"] = cfg.get("workdir")
 
     return cfg
 
