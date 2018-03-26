@@ -16,8 +16,10 @@ import logging
 import multiprocessing
 import os
 import re
+import select
 import shutil
 import subprocess
+import sys
 import tempfile
 import xmlrpclib
 
@@ -482,6 +484,10 @@ class kbuilder(object):
         args = self.defmakeargs + ["kernelrelease"]
         mk = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
+        if mk.returncode != 0:
+            raise Exception("Kernel release lookup command failed: {0}".format(
+                " ".join(args)))
+
         for line in stdout.split("\n"):
             m = re.match('^\d+\.\d+\.\d+.*$', line)
             if m:
@@ -506,7 +512,24 @@ class kbuilder(object):
         mk = subprocess.Popen(args,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT)
-        (stdout, stderr) = mk.communicate()
+        stdout_fd = mk.stdout.fileno()
+        stdout = ""
+        while stdout_fd > -1:
+            ret = select.select([stdout_fd], [], [], 10)
+            for fd in ret[0]:
+                if fd == stdout_fd:
+                    data = os.read(fd, 1024)
+                    if not data:
+                        stdout_fd = -1
+                        mk.stdout.close()
+                    sys.stdout.write(data)
+                    stdout += data.decode('utf-8', 'replace')
+
+        mk.wait()
+        if mk.returncode != 0:
+            raise Exception("Kernel build command failed: {0}".format(
+                            " ".join(args)))
+
         for line in stdout.split("\n"):
             m = re.match("^Tarball successfully created in (.*)$", line)
             if m:
