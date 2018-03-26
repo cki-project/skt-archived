@@ -447,20 +447,27 @@ class ktree(object):
 
 
 class kbuilder(object):
-    def __init__(self, path, basecfg, cfgtype=None, makeopts=None,
+    def __init__(self, wdir, builddir, basecfg, cfgtype=None, makeopts=None,
                  enable_debuginfo=False):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
-        self.path = os.path.expanduser(path)
+        self.wdir = os.path.expanduser(wdir)
+        # FIXME Move expansion up the call stack, as this limits the class
+        # usefulness, because tilde is a valid path character.
+        self.builddir = os.path.expanduser(builddir)
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         self.basecfg = os.path.expanduser(basecfg)
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
         self.makeopts = None
-        self.buildlog = "%s/build.log" % self.path
-        self.defmakeargs = ["make", "-C", self.path]
+        self.buildlog = "%s/build.log" % self.builddir
+        self.defmakeargs = ["make", "-C", self.wdir]
         self.enable_debuginfo = enable_debuginfo
+
+        # Every make command has to have this, if we build out of tree
+        if self.wdir != self.builddir:
+            self.defmakeargs.append("O=" + self.builddir)
 
         if makeopts is not None:
             # FIXME: Might want something a bit smarter here, something that
@@ -484,25 +491,25 @@ class kbuilder(object):
 
         shutil.copyfile(self.basecfg, self.get_cfgpath())
 
+        args = self.defmakeargs + [self.cfgtype]
+        logging.info("prepare config: %s", args)
+        subprocess.check_call(args)
+        self._ready = 1
+
         # NOTE(mhayden): Building kernels with debuginfo can increase the
         # final kernel tarball size by 3-4x and can increase build time
         # slightly. Debug symbols are really only needed for deep diagnosis
         # of kernel issues on a specific system. This is why debuginfo is
         # disabled by default.
         if not self.enable_debuginfo:
-            args = ["%s/scripts/config" % self.path,
+            args = ["%s/scripts/config" % self.wdir,
                     "--file", self.get_cfgpath(),
                     "--disable", "debug_info"]
             logging.info("disabling debuginfo: %s", args)
             subprocess.check_call(args)
 
-        args = self.defmakeargs + [self.cfgtype]
-        logging.info("prepare config: %s", args)
-        subprocess.check_call(args)
-        self._ready = 1
-
     def get_cfgpath(self):
-        return "%s/.config" % self.path
+        return "%s/.config" % self.builddir
 
     def getrelease(self):
         krelease = None
@@ -545,7 +552,7 @@ class kbuilder(object):
 
         fpath = None
         if tgzpath is not None:
-            fpath = "/".join([self.path, tgzpath])
+            fpath = "/".join([self.builddir, tgzpath])
 
         if fpath is None or not os.path.isfile(fpath):
             with open(self.buildlog, "w") as fp:

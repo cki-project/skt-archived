@@ -267,7 +267,7 @@ class reporter(object):
             if r is not None:
                 mergedata['config'] = r.text
         else:
-            with open("%s/.config" % self.cfg.get("workdir"), "r") as fp:
+            with open("%s/.config" % self.cfg.get("builddir"), "r") as fp:
                 mergedata['config'] = fp.read()
 
         self.mergedata = mergedata
