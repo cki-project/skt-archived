@@ -31,6 +31,18 @@ For running some specific tests you can do this as following:
 
     $ python -m unittest tests.test_publisher
 
+
+Installation
+------------
+
+Install `skt` directly from git:
+
+    $ pip install git+https://github.com/RH-FMK/skt
+
+Test the `skt` executable by printing the help text:
+
+    $ skt -h
+
 Usage
 -----
 
@@ -114,7 +126,7 @@ written to the `<JUNIT_DIR>` directory.
 
 To checkout a kernel tree run:
 
-    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
              merge --baserepo <REPO_URL> --ref <REPO_REF>
 
 Here `<SKTRC>` would be the configuration file to retrieve the configuration
@@ -125,13 +137,13 @@ checkout.
 
 E.g. to checkout "master" branch of the "net-next" repo:
 
-    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv \
+    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
              merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
                    --ref master
 
 To apply a patch from Patchwork run:
 
-    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
              merge --baserepo <REPO_URL> \
                    --ref <REPO_REF> \
                    --pw <PATCHWORK_PATCH_URL>
@@ -143,7 +155,7 @@ a Patchwork instance.
 E.g. to apply a particular patch to a particular, known-good commit from the
 "net-next" repo, run:
 
-    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv \
+    $ skt --rc <SKTRC> --state --workdir skt-workdir -vv \
              merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
                    --ref a870a02cc963de35452bbed932560ed69725c4f2 \
                    --pw https://patchwork.ozlabs.org/patch/886637
@@ -152,7 +164,7 @@ E.g. to apply a particular patch to a particular, known-good commit from the
 
 And to build the kernel run:
 
-    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+    $ skt --rc <SKTRC> --state --workdir skt-workdir -vv \
              build -c `<CONFIG_FILE>`
 
 Where `<CONFIG_FILE>` would be the kernel configuration file to build the
@@ -161,7 +173,7 @@ default.
 
 E.g. to build with the current system's config file run:
 
-    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv \
+    $ skt --rc <SKTRC> --state --workdir skt-workdir -vv \
              build -c /boot/config-`uname -r`
 
 ### Publish
@@ -257,7 +269,7 @@ result.
 
 E.g. to run the tests from a job XML template named `beakerjob.xml`, execute:
 
-    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv run \
+    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv run \
              --runner beaker '{"jobtemplate": "beakerjob.xml"}' \
              --wait
 
@@ -292,7 +304,7 @@ and `<REPORTER_PARAMS>` would be the type-specific parameters in JSON
 representation. The `stdio` reporter doesn't need any parameters, so you can
 just pass an empty object, like this:
 
-    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv \
+    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv \
              report --reporter stdio '{}'
 
 The `mail` reporter parameters are a bit more involved and to include the
@@ -308,7 +320,7 @@ would be a comma-separated list of "To" addresses.
 The following example sends the report to the current user and to root on the
 same host, with "From" address being the current user:
 
-    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv
+    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv
              report --reporter mail
              '{"mailfrom": "'$USER'@localhost", "mailto": "'$USER'@localhost, root@localhost"}'
 
