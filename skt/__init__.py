@@ -20,6 +20,10 @@ import shutil
 import subprocess
 import tempfile
 import xmlrpclib
+import sys
+import io
+import time
+from threading import Timer
 
 
 def stringify(v):
@@ -538,8 +542,25 @@ class kbuilder(object):
 
         return krelease
 
-    def mktgz(self, clean=True):
-        tgzpath = None
+    def mktgz(self, clean=True, timeout=60 * 60 * 12):
+        """
+        Build kernel and modules, after that, pack everything into a tarball.
+
+        Args:
+            clean:      If it is True, run the `mrproper` target before build.
+            timeout:    Max time in seconds will wait for build.
+        Returns:
+            The full path of the tarball generated.
+        Raises:
+            CommandTimeoutError: When building kernel takes longer than the
+                                 specified timeout.
+            CalledProcessError:  When a command returns an exit code different
+                                 than zero.
+            ParsingError:        When can not find the tarball path in stdout.
+            IOError:             When tarball file doesn't exist.
+        """
+        fpath = None
+        stdout_list = []
         self.prepare(clean)
 
         args = self.defmakeargs + ["INSTALL_MOD_STRIP=1",
@@ -548,24 +569,75 @@ class kbuilder(object):
 
         logging.info("building kernel: %s", args)
 
-        mk = subprocess.Popen(args,
-                              stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT)
-        (stdout, stderr) = mk.communicate()
-        for line in stdout.split("\n"):
-            m = re.match("^Tarball successfully created in (.*)$", line)
-            if m:
-                tgzpath = m.group(1)
-                break
+        with io.open(self.buildlog, 'wb') as writer, \
+                io.open(self.buildlog, 'rb') as reader:
+            make = subprocess.Popen(args,
+                                    stdout=writer,
+                                    stderr=subprocess.STDOUT)
+            make_timedout = []
 
-        fpath = None
-        if tgzpath is not None:
-            fpath = "/".join([self.path, tgzpath])
+            def stop_process(proc):
+                """
+                Terminate the process with SIGTERM and flag it as timed out.
+                """
+                if proc.poll() is None:
+                    proc.terminate()
+                    make_timedout.append(True)
+            timer = Timer(timeout, stop_process, [make])
+            timer.setDaemon(True)
+            timer.start()
+            try:
+                while make.poll() is None:
+                    self.append_and_log2stdout(reader.readlines(), stdout_list)
+                    time.sleep(1)
+                self.append_and_log2stdout(reader.readlines(), stdout_list)
+            finally:
+                timer.cancel()
+            if make_timedout:
+                raise CommandTimeoutError(
+                    "'{}' was taking too long".format(' '.join(args))
+                )
+            if make.returncode != 0:
+                raise subprocess.CalledProcessError(make.returncode,
+                                                    ' '.join(args))
 
-        if fpath is None or not os.path.isfile(fpath):
-            with open(self.buildlog, "w") as fp:
-                fp.write(stdout)
+        match = re.search("^Tarball successfully created in (.*)$",
+                          ''.join(stdout_list), re.MULTILINE)
+        if match:
+            fpath = os.path.realpath(os.path.join(self.path, match.group(1)))
+        else:
+            raise ParsingError('Failed to find tgz path in stdout')
 
-            raise Exception("Failed to find tgz path in stdout")
+        if not os.path.isfile(fpath):
+            raise IOError("Built kernel tarball {} not found".format(fpath))
 
         return fpath
+
+    @staticmethod
+    def append_and_log2stdout(lines, full_log):
+        """
+        Append `lines` into `full_log` and show `lines` on stdout.
+
+        Args:
+            lines:      list of strings.
+            full_log:   list where `lines` members are appended.
+        """
+        full_log.extend(lines)
+        sys.stdout.write(''.join(lines))
+        sys.stdout.flush()
+
+
+class CommandTimeoutError(Exception):
+    """
+    Exception raised when a timeout occurs on a process which has had timeouts
+    enabled. The accompanying value is a string whose value is the command
+    launched plus a small explanation.
+    """
+
+
+class ParsingError(Exception):
+    """
+    Exception raised when a regex does not match and it is impossible to
+    continue. The accompanying value is a string which explains what it can not
+    find.
+    """
