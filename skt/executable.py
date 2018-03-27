@@ -124,7 +124,7 @@ def cmd_merge(cfg):
     try:
         idx = 0
         for mb in cfg.get('merge_ref'):
-            save_state(cfg, {'meregerepo_%02d' % idx: mb[0],
+            save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
                              'mergehead_%02d' % idx: head})
             (retcode, head) = ktree.merge_git_ref(*mb)
 
