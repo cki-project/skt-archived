@@ -335,6 +335,19 @@ configuration file, if `--state` is specified, and it will remove the working
 directory, if `--wipe` is specified. Otherwise it will just remove the built
 tarball and the build information file.
 
+Developer Guide
+---------------
+
+Developers can test changes to `skt` by using "development mode" from python's
+`setuptools` package. First, `cd` to the directory where `skt` is cloned and
+run:
+
+    $ pip install -e .
+
+This installs `skt` in a mode where any changes within the repo are
+immediately available simply by running `skt`. There is no need to repeatedly
+run `pip install .` after each change.
+
 License
 -------
 skt is distributed under GPLv2 license.
