@@ -1,12 +1,12 @@
 language: python
 python:
     - "2.7"
-install:
-    - pip install requests junit_xml beaker-client mock
-    - pip install pylint flake8
 script:
-    - flake8 --show-source .
-    - python -m unittest discover tests
-    - pylint tests
+    # Install skt using pip to ensure dependencies are downloaded correctly.
     - pip install .
+    # Run tests and linters.
+    - flake8 --show-source .
+    - pylint tests
+    - python -m unittest discover tests
+    # Test the uninstallation of skt,
     - pip uninstall -y skt
