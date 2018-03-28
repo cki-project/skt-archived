@@ -176,6 +176,11 @@ E.g. to build with the current system's config file run:
     $ skt --rc <SKTRC> --state --workdir skt-workdir -vv \
              build -c /boot/config-`uname -r`
 
+**NOTE:** Kernels are built without debuginfo by default to save disk space
+and improve build times. In some cases, deep troubleshooting may require
+debug symbols. Use the `--enable-debuginfo` argument to build a kernel with
+debug symbols included.
+
 ### Publish
 
 To "publish" the resulting build using the simple "cp" (copy) publisher run:

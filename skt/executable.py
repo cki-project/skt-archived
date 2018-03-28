@@ -169,8 +169,13 @@ def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
 
-    builder = skt.kbuilder(cfg.get('workdir'), cfg.get('baseconfig'),
-                           cfg.get('cfgtype'), cfg.get('makeopts'))
+    builder = skt.kbuilder(
+        cfg.get('workdir'),
+        cfg.get('baseconfig'),
+        cfg.get('cfgtype'),
+        cfg.get('makeopts'),
+        cfg.get('enable_debuginfo')
+    )
 
     try:
         tgz = builder.mktgz(cfg.get('wipe'))
@@ -422,6 +427,12 @@ def setup_parser():
                               help="Path to kernel config to use")
     parser_build.add_argument("--cfgtype", type=str, help="How to process "
                               "default config (default: olddefconfig)")
+    parser_build.add_argument(
+        "--enable-debuginfo",
+        type=bool,
+        default=False,
+        help="Build kernel with debuginfo (default: disabled)"
+    )
     parser_build.add_argument("--makeopts", type=str,
                               help="Additional options to pass to make")
 

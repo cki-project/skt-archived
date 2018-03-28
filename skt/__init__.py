@@ -431,7 +431,8 @@ class ktree(object):
 
 
 class kbuilder(object):
-    def __init__(self, path, basecfg, cfgtype=None, makeopts=None):
+    def __init__(self, path, basecfg, cfgtype=None, makeopts=None,
+                 enable_debuginfo=False):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         self.path = os.path.expanduser(path)
@@ -465,6 +466,15 @@ class kbuilder(object):
             subprocess.check_call(args)
 
         shutil.copyfile(self.basecfg, "%s/.config" % self.path)
+
+        # NOTE(mhayden): Building kernels with debuginfo can increase the
+        # final kernel tarball size by 3-4x and can increase build time
+        # slightly. Debug symbols are really only needed for deep diagnosis
+        # of kernel issues on a specific system. This is why debuginfo is
+        # disabled by default.
+        if not self.enable_debuginfo:
+            logging.info("disabling debuginfo:")
+            subprocess.check_call(["script/config", "--disable debug_info"])
 
         args = self.defmakeargs + [self.cfgtype]
         logging.info("prepare config: %s", args)
