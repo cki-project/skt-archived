@@ -482,7 +482,7 @@ class kbuilder(object):
             logging.info("cleaning up tree: %s", args)
             subprocess.check_call(args)
 
-        shutil.copyfile(self.basecfg, "%s/.config" % self.path)
+        shutil.copyfile(self.basecfg, self.get_cfgpath())
 
         # NOTE(mhayden): Building kernels with debuginfo can increase the
         # final kernel tarball size by 3-4x and can increase build time
