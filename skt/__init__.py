@@ -464,7 +464,7 @@ class kbuilder(object):
             logging.info("cleaning up tree: %s", args)
             subprocess.check_call(args)
 
-        shutil.copyfile(self.basecfg, "%s/.config" % self.path)
+        shutil.copyfile(self.basecfg, self.get_cfgpath())
 
         args = self.defmakeargs + [self.cfgtype]
         logging.info("prepare config: %s", args)
