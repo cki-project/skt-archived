@@ -3,10 +3,10 @@ python:
     - "2.7"
 install:
     - pip install requests junit_xml beaker-client mock
-    - pip install pylint pycodestyle
+    - pip install pylint pycodestyle flake8
 script:
+    - flake8 --show-source .
     - python -m unittest discover tests
     - pylint tests
-    - pycodestyle .
     - pip install .
     - pip uninstall -y skt
