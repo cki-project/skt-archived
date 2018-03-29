@@ -448,6 +448,7 @@ class kbuilder(object):
         self.makeopts = None
         self.buildlog = "%s/build.log" % self.path
         self.defmakeargs = ["make", "-C", self.path]
+        self.enable_debuginfo = enable_debuginfo
 
         if makeopts is not None:
             # FIXME: Might want something a bit smarter here, something that
