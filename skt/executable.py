@@ -86,7 +86,7 @@ def junit(func):
     """
     def wrapper(cfg):
         global retcode
-        if cfg.get('junit') is not None:
+        if cfg.get('junit'):
             tstart = time.time()
             tc = junit_xml.TestCase(func.__name__, classname="skt")
 
@@ -131,10 +131,10 @@ def cmd_merge(cfg):
 
             utypes.append("[git]")
             idx += 1
-            if retcode != 0:
+            if retcode:
                 return
 
-        if cfg.get('patchlist') is not None:
+        if cfg.get('patchlist'):
             utypes.append("[local patch]")
             idx = 0
             for patch in cfg.get('patchlist'):
@@ -142,7 +142,7 @@ def cmd_merge(cfg):
                 ktree.merge_patch_file(patch)
                 idx += 1
 
-        if cfg.get('pw') is not None:
+        if cfg.get('pw'):
             utypes.append("[patchwork]")
             idx = 0
             for patch in cfg.get('pw'):
@@ -154,7 +154,7 @@ def cmd_merge(cfg):
         raise e
 
     uid = "[baseline]"
-    if len(utypes):
+    if utypes:
         uid = " ".join(utypes)
 
     kpath = ktree.getpath()
@@ -186,7 +186,7 @@ def cmd_build(cfg):
         save_state(cfg, {'buildlog': builder.buildlog})
         raise e
 
-    if cfg.get('buildhead') is not None:
+    if cfg.get('buildhead'):
         ttgz = "%s.tar.gz" % cfg.get('buildhead')
     else:
         ttgz = addtstamp(tgz, tstamp)
@@ -194,8 +194,8 @@ def cmd_build(cfg):
     logging.info("tarball path: %s", ttgz)
 
     tbuildinfo = None
-    if cfg.get('buildinfo') is not None:
-        if cfg.get('buildhead') is not None:
+    if cfg.get('buildinfo'):
+        if cfg.get('buildhead'):
             tbuildinfo = "%s.csv" % cfg.get('buildhead')
         else:
             tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
@@ -217,13 +217,15 @@ def cmd_publish(cfg):
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
     infourl = None
+    cfgurl = None
+
     url = publisher.publish(cfg.get('tarpkg'))
     logging.info("published url: %s", url)
 
-    if cfg.get('buildinfo') is not None:
+    if cfg.get('buildinfo'):
         infourl = publisher.publish(cfg.get('buildinfo'))
 
-    if cfg.get('buildconf') is not None:
+    if cfg.get('buildconf'):
         cfgurl = publisher.publish(cfg.get('buildconf'))
 
     save_state(cfg, {'buildurl': url,
@@ -240,14 +242,14 @@ def cmd_run(cfg):
 
     idx = 0
     for job in runner.jobs:
-        if cfg.get('wait') and cfg.get('junit') is not None:
+        if cfg.get('wait') and cfg.get('junit'):
             runner.dumpjunitresults(job, cfg.get('junit'))
         save_state(cfg, {'jobid_%s' % (idx): job})
         idx += 1
 
     cfg['jobs'] = runner.jobs
 
-    if retcode != 0 and cfg.get('basehead') and cfg.get('publisher') \
+    if retcode and cfg.get('basehead') and cfg.get('publisher') \
             and cfg.get('basehead') != cfg.get('buildhead'):
         # TODO: there is a chance that baseline 'krelease' is different
         baserunner = skt.runner.getrunner(*cfg.get('runner'))
@@ -260,18 +262,18 @@ def cmd_run(cfg):
         save_state(cfg, {'baseretcode': baseres})
 
         # If baseline also fails - assume pass
-        if baseres != 0:
+        if baseres:
             retcode = 0
 
     save_state(cfg, {'retcode': retcode})
 
-    if retcode != 0 and cfg.get('bisect'):
+    if retcode and cfg.get('bisect'):
         cfg['commitbad'] = cfg.get('mergehead')
         cmd_bisect(cfg)
 
 
 def cmd_report(cfg):
-    if cfg.get("reporter") is None:
+    if not cfg.get("reporter"):
         return
 
     # FIXME This is violation of composition. This basically passes the whole
@@ -292,13 +294,13 @@ def cmd_cleanup(cfg):
         with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
             config.write(fp)
 
-    if cfg.get('buildinfo') is not None:
+    if cfg.get('buildinfo'):
         try:
             os.unlink(cfg.get('buildinfo'))
         except OSError:
             pass
 
-    if cfg.get('tarpkg') is not None:
+    if cfg.get('tarpkg'):
         try:
             os.unlink(cfg.get('tarpkg'))
         except OSError:
@@ -349,7 +351,7 @@ def cmd_bisect(cfg):
 
     cfg['host'] = runner.gethost()
 
-    if retcode != 0:
+    if retcode:
         logging.warning("Good commit %s failed, aborting bisect", head)
         cmd_cleanup(cfg)
         return
@@ -538,7 +540,7 @@ def load_config(args):
     # section values.
     if cfg.get('state') and config.has_section('state'):
         for (name, value) in config.items('state'):
-            if name not in cfg or cfg.get(name) is None:
+            if not cfg.get(name):
                 if name.startswith("jobid_"):
                     if "jobs" not in cfg:
                         cfg["jobs"] = set()
@@ -563,39 +565,35 @@ def load_config(args):
 
     if config.has_section('config'):
         for (name, value) in config.items('config'):
-            if name not in cfg or cfg.get(name) is None:
+            if not cfg.get(name):
                 cfg[name] = value
 
-    if config.has_section('publisher') and ('publisher' not in cfg or
-                                            cfg.get('publisher') is None):
+    if config.has_section('publisher') and not cfg.get('publisher'):
         cfg['publisher'] = [config.get('publisher', 'type'),
                             config.get('publisher', 'destination'),
                             config.get('publisher', 'baseurl')]
 
-    if config.has_section('runner') and ('runner' not in cfg or
-                                         cfg.get('runner') is None):
+    if config.has_section('runner') and not cfg.get('runner'):
         rcfg = {}
         for (key, val) in config.items('runner'):
-            if key == 'type':
-                continue
-            rcfg[key] = val
+            if key != 'type':
+                rcfg[key] = val
         cfg['runner'] = [config.get('runner', 'type'), rcfg]
-    elif 'runner' in cfg and cfg.get('runner') is not None:
+    elif cfg.get('runner'):
         cfg['runner'] = [cfg.get('runner')[0],
                          ast.literal_eval(cfg.get('runner')[1])]
 
-    if config.has_section('reporter') and (cfg.get('reporter') is None):
+    if config.has_section('reporter') and not cfg.get('reporter'):
         rcfg = {}
         for (key, val) in config.items('reporter'):
-            if key == 'type':
-                continue
-            rcfg[key] = val
+            if key != 'type':
+                rcfg[key] = val
         cfg['reporter'] = [config.get('reporter', 'type'), rcfg]
-    elif 'reporter' in cfg and cfg.get('reporter') is not None:
+    elif cfg.get('reporter'):
         cfg['reporter'] = [cfg.get('reporter')[0],
                            ast.literal_eval(cfg.get('reporter')[1])]
 
-    if 'merge_ref' not in cfg or cfg.get('merge_ref') is None:
+    if not cfg.get('merge_ref'):
         cfg['merge_ref'] = []
 
     for section in config.sections():
@@ -621,7 +619,7 @@ def main():
     cfg = load_config(args)
 
     args.func(cfg)
-    if cfg.get('junit') is not None:
+    if cfg.get('junit'):
         ts = junit_xml.TestSuite("skt", cfg.get('_testcases'))
         with open("%s/%s.xml" % (cfg.get('junit'), args._name), 'w') as fp:
             junit_xml.TestSuite.to_file(fp, [ts])
