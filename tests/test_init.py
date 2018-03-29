@@ -14,7 +14,6 @@ Test cases for __init__.py.
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-from xmlrpclib import ServerProxy
 import unittest
 
 import skt
@@ -54,16 +53,3 @@ class TestInit(unittest.TestCase):
             "Can't parse patchwork url: '{}'".format(patchwork_url)
             in context.exception
         )
-
-    def test_parse_valid_patchwork_url(self):
-        """Ensure parse_patchwork_url() can parse a valid patchwork url"""
-        patch_number = "890993"
-        patchwork_url = (
-            "https://patchwork.ozlabs.org/patch/{}/".format(patch_number)
-        )
-        result = skt.parse_patchwork_url(patchwork_url)
-        self.assertIsInstance(result, tuple)
-
-        (serverobj, patch_id) = result
-        self.assertIsInstance(serverobj, ServerProxy)
-        self.assertEqual(patch_id, patch_number)
