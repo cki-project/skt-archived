@@ -399,7 +399,8 @@ def setup_parser():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
+    parser.add_argument("-d", "--workdir", type=str, help="Path to work dir",
+                        default=os.environ.get("SKT_WORKDIR"))
     parser.add_argument("-w", "--wipe",
                         help="Clean build (make mrproper before building), "
                         "remove workdir when finished",
