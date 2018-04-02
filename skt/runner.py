@@ -20,7 +20,7 @@ import time
 import xml.etree.ElementTree as etree
 
 
-class runner(object):
+class Runner(object):
     """An abstract test runner"""
     # TODO This probably shouldn't be here as we never use it, and it should
     # not be inherited
@@ -29,7 +29,8 @@ class runner(object):
     # TODO Define abstract "run" method.
 
 
-class beakerrunner(runner):
+class BeakerRunner(Runner):
+    """Run tests on Beaker"""
     TYPE = 'beaker'
 
     def __init__(self, jobtemplate, jobowner=None):
@@ -66,6 +67,18 @@ class beakerrunner(runner):
         logging.info("beaker template: %s", self.template)
 
     def getxml(self, replacements):
+        """
+        Generate job XML with template replacements applied. Search the
+        template for words surrounded by "##" strings and replace them with
+        strings from the supplied dictionary.
+
+        Args:
+            replacements:   A dictionary of placeholder strings with "##"
+                            around them, and their replacements.
+
+        Returns:
+            The job XML text with template replacements applied.
+        """
         xml = ''
         with open(self.template, 'r') as f:
             for line in f:
@@ -79,6 +92,18 @@ class beakerrunner(runner):
         return xml
 
     def getresultstree(self, jobid, logs=False):
+        """
+        Retrieve Beaker job results in Beaker's native XML format.
+
+        Args:
+            jobid: The Beaker jobid
+            logs:  Set to 'True' to retrieve logs from Beaker as part of the
+                   job results. The default is 'False', which excludes logs
+                   from the Beaker job results.
+
+        Returns:
+            The job results XML text with job logs (if logs==True).
+        """
         args = ["bkr", "job-results"]
         if not logs:
             args.append("--no-logs")
@@ -98,6 +123,15 @@ class beakerrunner(runner):
             (stdout, stderr) = bkr.communicate()
 
     def getconsolelog(self, jobid=None):
+        """
+        Retrieve console log URL from a Beaker job.
+
+        Args:
+            jobid: The Beaker jobid
+
+        Returns:
+            The URL for console logs within the Beaker environment.
+        """
         url = None
 
         if jobid is None:
@@ -412,7 +446,7 @@ def getrunner(rtype, rarg):
     Raises:
         ValueError if the rtype match wasn't found.
     """
-    for cls in runner.__subclasses__():
+    for cls in Runner.__subclasses__():
         if cls.TYPE == rtype:
             return cls(**rarg)
     raise ValueError("Unknown runner type: %s" % rtype)
