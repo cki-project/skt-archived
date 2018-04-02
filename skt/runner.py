@@ -20,7 +20,7 @@ import time
 import xml.etree.ElementTree as etree
 
 
-class runner(object):
+class Runner(object):
     """An abstract test runner"""
     # TODO This probably shouldn't be here as we never use it, and it should
     # not be inherited
@@ -29,7 +29,7 @@ class runner(object):
     # TODO Define abstract "run" method.
 
 
-class beakerrunner(runner):
+class BeakerRunner(Runner):
     """Run tests on Beaker"""
     TYPE = 'beaker'
 
@@ -446,7 +446,7 @@ def getrunner(rtype, rarg):
     Raises:
         ValueError if the rtype match wasn't found.
     """
-    for cls in runner.__subclasses__():
+    for cls in Runner.__subclasses__():
         if cls.TYPE == rtype:
             return cls(**rarg)
     raise ValueError("Unknown runner type: %s" % rtype)
