@@ -397,124 +397,241 @@ def setup_parser():
     Returns:
         The created parser.
     """
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        add_help=False,
+    )
 
-    parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
-    parser.add_argument("-w", "--wipe",
-                        help="Clean build (make mrproper before building), "
-                        "remove workdir when finished",
-                        action="store_true", default=False)
-    parser.add_argument("--junit",
-                        help="Path to dir to store junit results in")
-    parser.add_argument("-v", "--verbose", help="Increase verbosity level",
-                        action="count", default=0)
-    parser.add_argument("--rc", help="Path to rc file", default=DEFAULTRC)
+    # Global arguments for all skt operations
+    parser.add_argument(
+        "-d", "--workdir",
+        type=str,
+        help="Path to work dir"
+    )
+    parser.add_argument(
+        "-w", "--wipe",
+        help="Clean build (make mrproper before building), remove workdir "
+             "when finished",
+        action="store_true",
+        default=False
+    )
+    parser.add_argument(
+        "--junit",
+        help="Path to dir to store junit results in"
+    )
+    parser.add_argument(
+        "-v", "--verbose",
+        help="Increase verbosity level",
+        action="count",
+        default=0
+    )
+    parser.add_argument(
+        "--rc",
+        help="Path to rc file",
+        default=DEFAULTRC
+    )
     # FIXME Storing state in config file can break the whole system in case
     #       state saving aborts. It's better to save state separately.
     #       It also breaks separation of concerns, as in principle skt doesn't
     #       need to modify its own configuration otherwise.
-    parser.add_argument("--state", help="Save/read state from 'state' section "
-                        "of rc file", action="store_true", default=False)
+    parser.add_argument(
+        "--state",
+        help="Save/read state from 'state' section of rc file",
+        action="store_true",
+        default=False
+    )
+    parser.add_argument(
+        "-h", "--help",
+        help="Merge sub-command help",
+        action="help"
+    )
 
     subparsers = parser.add_subparsers()
 
-    parser_merge = subparsers.add_parser("merge", add_help=False)
-    parser_merge.add_argument("-b", "--baserepo", type=str,
-                              help="Base repo URL")
-    parser_merge.add_argument("--ref", type=str,
-                              help="Base repo ref (default: master")
-    parser_merge.add_argument("--patchlist", type=str, nargs="+",
-                              help="List of patch paths to apply")
-    parser_merge.add_argument("--pw", type=str, nargs="+",
-                              help="Patchwork urls")
-    parser_merge.add_argument("-m", "--merge-ref", nargs="+",
-                              help="Merge ref format: 'url [ref]'",
-                              action="append")
+    # 'bisect' subcommand arguments
+    parser_bisect = subparsers.add_parser("bisect", add_help=False)
+    parser_bisect.add_argument(
+        "commitbad",
+        type=str,
+        help="Bad commit for bisect"
+    )
+    parser_bisect.add_argument(
+        "--commitgood",
+        type=str,
+        help="Good commit for bisect. Default's to baserepo's HEAD"
+    )
+    parser_bisect.add_argument(
+        "--host",
+        type=str,
+        help="If needs to be bisected on specific host")
+    parser_bisect.set_defaults(func=cmd_bisect)
+    parser_bisect.set_defaults(_name="bisect")
 
+    # 'build' subcommand arguments
     parser_build = subparsers.add_parser("build", add_help=False)
-    parser_build.add_argument("-c", "--baseconfig", type=str,
-                              help="Path to kernel config to use")
-    parser_build.add_argument("--cfgtype", type=str, help="How to process "
-                              "default config (default: olddefconfig)")
+    parser_build.set_defaults(func=cmd_build)
+    parser_build.set_defaults(_name="build")
+    parser_build.add_argument(
+        "-h", "--help",
+        help="Build sub-command help",
+        action="help"
+    )
+    parser_build.add_argument(
+        "-c", "--baseconfig",
+        type=str,
+        help="Path to kernel config to use"
+    )
+    parser_build.add_argument(
+        "--cfgtype",
+        type=str,
+        help="How to process default config (default: olddefconfig)"
+    )
     parser_build.add_argument(
         "--enable-debuginfo",
         type=bool,
         default=False,
         help="Build kernel with debuginfo (default: disabled)"
     )
-    parser_build.add_argument("--makeopts", type=str,
-                              help="Additional options to pass to make")
+    parser_build.add_argument(
+        "--makeopts",
+        type=str,
+        help="Additional options to pass to make"
+    )
 
+    # 'cleanup' subcommand arguments
+    parser_cleanup = subparsers.add_parser("cleanup", add_help=False)
+    parser_cleanup.set_defaults(func=cmd_cleanup)
+    parser_cleanup.set_defaults(_name="cleanup")
+
+    # 'merge' subcommand arguments
+    parser_merge = subparsers.add_parser("merge", add_help=False)
+    parser_merge.set_defaults(func=cmd_merge)
+    parser_merge.set_defaults(_name="merge")
+    parser_merge.add_argument(
+        "-h", "--help",
+        help="Merge sub-command help",
+        action="help"
+    )
+    parser_merge.add_argument(
+        "-b", "--baserepo",
+        type=str,
+        help="Base repo URL"
+    )
+    parser_merge.add_argument(
+        "--ref",
+        type=str,
+        help="Base repo ref (default: master)"
+    )
+    parser_merge.add_argument(
+        "--patchlist",
+        type=str,
+        nargs="+",
+        help="List of patch paths to apply"
+    )
+    parser_merge.add_argument(
+        "--pw",
+        type=str,
+        nargs="+",
+        help="Patchwork urls"
+    )
+    parser_merge.add_argument(
+        "-m", "--merge-ref",
+        nargs="+",
+        help="Merge ref format: 'url [ref]'",
+        action="append"
+    )
+
+    # 'publish' subcommand arguments
     parser_publish = subparsers.add_parser("publish", add_help=False)
-    parser_publish.add_argument("-p", "--publisher", type=str, nargs=3,
-                                help="Publisher config string in 'type "
-                                "destination baseurl' format")
-    parser_publish.add_argument("--tarpkg", type=str,
-                                help="Path to tar pkg to publish")
-    parser_publish.add_argument("--buildinfo", type=str,
-                                help="Path to accompanying buildinfo")
+    parser_publish.set_defaults(func=cmd_publish)
+    parser_publish.set_defaults(_name="publish")
+    parser_publish.add_argument(
+        "-p", "--publisher",
+        type=str,
+        nargs=3,
+        help="Publisher config string in 'type destination baseurl' format"
+    )
+    parser_publish.add_argument(
+        "--tarpkg",
+        type=str,
+        help="Path to tar pkg to publish"
+    )
+    parser_publish.add_argument(
+        "--buildinfo",
+        type=str,
+        help="Path to accompanying buildinfo"
+    )
+    parser_publish.add_argument(
+        "-h", "--help",
+        action="help",
+        help="Publish sub-command help"
+    )
 
-    parser_run = subparsers.add_parser("run", add_help=False)
-    parser_run.add_argument("-r", "--runner", nargs=2, type=str,
-                            help="Runner config in 'type \"{'key' : 'val', "
-                            "...}\"' format")
-    parser_run.add_argument("--buildurl", type=str, help="Build tarpkg url")
-    parser_run.add_argument("--krelease", type=str,
-                            help="Kernel release version of the build")
-    parser_run.add_argument("--wait", action="store_true", default=False,
-                            help="Do not exit until tests are finished")
-    parser_run.add_argument("--bisect", help="Try to bisect the failure if "
-                            "any.  (Implies --wait)",
-                            action="store_true", default=False)
-
+    # 'report' subcommand arguments
     parser_report = subparsers.add_parser("report", add_help=False)
-    parser_report.add_argument("--reporter", nargs=2, type=str,
-                               help="Reporter config in 'type \"{'key' : "
-                               "'val', ...}\"' format")
     parser_report.set_defaults(func=cmd_report)
     parser_report.set_defaults(_name="report")
+    parser_report.add_argument(
+        "-h", "--help",
+        help="Report sub-command help",
+        action="help"
+    )
+    parser_report.add_argument(
+        "--reporter",
+        nargs=2,
+        type=str,
+        help="Reporter config in 'type \"{'key' : 'val', ...}\"' format"
+    )
 
-    parser_cleanup = subparsers.add_parser("cleanup", add_help=False)
+    # 'run' subcommand arguments
+    parser_run = subparsers.add_parser("run", add_help=False)
+    parser_run.set_defaults(func=cmd_run)
+    parser_run.set_defaults(_name="run")
+    parser_run.add_argument(
+        "-h", "--help",
+        help="Run sub-command help",
+        action="help"
+    )
+    parser_run.add_argument(
+        "-r", "--runner",
+        nargs=2,
+        type=str,
+        help="Runner config in 'type \"{'key' : 'val', ...}\"' format"
+    )
+    parser_run.add_argument(
+        "--buildurl",
+        type=str,
+        help="Build tarpkg url"
+    )
+    parser_run.add_argument(
+        "--krelease",
+        type=str,
+        help="Kernel release version of the build"
+    )
+    parser_run.add_argument(
+        "--wait",
+        action="store_true",
+        default=False,
+        help="Do not exit until tests are finished"
+    )
+    parser_run.add_argument(
+        "--bisect",
+        help="Try to bisect the failure if any.  (Implies --wait)",
+        action="store_true",
+        default=False
+    )
 
+    # 'all' subcommand arguments
+    # NOTE(mhayden): These must appear at the end of the parsers list since
+    # it depends on all of the other parsers to be defined first.
     parser_all = subparsers.add_parser(
         "all",
         parents=[parser_merge, parser_build, parser_publish, parser_run,
-                 parser_report, parser_cleanup]
+                 parser_report, parser_cleanup],
+        add_help=False,
+        conflict_handler='resolve'
     )
-
-    parser_merge.add_argument("-h", "--help", help="Merge sub-command help",
-                              action="help")
-    parser_build.add_argument("-h", "--help", help="Build sub-command help",
-                              action="help")
-    parser_publish.add_argument("-h", "--help", action="help",
-                                help="Publish sub-command help")
-    parser_run.add_argument("-h", "--help", help="Run sub-command help",
-                            action="help")
-    parser_report.add_argument("-h", "--help", help="Report sub-command help",
-                               action="help")
-
-    parser_merge.set_defaults(func=cmd_merge)
-    parser_merge.set_defaults(_name="merge")
-    parser_build.set_defaults(func=cmd_build)
-    parser_build.set_defaults(_name="build")
-    parser_publish.set_defaults(func=cmd_publish)
-    parser_publish.set_defaults(_name="publish")
-    parser_run.set_defaults(func=cmd_run)
-    parser_run.set_defaults(_name="run")
-    parser_cleanup.set_defaults(func=cmd_cleanup)
-    parser_cleanup.set_defaults(_name="cleanup")
     parser_all.set_defaults(func=cmd_all)
     parser_all.set_defaults(_name="all")
-
-    parser_bisect = subparsers.add_parser("bisect", add_help=True)
-    parser_bisect.add_argument("commitbad", type=str,
-                               help="Bad commit for bisect")
-    parser_bisect.add_argument("--commitgood", type=str, help="Good commit "
-                               "for bisect. Default's to baserepo's HEAD")
-    parser_bisect.add_argument("--host", type=str, help="If needs to be "
-                               "bisected on specific host")
-    parser_bisect.set_defaults(func=cmd_bisect)
-    parser_bisect.set_defaults(_name="bisect")
 
     return parser
 
