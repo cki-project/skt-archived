@@ -155,7 +155,7 @@ a Patchwork instance.
 E.g. to apply a particular patch to a particular, known-good commit from the
 "net-next" repo, run:
 
-    $ skt --rc <SKTRC> --state --workdir skt-workdir -vv \
+    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
              merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
                    --ref a870a02cc963de35452bbed932560ed69725c4f2 \
                    --pw https://patchwork.ozlabs.org/patch/886637
@@ -164,7 +164,7 @@ E.g. to apply a particular patch to a particular, known-good commit from the
 
 And to build the kernel run:
 
-    $ skt --rc <SKTRC> --state --workdir skt-workdir -vv \
+    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
              build -c `<CONFIG_FILE>`
 
 Where `<CONFIG_FILE>` would be the kernel configuration file to build the
@@ -173,7 +173,7 @@ default.
 
 E.g. to build with the current system's config file run:
 
-    $ skt --rc <SKTRC> --state --workdir skt-workdir -vv \
+    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
              build -c /boot/config-`uname -r`
 
 **NOTE:** Kernels are built without debuginfo by default to save disk space
@@ -274,7 +274,7 @@ result.
 
 E.g. to run the tests from a job XML template named `beakerjob.xml`, execute:
 
-    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv run \
+    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv run \
              --runner beaker '{"jobtemplate": "beakerjob.xml"}' \
              --wait
 
@@ -309,7 +309,7 @@ and `<REPORTER_PARAMS>` would be the type-specific parameters in JSON
 representation. The `stdio` reporter doesn't need any parameters, so you can
 just pass an empty object, like this:
 
-    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv \
              report --reporter stdio '{}'
 
 The `mail` reporter parameters are a bit more involved and to include the
@@ -325,7 +325,7 @@ would be a comma-separated list of "To" addresses.
 The following example sends the report to the current user and to root on the
 same host, with "From" address being the current user:
 
-    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv
+    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv
              report --reporter mail
              '{"mailfrom": "'$USER'@localhost", "mailto": "'$USER'@localhost, root@localhost"}'
 
