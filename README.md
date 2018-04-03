@@ -347,11 +347,21 @@ Developers can test changes to `skt` by using "development mode" from python's
 `setuptools` package. First, `cd` to the directory where `skt` is cloned and
 run:
 
-    $ pip install -e .
+    $ pip install --user -e .
 
 This installs `skt` in a mode where any changes within the repo are
 immediately available simply by running `skt`. There is no need to repeatedly
 run `pip install .` after each change.
+
+Using a virtual environment is highly recommended. This keeps `skt` and all
+its dependencies in a separate Python environment. Developers can build a
+virtual environment for skt quickly:
+
+    $ virtualenv ~/skt-venv/
+    $ source ~/skt-venv/bin/activate
+    $ pip install -e .
+
+To deactivate the virtual environment, simply run `deactivate`.
 
 License
 -------
