@@ -11,16 +11,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-import StringIO
+from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 import gzip
 import logging
 import os
 import re
 import smtplib
-
-from email.mime.application import MIMEApplication
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import StringIO
 
 import requests
 
@@ -181,7 +180,7 @@ class consolelog(object):
             if insplat:
                 tmpdata.append(line)
 
-        if len(tmpdata) > 0:
+        if tmpdata:
             result.append("\n".join(tmpdata))
 
         return result
@@ -212,19 +211,18 @@ class reporter(object):
     def infourldata(self, mergedata):
         r = requests.get(self.cfg.get("infourl"))
         for line in r.text.split('\n'):
-            if line == "":
-                continue
-            idata = line.split(',')
-            if idata[0] == 'base':
-                mergedata['base'] = (idata[1], idata[2])
-            elif idata[0] == 'git':
-                mergedata['merge_git'].append((idata[1], idata[2]))
-            elif idata[0] == 'patch':
-                mergedata['localpatch'].append(os.path.basename(idata[1]))
-            elif idata[0] == 'patchwork':
-                mergedata['patchwork'].append((idata[1], idata[2]))
-            else:
-                logging.warning("Unknown infotype: %s", idata[0])
+            if line:
+                idata = line.split(',')
+                if idata[0] == 'base':
+                    mergedata['base'] = (idata[1], idata[2])
+                elif idata[0] == 'git':
+                    mergedata['merge_git'].append((idata[1], idata[2]))
+                elif idata[0] == 'patch':
+                    mergedata['localpatch'].append(os.path.basename(idata[1]))
+                elif idata[0] == 'patchwork':
+                    mergedata['patchwork'].append((idata[1], idata[2]))
+                else:
+                    logging.warning("Unknown infotype: %s", idata[0])
 
         return mergedata
 
@@ -234,8 +232,8 @@ class reporter(object):
         if self.cfg.get("mergerepos"):
             mrl = self.cfg.get("mergerepos")
             mhl = self.cfg.get("mergeheads")
-            for idx in range(0, len(mrl)):
-                mergedata['merge_git'].append((mrl[idx], mhl[idx]))
+            for idx, mrl_item in enumerate(mrl):
+                mergedata['merge_git'].append((mrl_item, mhl[idx]))
 
         if self.cfg.get("localpatches"):
             mergedata['localpatch'] = self.cfg.get("localpatches")
@@ -250,12 +248,12 @@ class reporter(object):
 
     def update_mergedata(self):
         mergedata = {
-                'base': None,
-                'merge_git': [],
-                'localpatch': [],
-                'patchwork': [],
-                'config': None,
-                }
+            'base': None,
+            'merge_git': [],
+            'localpatch': [],
+            'patchwork': [],
+            'config': None
+        }
 
         if self.cfg.get("infourl"):
             mergedata = self.infourldata(mergedata)
@@ -264,7 +262,7 @@ class reporter(object):
 
         if self.cfg.get("cfgurl"):
             r = requests.get(self.cfg.get("cfgurl"))
-            if r is not None:
+            if r:
                 mergedata['config'] = r.text
         else:
             with open("%s/.config" % self.cfg.get("workdir"), "r") as fp:
@@ -273,16 +271,15 @@ class reporter(object):
         self.mergedata = mergedata
 
     def getmergeinfo(self):
-        result = []
-
-        result += ["base repo: %s" % self.mergedata['base'][0],
-                   "     HEAD: %s" % self.mergedata['base'][1]]
+        result = ["\n-----------------------",
+                  "base repo: %s" % self.mergedata['base'][0],
+                  "     HEAD: %s" % self.mergedata['base'][1]]
 
         for (repo, head) in self.mergedata['merge_git']:
             result += ["\nmerged git repo: %s" % repo,
                        "           HEAD: %s" % head]
 
-        for (patchpath) in self.mergedata['localpatch']:
+        for patchpath in self.mergedata['localpatch']:
             result += ["\npatch: %s" % patchpath]
 
         for (purl, pname) in self.mergedata['patchwork']:
@@ -294,14 +291,11 @@ class reporter(object):
             result.append("\nconfig: see attached '%s'" % cfgname)
             self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
 
-        result.insert(0, "\n-----------------------")
         return result
 
     def gettested(self):
-        result = []
-
-        result.append("\n-----------------------")
-        result.append("Tested:")
+        result = ["\n-----------------------",
+                  "Tested:"]
 
         # TODO: Get info from sktrc when we have it there
         for test in ['Boot test']:
@@ -316,22 +310,17 @@ class reporter(object):
         return jobids
 
     def getmergefailure(self):
-        result = []
+        result = ["\n-----------------------",
+                  "Merge failed during application of the last patch above:\n"]
 
-        result.append("\n-----------------------")
-        result.append(
-            "Merge failed during application of the last patch above:\n"
-        )
         with open(self.cfg.get("mergelog"), 'r') as fp:
             result.append(fp.read())
         return result
 
     def getbuildfailure(self):
-        result = []
-
         attname = "build.log"
-        result.append("\n-----------------------")
-        result.append("Build failed: see attached %s" % attname)
+        result = ["\n-----------------------",
+                  "Build failed: see attached %s" % attname]
 
         with open(self.cfg.get("buildlog"), 'r') as fp:
             self.attach.append((attname, fp.read()))
@@ -339,11 +328,10 @@ class reporter(object):
         return result
 
     def getjobresults(self):
-        result = []
+        result = ["\n-----------------------"]
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
         vresults = runner.getverboseresults(list(self.cfg.get("jobs")))
 
-        result.append("\n-----------------------")
         minfo = {"short": {}, "long": {}}
         jidx = 1
         for jobid in sorted(self.cfg.get("jobs")):
@@ -362,7 +350,7 @@ class reporter(object):
                                  recipe)
                     clog = consolelog(self.cfg.get("krelease"), clogurl)
                     ctraces = clog.gettraces()
-                    if len(ctraces) > 0:
+                    if ctraces:
                         result.append("first encountered call trace:")
                         result.append(ctraces[0])
 
@@ -375,7 +363,7 @@ class reporter(object):
                 if slshwurl is not None:
                     if system not in minfo["short"]:
                         r = requests.get(slshwurl)
-                        if r is not None:
+                        if r:
                             result.append("\nmachine info:")
                             result += r.text.split('\n')
                             minfo["short"][system] = jidx
@@ -405,7 +393,7 @@ class reporter(object):
             msg += self.gettested()
             msg += self.getjobresults()
 
-        if len(self.attach) > 0 and self.attach[0][0] == "config":
+        if self.attach and self.attach[0][0] == "config":
             self.attach.append(self.attach.pop(0))
 
         return '\n'.join(msg)
@@ -442,11 +430,9 @@ class stdioreporter(reporter):
         print self.getreport()
 
         for (name, att) in self.attach:
-            if not (name.endswith('.log') or name.endswith('.txt') or
-                    name.endswith('config')):
-                continue
-            print "\n---------------\n%s\n" % name
-            print att
+            if name.endswith(('.log', '.txt', 'config')):
+                print "\n---------------\n%s\n" % name
+                print att
 
 
 class mailreporter(reporter):
@@ -480,8 +466,7 @@ class mailreporter(reporter):
 
         for (name, att) in self.attach:
             # TODO Store content type and charset when adding attachments
-            if (name.endswith('.log') or name.endswith('.txt') or
-                    name.endswith('config')):
+            if name.endswith(('.log', '.txt', 'config')):
                 tmp = MIMEText(att, _charset='utf-8')
                 tmp.add_header("content-disposition", "attachment",
                                filename=name)
