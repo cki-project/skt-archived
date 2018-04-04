@@ -490,8 +490,11 @@ class kbuilder(object):
         # of kernel issues on a specific system. This is why debuginfo is
         # disabled by default.
         if not self.enable_debuginfo:
-            logging.info("disabling debuginfo:")
-            subprocess.check_call(["script/config", "--disable debug_info"])
+            args = ["%s/scripts/config" % self.path,
+                    "--file", self.get_cfgpath(),
+                    "--disable", "debug_info"]
+            logging.info("disabling debuginfo: %s", args)
+            subprocess.check_call(args)
 
         args = self.defmakeargs + [self.cfgtype]
         logging.info("prepare config: %s", args)
