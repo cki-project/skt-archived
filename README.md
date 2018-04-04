@@ -315,7 +315,7 @@ just pass an empty object, like this:
 The `mail` reporter parameters are a bit more involved and to include the
 "From" address, and a list of "To" addresses for the message to send:
 
-    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv
+    $ skt.py --rc <SKTRC> --state --workdir <WORKDIR> -vv \
              report --reporter mail \
              '{"mailfrom": "<MAILFROM>", "mailto": "<MAILTO_LIST>"}'
 
@@ -325,8 +325,8 @@ would be a comma-separated list of "To" addresses.
 The following example sends the report to the current user and to root on the
 same host, with "From" address being the current user:
 
-    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv
-             report --reporter mail
+    $ skt.py --rc skt-rc --state --workdir skt-workdir -vv \
+             report --reporter mail \
              '{"mailfrom": "'$USER'@localhost", "mailto": "'$USER'@localhost, root@localhost"}'
 
 Note that the `report` command will reach for build artifacts via the URLs
