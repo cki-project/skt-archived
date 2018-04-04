@@ -39,6 +39,14 @@ retcode = 0
 
 
 def save_state(cfg, state):
+    """
+    Merge state to cfg, and then save cfg.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+        state:  A dictionary of skt current state.
+    """
+
     for (key, val) in state.iteritems():
         cfg[key] = val
 
@@ -111,6 +119,13 @@ def junit(func):
 
 @junit
 def cmd_merge(cfg):
+    """
+    Fetch a kernel repository, checkout particular references, and optionally
+    apply patches from patchwork instances.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+    """
     global retcode
     utypes = []
     ktree = skt.ktree(cfg.get('baserepo'),
@@ -169,6 +184,12 @@ def cmd_merge(cfg):
 
 @junit
 def cmd_build(cfg):
+    """
+    Build the kernel with specified configuration and put it into a tarball.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+    """
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
 
@@ -214,6 +235,15 @@ def cmd_build(cfg):
 
 @junit
 def cmd_publish(cfg):
+    """
+    Publish (copy) the kernel tarball, configuration, and build information to
+    the specified location, generating their resulting URLs, using the
+    specified "publisher". Only "cp" and "scp" pusblishers are supported at the
+    moment.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+    """
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
     infourl = None
@@ -235,6 +265,13 @@ def cmd_publish(cfg):
 
 @junit
 def cmd_run(cfg):
+    """
+    Run tests on a built kernel using the specified "runner". Only "Beaker"
+    runner is currently supported.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+    """
     global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
@@ -273,6 +310,13 @@ def cmd_run(cfg):
 
 
 def cmd_report(cfg):
+    """
+    Report build and/or test results using the specified "reporter". Currently
+    results can be reported by e-mail or printed to stdout.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+    """
     if not cfg.get("reporter"):
         return
 
@@ -286,6 +330,15 @@ def cmd_report(cfg):
 
 
 def cmd_cleanup(cfg):
+    """
+    Remove the build information file, kernel tarball. Remove state information
+    from the configuration file, if saving state was enabled with the global
+    --state option, and remove the whole working directory, if the global
+    --wipe option was specified.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+    """
     config = cfg.get('_parser')
     if config.has_section('state'):
         config.remove_section('state')
@@ -313,6 +366,13 @@ def cmd_cleanup(cfg):
 
 
 def cmd_all(cfg):
+    """
+    Run the following commands in order: merge, build, publish, run, report (if
+    --wait option was specified), and cleanup.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+    """
     cmd_merge(cfg)
     cmd_build(cfg)
     cmd_publish(cfg)
@@ -324,6 +384,13 @@ def cmd_all(cfg):
 
 @junit
 def cmd_bisect(cfg):
+    """
+    Bisect Git history between a known bad and a known good commit (defaulting
+    to "master"), running tests to locate the offending commit.
+
+    Args:
+        cfg:    A dictionary of skt configuration.
+    """
     if len(cfg.get('merge_ref')) != 1:
         raise Exception(
             "Bisecting currently works only with exactly one mergeref"
@@ -375,6 +442,16 @@ def cmd_bisect(cfg):
 
 
 def addtstamp(path, tstamp):
+    """
+    Add time stamp to a file path.
+
+    Args:
+        path:   file path.
+        tstamp: time stamp.
+
+    Returns:
+        New path with time stamp.
+    """
     return os.path.join(os.path.dirname(path),
                         "%s-%s" % (tstamp, os.path.basename(path)))
 
