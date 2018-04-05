@@ -360,13 +360,13 @@ class ktree(object):
 
         logging.info("Applying %s", uri)
 
-        gam = subprocess.Popen(["git",
-                                "--work-tree", self.wdir,
-                                "--git-dir", self.gdir,
-                                "am", "-"],
-                               stdin=subprocess.PIPE,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT)
+        gam = subprocess.Popen(
+            ["git", "am", "-"],
+            cwd=self.wdir,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
 
         (stdout, stderr) = gam.communicate(pdata)
         retcode = gam.wait()
