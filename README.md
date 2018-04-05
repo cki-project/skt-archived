@@ -39,6 +39,11 @@ Install `skt` directly from git:
 
     $ pip install git+https://github.com/RH-FMK/skt
 
+If support for beaker is required, install ``skt`` with the ``beaker``
+extras:
+
+    $ pip install git+https://github.com/RH-FMK/skt[beaker]
+
 Test the `skt` executable by printing the help text:
 
     $ skt -h
