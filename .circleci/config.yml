@@ -1,0 +1,49 @@
+default_steps: &default_steps
+  steps:
+    - checkout
+    - run: pip install .
+    - run:
+        command: |
+          flake8 --show-source .
+          pylint tests
+          python -m unittest discover tests
+    - run: git clone --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git workdir
+    - run:
+        command: |
+          git config --global user.name "SKT"
+          git config --global user.email "noreply@redhat.com"
+    - run: skt -vv --state -d workdir --rc sktrc merge --pw https://patchwork.ozlabs.org/patch/895383/ -b git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git --ref master
+    - run:
+        command: |
+          make -C workdir tinyconfig
+          cp workdir/.config config
+    - run: skt -vv --state -d workdir --rc sktrc build -c config
+    - run: ls -alh *.tar.gz
+    - run: pip uninstall -y skt
+    - store_artifacts:
+        path: /tmp/skt_test/workdir/merge.log
+    - store_artifacts:
+        path: /tmp/skt_test/workdir/build.log
+    - store_artifacts:
+        path: /tmp/skt_test/workdir/.config
+
+version: 2
+jobs:
+  test_fedora27:
+    docker:
+      - image: quay.io/major/fedora-kernel-builder:latest
+    working_directory: /tmp/skt_test/
+    <<: *default_steps
+  # NOTE(mhayden): Disabled for now. Still have some bugs to figure out.
+  # test_centos7:
+  #   docker:
+  #     - image: quay.io/major/centos-kernel-builder:latest
+  #   working_directory: /tmp/skt_test/
+  #   <<: *default_steps
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - test_fedora27
+      # - test_centos7
