@@ -14,19 +14,19 @@ defaults: &defaults
     # TODO(mhayden): Add --depth support to skt and then let skt to the clone
     # rather than using the git command below.
     - run:
-        name: Clone and prepare repo
+        name: Prepare git
         command: |
           mkdir -p /tmp/skt_test/workdir
           git config --global user.name "SKT"
           git config --global user.email "noreply@redhat.com"
-          git clone --branch v4.16 --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git /tmp/skt_test/workdir
     - run:
         name: Test `skt merge`
         command: |
           skt -vv --state -d workdir --rc sktrc merge \
             --pw https://patchwork.ozlabs.org/patch/895383/ \
             -b git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \
-            --ref v4.16
+            --ref v4.16 \
+            --fetch-depth 1
         working_directory: /tmp/skt_test
     - run:
         name: Test `skt build`
