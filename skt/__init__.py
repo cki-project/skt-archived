@@ -137,13 +137,12 @@ class ktree(object):
             wdir:   The directory to house the clone and to checkout into.
                     Creates and uses a temporary directory if not specified.
         """
-        # FIXME Move expansion up the call stack, as this limits the class
-        # usefulness, because tilde is a valid path character.
-        # The git "working directory" (the "checkout")
-        self.wdir = (os.path.expanduser(wdir)
-                     if wdir is not None
-                     else tempfile.mkdtemp())
-        # The cloned git repository
+        # Use the work directory provided by the user. If they did not provide
+        # one, create a temporary directory.
+        if wdir:
+            self.wdir = os.path.expanduser(wdir)
+        else:
+            self.wdir = tempfile.mkdtemp()
         self.gdir = "%s/.git" % self.wdir
         # The origin remote's URL
         self.uri = uri
@@ -152,26 +151,34 @@ class ktree(object):
         self.info = []
         self.mergelog = "%s/merge.log" % self.wdir
 
-        try:
+        # Create the work directory if it does not exist
+        if not os.path.isdir(self.wdir):
             os.mkdir(self.wdir)
-        except OSError:
-            pass
 
-        try:
+        # Remove the old merge log
+        if os.path.isfile(self.mergelog):
             os.unlink(self.mergelog)
-        except OSError:
-            pass
 
-        self.git_cmd("init")
-
-        try:
-            self.git_cmd("remote", "set-url", "origin", self.uri)
-        except subprocess.CalledProcessError:
-            self.git_cmd("remote", "add", "origin", self.uri)
+        # Set the origin remote for the repository
+        self.initialize_repo()
+        self.set_repo_remote()
 
         logging.info("base repo url: %s", self.uri)
         logging.info("base ref: %s", self.ref)
         logging.info("work dir: %s", self.wdir)
+
+    def initialize_repo(self):
+        """Initialize the git repository"""
+        git_directory = "{}/.git".format(self.wdir)
+        if not os.path.isdir(git_directory):
+            self.git_cmd("init")
+
+    def set_repo_remote(self):
+        """Set the origin remote for the repository"""
+        try:
+            self.git_cmd("remote", "set-url", "origin", self.uri)
+        except subprocess.CalledProcessError:
+            self.git_cmd("remote", "add", "origin", self.uri)
 
     def git_cmd(self, *args, **kwargs):
         args = list(["git", "--work-tree", self.wdir, "--git-dir",
