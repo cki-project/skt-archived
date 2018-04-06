@@ -19,14 +19,14 @@ defaults: &defaults
           mkdir -p /tmp/skt_test/workdir
           git config --global user.name "SKT"
           git config --global user.email "noreply@redhat.com"
-          git clone --branch v4.16 --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git /tmp/test/workdir
+          git clone --branch v4.16 --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git /tmp/skt_test/workdir
     - run:
         name: Test `skt merge`
         command: |
           skt -vv --state -d workdir --rc sktrc merge \
             --pw https://patchwork.ozlabs.org/patch/895383/ \
             -b git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \
-            --ref master
+            --ref v4.16
         working_directory: /tmp/skt_test
     - run:
         name: Test `skt build`
