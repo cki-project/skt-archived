@@ -128,9 +128,12 @@ def cmd_merge(cfg):
     """
     global retcode
     utypes = []
-    ktree = skt.ktree(cfg.get('baserepo'),
-                      ref=cfg.get('ref'),
-                      wdir=cfg.get('workdir'))
+    ktree = skt.ktree(
+        cfg.get('baserepo'),
+        ref=cfg.get('ref'),
+        wdir=cfg.get('workdir'),
+        fetch_depth=cfg.get('fetch_depth')
+    )
     bhead = ktree.checkout()
     commitdate = ktree.get_commit_date(bhead)
     save_state(cfg, {'baserepo': cfg.get('baserepo'),
@@ -507,6 +510,15 @@ def setup_parser():
     parser_merge.add_argument("-m", "--merge-ref", nargs="+",
                               help="Merge ref format: 'url [ref]'",
                               action="append")
+    parser_merge.add_argument(
+        "--fetch-depth",
+        type=str,
+        help=(
+            "Create a shallow clone with a history truncated to the "
+            "specified number of commits."
+        ),
+        default=None
+    )
 
     parser_build = subparsers.add_parser("build", add_help=False)
     parser_build.add_argument("-c", "--baseconfig", type=str,

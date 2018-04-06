@@ -126,7 +126,7 @@ class ktree(object):
     Ktree - a kernel git repository "checkout", i.e. a clone with a working
     directory
     """
-    def __init__(self, uri, ref=None, wdir=None):
+    def __init__(self, uri, ref=None, wdir=None, fetch_depth=None):
         """
         Initialize a ktree.
 
@@ -136,6 +136,9 @@ class ktree(object):
                     if not specified.
             wdir:   The directory to house the clone and to checkout into.
                     Creates and uses a temporary directory if not specified.
+            fetch_depth:
+                    The amount of git history to include with the clone.
+                    Smaller depths lead to faster repo clones.
         """
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
@@ -168,6 +171,8 @@ class ktree(object):
             self.git_cmd("remote", "set-url", "origin", self.uri)
         except subprocess.CalledProcessError:
             self.git_cmd("remote", "add", "origin", self.uri)
+
+        self.fetch_depth = fetch_depth
 
         logging.info("base repo url: %s", self.uri)
         logging.info("base ref: %s", self.ref)
@@ -268,8 +273,18 @@ class ktree(object):
         """
         dstref = "refs/remotes/origin/%s" % (self.ref.split('/')[-1])
         logging.info("fetching base repo")
-        self.git_cmd("fetch", "-n", "origin",
-                     "+%s:%s" % (self.ref, dstref))
+        git_fetch_args = [
+            "fetch", "-n", "origin",
+            "+%s:%s" % (self.ref, dstref)
+        ]
+        # If the user provided extra arguments for the git fetch step, append
+        # them to the existing set of arguments.
+        if self.fetch_depth:
+            git_fetch_args.extend(['--depth', self.fetch_depth])
+
+        # The git_cmd() method expects a list of args, not a list of strings,
+        # so we need to expand our list into args with *.
+        self.git_cmd(*git_fetch_args)
 
         logging.info("checking out %s", self.ref)
         self.git_cmd("checkout", "-q", "--detach", dstref)

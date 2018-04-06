@@ -165,6 +165,20 @@ E.g. to apply a particular patch to a particular, known-good commit from the
                    --ref a870a02cc963de35452bbed932560ed69725c4f2 \
                    --pw https://patchwork.ozlabs.org/patch/886637
 
+#### Faster clones
+
+In some instances, a full git history is not needed. Shallow clones are git
+repositories that have a truncated history and they can be cloned much faster
+than a full copy of the repository. Use the `--fetch-depth` option with
+`skt merge`:
+
+    $ skt ... merge ... --fetch-depth 5
+
+In the example above, the repository will be cloned with a git history of five
+commits. This speeds up the cloning process, but it also prevents the use of
+any git references (tags, branches, etc) that were made before the last five
+commits.
+
 ### Build
 
 And to build the kernel run:
