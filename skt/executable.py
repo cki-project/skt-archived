@@ -397,8 +397,32 @@ def setup_parser():
     Returns:
         The created parser.
     """
+    description_text = """
+skt is a tool for automatically fetching, building, and testing kernel patches
+published on Patchwork instances.
+
+Several subcommands are available:
+
+    all     - run merge, build, publish, run, report, cleanup in order
+    bisect  - bisect the git history to find the offending commit
+    build   - build the kernel with the specified configuration and package it
+              into a tarball
+    cleanup - remove build information, kernel tarball, state information
+              (if --state specified), working directory (if --wipe specified)
+    merge   - apply a patch from an instance of patchwork to a specified
+              reference in a git repository
+    publish - copy the kernel tarball, configuration, and build information to
+              a specified location (cp and scp publishers supported)
+    report  - report build/test results using a reporter (email and stdout
+              reporters supported)
+    run     - run tests on a built kernel using a runner (beaker is the only
+              runner currently supported)
+"""
+
     parser = argparse.ArgumentParser(
         add_help=False,
+        description=description_text,
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
     # Global arguments for all skt operations
@@ -730,6 +754,13 @@ def main():
     global retcode
 
     parser = setup_parser()
+
+    # If the user ran 'skt' with no arguments or subcommands, print the help
+    # text rather than printing "error: too few arguments".
+    if not sys.argv[1:]:
+        parser.print_help()
+        parser.exit()
+
     args = parser.parse_args()
 
     setup_logging(args.verbose)
