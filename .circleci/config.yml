@@ -1,0 +1,63 @@
+defaults: &defaults
+  working_directory: /tmp/skt
+  steps:
+    - checkout
+    - run:
+        name: Install skt using pip
+        command: pip install .
+    - run:
+        name: Run Python linters and tests
+        command: |
+          flake8 --show-source .
+          pylint tests
+          python -m unittest discover tests
+    # TODO(mhayden): Add --depth support to skt and then let skt to the clone
+    # rather than using the git command below.
+    - run:
+        name: Clone and prepare repo
+        command: |
+          mkdir -p /tmp/skt_test/workdir
+          git config --global user.name "SKT"
+          git config --global user.email "noreply@redhat.com"
+          git clone --branch v4.16 --depth 1 git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git /tmp/test/workdir
+    - run:
+        name: Test `skt merge`
+        command: |
+          skt -vv --state -d workdir --rc sktrc merge \
+            --pw https://patchwork.ozlabs.org/patch/895383/ \
+            -b git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \
+            --ref master
+        working_directory: /tmp/skt_test
+    - run:
+        name: Test `skt build`
+        command: |
+            make -C workdir tinyconfig
+            mv workdir/.config config
+            skt -vv --state -d workdir --rc sktrc build -c config
+        working_directory: /tmp/skt_test
+    - store_artifacts:
+        path: /tmp/skt_test/workdir/*.log
+    - store_artifacts:
+        path: /tmp/skt_test/workdir/.config
+    - store_artifacts:
+        path: /tmp/skt_test/*.tar.gz
+    - store_artifacts:
+        path: /tmp/skt_test/sktrc
+
+version: 2
+jobs:
+  fedora27:
+    docker:
+      - image: quay.io/major/fedora-kernel-builder:latest
+    <<: *defaults
+  centos7:
+    docker:
+      - image: quay.io/major/centos-kernel-builder:latest
+    <<: *defaults
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - fedora27
+      - centos7
