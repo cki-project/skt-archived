@@ -14,9 +14,13 @@ Test cases for __init__.py.
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+import os
+import tempfile
 import unittest
 
 import skt
+
+GIT_URI = "git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
 
 
 class TestInit(unittest.TestCase):
@@ -53,3 +57,54 @@ class TestInit(unittest.TestCase):
             "Can't parse patchwork url: '{}'".format(patchwork_url)
             in context.exception
         )
+
+    def test_ktree_init(self):
+        """Test ktree.__init__ without specifying a work directory"""
+        result = skt.ktree(GIT_URI)
+        self.assertIsInstance(result, skt.ktree)
+        self.assertEqual(result.uri, GIT_URI)
+
+    def test_ktree_init_workdir(self):
+        """Test ktree.__init__ with specifying a work directory"""
+        workdir = tempfile.mkdtemp()
+        result = skt.ktree(GIT_URI, wdir=workdir)
+        self.assertEqual(result.wdir, workdir)
+
+    def test_ktree_create_workdir(self):
+        """Ensure create_workdir() creates a work dir if it does not exist"""
+        workdir = tempfile.mkdtemp()
+        os.rmdir(workdir)
+        skt.ktree(GIT_URI, wdir=workdir)
+        self.assertTrue(os.path.isdir(workdir))
+
+    def test_ktree_remove_mergelog(self):
+        """Ensure remove_mergelog really removes the merge.log"""
+        workdir = tempfile.mkdtemp()
+        merge_log = "{}/merge.log".format(workdir)
+
+        # Write some sample log content
+        with open(merge_log, 'w') as fileh:
+            fileh.write("merge log sample content")
+
+        skt.ktree(GIT_URI, wdir=workdir)
+        self.assertFalse(os.path.isfile(merge_log))
+
+    def test_ktree_getpath(self):
+        """Ensure ktree.getpath() returns the workdir path"""
+        workdir = tempfile.mkdtemp()
+        ktree_obj = skt.ktree(GIT_URI, wdir=workdir)
+        result = ktree_obj.getpath()
+        self.assertEqual(result, workdir)
+
+    def test_ktree_dumpinfo(self):
+        """Ensure ktree.getpath() dumps CSV data"""
+        workdir = tempfile.mkdtemp()
+        ktree_obj = skt.ktree(GIT_URI, wdir=workdir)
+        ktree_obj.info = [["test", "result"]]
+        ktree_obj.dumpinfo("test.csv")
+        self.assertTrue(os.path.isfile("{}/test.csv".format(workdir)))
+
+        with open("{}/test.csv".format(workdir), 'r') as fileh:
+            csv_content = fileh.read()
+
+        self.assertEqual(csv_content, "test,result\n")
