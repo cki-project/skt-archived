@@ -362,7 +362,7 @@ def cmd_cleanup(cfg):
         except OSError:
             pass
 
-    if cfg.get('wipe'):
+    if cfg.get('wipe') and cfg.get('workdir'):
         # FIXME Move expansion up the call stack, as this limits the function
         # usefulness, because tilde is a valid path character.
         shutil.rmtree(os.path.expanduser(cfg.get('workdir')))
