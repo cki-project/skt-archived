@@ -16,6 +16,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import gzip
 import logging
+import mailbox
 import os
 import re
 import smtplib
@@ -240,9 +241,14 @@ class reporter(object):
 
         if self.cfg.get("patchworks"):
             for purl in self.cfg.get("patchworks"):
-                (rpc, patchid) = skt.parse_patchwork_url(purl)
-                pinfo = rpc.patch_get(patchid)
-                mergedata['patchwork'].append((purl, pinfo.get("name")))
+                mbox_raw = skt.get_patchwork_mbox(purl)
+                patch_mbox = mailbox.mbox(mbox_raw)[0]
+                mergedata['patchwork'].append(
+                    (
+                        purl,
+                        patch_mbox.get('Subject')
+                    )
+                )
 
         return mergedata
 

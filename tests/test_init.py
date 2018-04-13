@@ -16,40 +16,33 @@ Test cases for __init__.py.
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 import unittest
 
+import mock
+
 import skt
+
+
+def mocked_requests_get(*args):
+    """Function to handle mocked HTTP requests"""
+    class MockResponse(object):
+        # pylint: disable=too-few-public-methods
+        """MockResponse class for returning HTTP requests"""
+        def __init__(self, text_data, status_code):
+            self.text = text_data
+            self.status_code = status_code
+
+    if args[0] == 'https://patchwork.kernel.org/patch/10326957/mbox/':
+        return MockResponse("mbox text goes here", 200)
+
+    return MockResponse(None, 404)
 
 
 class TestInit(unittest.TestCase):
     """Test cases for skt's __init__.py"""
 
-    def test_stringify_with_integer(self):
-        """Ensure stringify() can handle an integer"""
-        myinteger = int(42)
-        result = skt.stringify(myinteger)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, str(myinteger))
-
-    def test_stringify_with_string(self):
-        """Ensure stringify() can handle a plain string"""
-        mystring = "Test text"
-        result = skt.stringify(mystring)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, mystring)
-
-    def test_stringify_with_unicode(self):
-        """Ensure stringify() can handle a unicode byte string"""
-        myunicode = unicode("Test text")
-        result = skt.stringify(myunicode)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, myunicode.encode('utf-8'))
-
-    def test_parse_bad_patchwork_url(self):
-        """Ensure parse_patchwork_url() handles a parsing exception"""
-        patchwork_url = "garbage"
-        with self.assertRaises(Exception) as context:
-            skt.parse_patchwork_url(patchwork_url)
-
-        self.assertTrue(
-            "Can't parse patchwork url: '{}'".format(patchwork_url)
-            in context.exception
-        )
+    @mock.patch('requests.get', side_effect=mocked_requests_get)
+    def test_get_patchwork_mbox(self, mock_get):
+        # pylint: disable=unused-argument
+        """Ensure get_patchwork_mbox() can get an mbox file"""
+        patchwork_uri = 'https://patchwork.kernel.org/patch/10326957/'
+        result = skt.get_patchwork_mbox(patchwork_uri)
+        self.assertEqual(result, 'mbox text goes here')
