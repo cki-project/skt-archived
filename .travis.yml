@@ -1,9 +1,10 @@
 language: python
 python:
     - "2.7"
-script:
+install:
     # Install skt using pip to ensure dependencies are downloaded correctly.
     - pip install .
+script:
     # Run tests and linters.
     - flake8 --show-source .
     - pylint tests
