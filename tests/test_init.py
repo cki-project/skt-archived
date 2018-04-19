@@ -92,13 +92,15 @@ class KBuilderTest(unittest.TestCase):
         called when `clean` is False.
         """
         with self.ctx_popen, self.ctx_check_call as m_check_call:
-            self.assertRaises(Exception, self.kbuilder_mktgz, clean=True)
+            self.assertRaises(Exception, self.kbuilder_mktgz_silent,
+                              clean=True)
             self.assertEqual(
                 m_check_call.mock_calls[0],
                 mock.call(['make', '-C', self.tmpdir, 'mrproper'])
             )
             m_check_call.reset_mock()
-            self.assertRaises(Exception, self.kbuilder_mktgz, clean=False)
+            self.assertRaises(Exception, self.kbuilder_mktgz_silent,
+                              clean=False)
             self.assertNotEqual(
                 m_check_call.mock_calls[0],
                 mock.call(['make', '-C', self.tmpdir, 'mrproper']),
@@ -119,13 +121,13 @@ class KBuilderTest(unittest.TestCase):
         ctx_sleep = mock.patch('time.sleep', m_sleep)
         with ctx_sleep, self.ctx_check_call, self.ctx_popen:
             self.assertRaises(skt.CommandTimeoutError,
-                              self.kbuilder_mktgz, timeout=0.001)
+                              self.kbuilder_mktgz_silent, timeout=0.001)
 
     def test_mktgz_parsing_error(self):
         """Check if ParsingError is raised when no kernel is found in stdout"""
         self.m_io_open.readlines = Mock(return_value=['foo\n', 'bar\n'])
         with self.ctx_popen, self.ctx_check_call, self.ctx_io_open:
-            self.assertRaises(skt.ParsingError, self.kbuilder_mktgz)
+            self.assertRaises(skt.ParsingError, self.kbuilder_mktgz_silent)
 
     def test_mktgz_ioerror(self):
         """Check if IOError is raised when tarball path does not exist"""
@@ -133,7 +135,7 @@ class KBuilderTest(unittest.TestCase):
             return_value=['foo\n', self.success_str]
         )
         with self.ctx_io_open, self.ctx_popen, self.ctx_check_call:
-            self.assertRaises(IOError, self.kbuilder_mktgz)
+            self.assertRaises(IOError, self.kbuilder_mktgz_silent)
 
     def test_mktgz_make_fail(self):
         """
@@ -143,7 +145,7 @@ class KBuilderTest(unittest.TestCase):
         self.m_popen.returncode = 1
         with self.ctx_popen:
             self.assertRaises(subprocess.CalledProcessError,
-                              self.kbuilder_mktgz)
+                              self.kbuilder_mktgz_silent)
 
     def test_mktgz_success(self):
         """Check if mktgz can finish successfully"""
@@ -154,11 +156,11 @@ class KBuilderTest(unittest.TestCase):
         with self.ctx_io_open, self.ctx_popen, self.ctx_check_call:
             with open(os.path.join(self.tmpdir, self.kernel_tarball), 'w'):
                 pass
-            full_path = self.kbuilder_mktgz()
+            full_path = self.kbuilder_mktgz_silent()
             self.assertEqual(os.path.join(self.tmpdir, self.kernel_tarball),
                              full_path)
 
-    def kbuilder_mktgz(self, *args, **kwargs):
-        """Wrapper of kbuilder.mktgz to avoid stdout pollution"""
+    def kbuilder_mktgz_silent(self, *args, **kwargs):
+        """Run self.kbuilder.mktgz with disabled output"""
         with mock.patch('sys.stdout'):
             return self.kbuilder.mktgz(*args, **kwargs)
