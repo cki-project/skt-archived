@@ -85,7 +85,7 @@ class BeakerRunner(Runner):
         xml = ''
         with open(self.template, 'r') as f:
             for line in f:
-                for match in re.finditer("##(\w+)##", line):
+                for match in re.finditer(r"##(\w+)##", line):
                     if match.group(1) in replacements:
                         line = line.replace(match.group(0),
                                             replacements[match.group(1)])
@@ -395,7 +395,7 @@ class BeakerRunner(Runner):
         (stdout, stderr) = bkr.communicate(xml)
 
         for line in stdout.split("\n"):
-            m = re.match("^Submitted: \['([^']+)'\]$", line)
+            m = re.match(r"^Submitted: \['([^']+)'\]$", line)
             if m:
                 jobid = m.group(1)
                 break

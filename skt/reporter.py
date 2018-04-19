@@ -48,62 +48,62 @@ class consolelog(object):
 
     # List of regular expression strings matching
     # lines beginning an oops or a call trace output
-    oopsmsg = ["general protection fault:",
-               "BUG:",
-               "kernel BUG at",
-               "do_IRQ: stack overflow:",
-               "RTNL: assertion failed",
-               "Eeek! page_mapcount\(page\) went negative!",
-               "near stack overflow \(cur:",
-               "double fault:",
-               "Badness at",
-               "NETDEV WATCHDOG",
-               "WARNING: at",
-               "appears to be on the same physical disk",
-               "Unable to handle kernel",
-               "sysctl table check failed",
-               "------------\[ cut here \]------------",
-               "list_del corruption\.",
-               "list_add corruption\.",
-               "NMI watchdog: BUG: soft lockup",
-               "irq [0-9]+: nobody cared",
-               "INFO: task .* blocked for more than [0-9]+ seconds",
-               "vmwrite error: reg ",
-               "page allocation failure: order:",
-               "page allocation stalls for.*order:.*mode:",
-               "INFO: rcu_sched self-detected stall on CPU",
-               "INFO: rcu_sched detected stalls on CPUs/tasks:",
-               "NMI watchdog: Watchdog detected hard LOCKUP",
-               "Kernel panic - not syncing: ",
-               "Oops: Unrecoverable TM Unavailable Exception"
+    oopsmsg = [r"general protection fault:",
+               r"BUG:",
+               r"kernel BUG at",
+               r"do_IRQ: stack overflow:",
+               r"RTNL: assertion failed",
+               r"Eeek! page_mapcount\(page\) went negative!",
+               r"near stack overflow \(cur:",
+               r"double fault:",
+               r"Badness at",
+               r"NETDEV WATCHDOG",
+               r"WARNING: at",
+               r"appears to be on the same physical disk",
+               r"Unable to handle kernel",
+               r"sysctl table check failed",
+               r"------------\[ cut here \]------------",
+               r"list_del corruption\.",
+               r"list_add corruption\.",
+               r"NMI watchdog: BUG: soft lockup",
+               r"irq [0-9]+: nobody cared",
+               r"INFO: task .* blocked for more than [0-9]+ seconds",
+               r"vmwrite error: reg ",
+               r"page allocation failure: order:",
+               r"page allocation stalls for.*order:.*mode:",
+               r"INFO: rcu_sched self-detected stall on CPU",
+               r"INFO: rcu_sched detected stalls on CPUs/tasks:",
+               r"NMI watchdog: Watchdog detected hard LOCKUP",
+               r"Kernel panic - not syncing: ",
+               r"Oops: Unrecoverable TM Unavailable Exception"
                ]
 
     # List of regular expression strings matching
     # lines appearing in a call trace output
     ctvalid = [
-        "\[[\d\ \.]+\].*\[[0-9a-f<>]+\]",
-        "\[[\d\ \.]+\]\s+.+\s+[A-Z]\s[0-9a-fx ]+",
-        "\[[\d\ \.]+\]\s+[0-9a-fx ]+",
-        "\[-- MARK --",
-        "Instruction dump",
-        "handlers:",
-        "Code: [0-9a-z]+",
-        "blocked for",
-        "Workqueue:",
-        "disables this message",
-        "Call Trace",
-        "Hardware name",
-        "task: [0-9a-f]+ ti: [0-9a-f]+ task\.ti: [0-9a-f]+",
-        "^(Traceback)?[0-9a-f\s]+$",
-        "(\[[\d\ \.]+\]\s+)?([A-Z0-9]+: [0-9a-fx ]+)+",
-        "Stack:\s*$",
-        "Modules linked in:"
+        r"\[[\d\ \.]+\].*\[[0-9a-f<>]+\]",
+        r"\[[\d\ \.]+\]\s+.+\s+[A-Z]\s[0-9a-fx ]+",
+        r"\[[\d\ \.]+\]\s+[0-9a-fx ]+",
+        r"\[-- MARK --",
+        r"Instruction dump",
+        r"handlers:",
+        r"Code: [0-9a-z]+",
+        r"blocked for",
+        r"Workqueue:",
+        r"disables this message",
+        r"Call Trace",
+        r"Hardware name",
+        r"task: [0-9a-f]+ ti: [0-9a-f]+ task\.ti: [0-9a-f]+",
+        r"^(Traceback)?[0-9a-f\s]+$",
+        r"(\[[\d\ \.]+\]\s+)?([A-Z0-9]+: [0-9a-fx ]+)+",
+        r"Stack:\s*$",
+        r"Modules linked in:"
     ]
 
     # List of regular expression strings matching
     # lines ending a call trace output
     expend = [
-        "\[ end (trace|Kernel panic)"
+        r"\[ end (trace|Kernel panic)"
     ]
 
     def __init__(self, kver, url):

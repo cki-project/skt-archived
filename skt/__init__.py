@@ -97,7 +97,7 @@ def parse_patchwork_url(uri):
              compatibility/communication error has occurred and the string
              describes it.
     """
-    m = re.match("^(.*)/patch/(\d+)/?$", uri)
+    m = re.match(r"^(.*)/patch/(\d+)/?$", uri)
     if not m:
         raise Exception("Can't parse patchwork url: '%s'" % uri)
 
@@ -532,7 +532,7 @@ class kbuilder(object):
         mk = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
         for line in stdout.split("\n"):
-            m = re.match('^\d+\.\d+\.\d+.*$', line)
+            m = re.match(r'^\d+\.\d+\.\d+.*$', line)
             if m:
                 krelease = m.group()
                 break
