@@ -31,6 +31,10 @@ For running some specific tests you can do this as following:
 
     $ python -m unittest tests.test_publisher
 
+For running all tests by pytest:
+
+    $ python -m pytest tests
+
 
 Installation
 ------------

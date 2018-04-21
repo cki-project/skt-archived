@@ -9,5 +9,6 @@ script:
     - flake8 --show-source .
     - pylint tests
     - python -m unittest discover tests
+    - python -m pytest tests
     # Test the uninstallation of skt,
     - pip uninstall -y skt
