@@ -16,6 +16,7 @@ import logging
 import multiprocessing
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -470,7 +471,7 @@ class ktree(object):
 
 class kbuilder(object):
     def __init__(self, path, basecfg, cfgtype=None, makeopts=None,
-                 enable_debuginfo=False):
+                 enable_debuginfo=False, kbuild_output=None):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         self.path = os.path.expanduser(path)
@@ -479,16 +480,38 @@ class kbuilder(object):
         self.basecfg = os.path.expanduser(basecfg)
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
-        self.makeopts = None
         self.buildlog = "%s/build.log" % self.path
         self.defmakeargs = ["make", "-C", self.path]
         self.enable_debuginfo = enable_debuginfo
 
         if makeopts is not None:
-            # FIXME: Might want something a bit smarter here, something that
-            # would parse it the same way bash does
-            self.makeopts = makeopts.split(' ')
-            self.defmakeargs += self.makeopts
+            self.makeopts = self.defmakeargs + shlex.split(makeopts)
+        else:
+            self.makeopts = self.defmakeargs
+
+        # If the user provided a directory to hold kernel build artifacts,
+        # we must add the appropriate make options.
+        if kbuild_output is not None:
+            # Ensure the path is absolute, even if the user provided a path
+            # relative to their home directory with a tilde (~).
+            self.kbuild_output_dir = os.path.abspath(
+                os.path.expanduser(kbuild_output)
+            )
+            logging.info(
+                "Found kernel build output directory specifier in make "
+                "options: {}".format(self.kbuild_output_dir)
+            )
+
+            # Ensure the output directory exists
+            # NOTE(mhayden): os.makedirs will cause an error if the directory
+            # already exists, so we must check for the directory first.
+            if not os.path.isdir(self.kbuild_output_dir):
+                os.makedirs(self.kbuild_output_dir)
+
+            # Add the 'O=' make option to specify the output directory
+            self.makeopts.append("O={}".format(self.kbuild_output_dir))
+        else:
+            self.kbuild_output_dir = None
 
         try:
             os.unlink(self.buildlog)
@@ -500,11 +523,15 @@ class kbuilder(object):
 
     def prepare(self, clean=True):
         if (clean):
-            args = self.defmakeargs + ["mrproper"]
+            args = self.makeopts + ["mrproper"]
             logging.info("cleaning up tree: %s", args)
             subprocess.check_call(args)
 
-        shutil.copyfile(self.basecfg, "%s/.config" % self.path)
+        logging.info("copying config file: {} --> {}".format(
+            self.basecfg,
+            self.get_cfgpath())
+        )
+        shutil.copyfile(self.basecfg, self.get_cfgpath())
 
         # NOTE(mhayden): Building kernels with debuginfo can increase the
         # final kernel tarball size by 3-4x and can increase build time
@@ -518,20 +545,23 @@ class kbuilder(object):
             logging.info("disabling debuginfo: %s", args)
             subprocess.check_call(args)
 
-        args = self.defmakeargs + [self.cfgtype]
+        args = self.makeopts + [self.cfgtype]
         logging.info("prepare config: %s", args)
         subprocess.check_call(args)
         self._ready = 1
 
     def get_cfgpath(self):
-        return "%s/.config" % self.path
+        if self.kbuild_output_dir:
+            return "%s/.config" % self.kbuild_output_dir
+        else:
+            return "%s/.config" % self.path
 
     def getrelease(self):
         krelease = None
         if not self._ready:
             self.prepare(False)
 
-        args = self.defmakeargs + ["kernelrelease"]
+        args = self.makeopts + ["kernelrelease"]
         mk = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
         for line in stdout.split("\n"):
@@ -566,9 +596,9 @@ class kbuilder(object):
         stdout_list = []
         self.prepare(clean)
 
-        args = self.defmakeargs + ["INSTALL_MOD_STRIP=1",
-                                   "-j%d" % multiprocessing.cpu_count(),
-                                   "targz-pkg"]
+        args = self.makeopts + ["INSTALL_MOD_STRIP=1",
+                                "-j%d" % multiprocessing.cpu_count(),
+                                "targz-pkg"]
 
         logging.info("building kernel: %s", args)
 
@@ -607,7 +637,23 @@ class kbuilder(object):
         match = re.search("^Tarball successfully created in (.*)$",
                           ''.join(stdout_list), re.MULTILINE)
         if match:
-            fpath = os.path.realpath(os.path.join(self.path, match.group(1)))
+            # If we are building the kernel artifacts outside the work
+            # directory, we should look for the kernel tarball in the output
+            # directory.
+            if self.kbuild_output_dir:
+                fpath = os.path.realpath(
+                    os.path.join(
+                        self.kbuild_output_dir,
+                        match.group(1)
+                    )
+                )
+            else:
+                fpath = os.path.realpath(
+                    os.path.join(
+                        self.path,
+                        match.group(1)
+                    )
+                )
         else:
             raise ParsingError('Failed to find tgz path in stdout')
 

@@ -201,7 +201,8 @@ def cmd_build(cfg):
         cfg.get('baseconfig'),
         cfg.get('cfgtype'),
         cfg.get('makeopts'),
-        cfg.get('enable_debuginfo')
+        cfg.get('enable_debuginfo'),
+        cfg.get('kbuild_output')
     )
 
     try:
@@ -533,6 +534,11 @@ def setup_parser():
         type=bool,
         default=False,
         help="Build kernel with debuginfo (default: disabled)"
+    )
+    parser_build.add_argument(
+        "--kbuild-output",
+        type=str,
+        help="Directory to hold kernel build artifacts"
     )
     parser_build.add_argument("--makeopts", type=str,
                               help="Additional options to pass to make")
