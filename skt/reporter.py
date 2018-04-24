@@ -330,6 +330,20 @@ class reporter(object):
         return result
 
     def getjobresults(self):
+        """
+        Retrieve job results which should be appended to the report.
+
+        Get job results from runner, check console logs (if present) to filter
+        out infrastructure issues and find call traces. For each test run, add
+            1. Number of test run
+            2. It's result
+            3. If present, info about the machine the test ran on
+        If the testing failed, add first found trace call and attach related
+        console log.
+
+        Returns:
+            A list of lines representing results of test runs.
+        """
         result = ['\n' + '=' * 70 + '\n']
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
         job_list = sorted(list(self.cfg.get("jobs", [])))
