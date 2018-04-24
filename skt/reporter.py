@@ -332,11 +332,12 @@ class reporter(object):
     def getjobresults(self):
         result = ["\n-----------------------"]
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
-        vresults = runner.getverboseresults(list(self.cfg.get("jobs")))
+        job_list = sorted(list(self.cfg.get("jobs", [])))
+        vresults = runner.getverboseresults(job_list)
 
         minfo = {"short": {}, "long": {}}
         jidx = 1
-        for jobid in sorted(self.cfg.get("jobs")):
+        for jobid in job_list:
             for (recipe, rdata) in vresults[jobid].iteritems():
                 if recipe == "result":
                     continue
