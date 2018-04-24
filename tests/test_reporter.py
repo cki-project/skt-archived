@@ -74,25 +74,24 @@ class TestConsoleLog(unittest.TestCase):
         """Check it doesn't catch any trace when kernel version doesn't
         match.
         """
-        consolelog = reporter.consolelog('4-4', 'someurl')
         with self.request_get_mocked('x86_one_trace.txt'):
+            consolelog = reporter.consolelog('4-4', 'someurl')
             traces = consolelog.gettraces()
         self.assertListEqual(traces, [])
 
     def test_match_one_trace(self):
         """Check one trace can be extracted from a console log"""
-        consolelog = reporter.consolelog('4-5-fake', 'someurl')
         with self.request_get_mocked('x86_one_trace.txt'):
+            consolelog = reporter.consolelog('4-5-fake', 'someurl')
             traces = consolelog.gettraces()
             self.assertEqual(len(traces), 1)
         expected_trace = self.get_expected_traces('x86_one_trace.txt')[0]
-        expected_trace += '\n'
         self.assertEqual(expected_trace, traces[0])
 
     def test_match_three_traces(self):
         """Check three traces can be extracted from a console log"""
-        consolelog = reporter.consolelog('4.16-fake', 'someurl')
         with self.request_get_mocked('x86_three_traces.txt'):
+            consolelog = reporter.consolelog('4.16-fake', 'someurl')
             traces = consolelog.gettraces()
             self.assertEqual(len(traces), 3)
         expected_traces = self.get_expected_traces('x86_three_traces.txt')
