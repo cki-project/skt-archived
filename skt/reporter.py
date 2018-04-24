@@ -344,24 +344,28 @@ class reporter(object):
 
                 (res, system, clogurl, slshwurl, llshwurl) = rdata
 
+                clog = consolelog(self.cfg.get("krelease"), clogurl)
+                if not clog.data and res != 'Pass':
+                    # The targeted kernel either didn't start booting or the
+                    # console wasn't logged. The second one isn't an issue if
+                    # everything went well, however reporting a failure without
+                    # any details is useless so skip it.
+                    continue
+
                 result.append("Test Run: #%d" % jidx)
                 result.append("result: %s" % res)
 
-                if clogurl is not None and res != "Pass":
-                    logging.info("Panic detected in recipe %s, "
-                                 "attaching console log",
-                                 recipe)
-                    clog = consolelog(self.cfg.get("krelease"), clogurl)
+                if res != "Pass":
+                    logging.info("Failure detected in recipe %s, attaching "
+                                 "console log", recipe)
                     ctraces = clog.gettraces()
                     if ctraces:
                         result.append("first encountered call trace:")
                         result.append(ctraces[0])
 
-                    if jidx == 1:
-                        clfname = "%02d_console.log.gz" % jidx
-                        result.append("full console log attached: %s"
-                                      % clfname)
-                        self.attach.append((clfname, clog.getfulllog()))
+                    clfname = "%02d_console.log.gz" % jidx
+                    result.append("full console log attached: %s" % clfname)
+                    self.attach.append((clfname, clog.getfulllog()))
 
                 if slshwurl is not None:
                     if system not in minfo["short"]:
