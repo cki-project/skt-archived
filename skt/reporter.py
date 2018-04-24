@@ -117,7 +117,7 @@ class consolelog(object):
         """
         self.url = url
         self.kver = kver
-        self.data = None
+        self.data = self.fetchdata()
         self.oopspattern = re.compile("(%s)" % "|".join(self.oopsmsg))
         self.ctvpattern = re.compile("(%s)" % "|".join(self.ctvalid))
         self.eendpattern = re.compile("(%s)" % "|".join(self.expend))
@@ -125,22 +125,28 @@ class consolelog(object):
     def fetchdata(self):
         """
         Fetch the console log and extract the specified kernel's log from it.
+
+        Returns:
+            List of console log lines related to tested kernel
         """
+        if not self.url:
+            return []
+
         r = requests.get(self.url)
-        tkernel = False
 
-        self.data = []
-        for line in r.text.split('\n'):
-            if not tkernel and line.find("Linux version %s" % self.kver) != -1:
-                tkernel = True
+        try:
+            str_data = r.text[r.text.index("Linux version %s" % self.kver):]
+        except ValueError:
+            # Targeted kernel didn't even start booting
+            str_data = ''
 
-            if tkernel:
-                self.data.append(line.encode('utf-8'))
+        data = [line.encode('utf-8') for line in str_data.split('\n') if line]
+
+        return data
 
     def getfulllog(self):
         """
         Get the gzip-compressed text of the kernel console log.
-        Can only be called after fetchdata().
         """
         return gzipdata("\n".join(self.data))
 
@@ -153,10 +159,6 @@ class consolelog(object):
             A list of oops and call stack output strings.
         """
         result = []
-        # FIXME Remove implicit fetching as it can hide bugs, as is the case
-        # right now in reporter.getjobresults()
-        if self.data is None:
-            self.fetchdata()
 
         insplat = False
         inct = False
