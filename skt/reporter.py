@@ -330,7 +330,7 @@ class reporter(object):
         return result
 
     def getjobresults(self):
-        result = ["\n-----------------------"]
+        result = ['\n' + '=' * 70 + '\n']
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
         job_list = sorted(list(self.cfg.get("jobs", [])))
         vresults = runner.getverboseresults(job_list)
@@ -352,33 +352,34 @@ class reporter(object):
                     # any details is useless so skip it.
                     continue
 
-                result.append("Test Run: #%d" % jidx)
-                result.append("result: %s" % res)
+                result.append("Test run: #%d" % jidx)
+                result.append("Result: %s" % res)
 
                 if res != "Pass":
                     logging.info("Failure detected in recipe %s, attaching "
                                  "console log", recipe)
                     ctraces = clog.gettraces()
                     if ctraces:
-                        result.append("first encountered call trace:")
+                        result.append("This is the first call trace we found:")
                         result.append(ctraces[0])
 
                     clfname = "%02d_console.log.gz" % jidx
-                    result.append("full console log attached: %s" % clfname)
+                    result.append("For more information about the failure, see"
+                                  " attached console log: %s" % clfname)
                     self.attach.append((clfname, clog.getfulllog()))
 
                 if slshwurl is not None:
                     if system not in minfo["short"]:
                         r = requests.get(slshwurl)
                         if r:
-                            result.append("\nmachine info:")
+                            result.append("\nMachine info:")
                             result += r.text.split('\n')
                             minfo["short"][system] = jidx
                     else:
-                        result.append("machine info: same as #%d" %
+                        result.append("Machine info: same as #%d" %
                                       minfo["short"].get(system))
 
-                result.append("---")
+                result.append("-----")
                 jidx += 1
 
         return result
