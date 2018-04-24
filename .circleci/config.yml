@@ -35,6 +35,13 @@ defaults: &defaults
             mv workdir/.config config
             skt -vv --state -d workdir --rc sktrc build -c config
         working_directory: /tmp/skt_test
+    - run:
+        name: Test `skt build` with build artifacts in a different directory
+        command: |
+            make -C workdir mrproper
+            skt -vv --state -d workdir --rc sktrc build -c config --kbuild-output kernel-build
+            ls -al kernel-build
+        working_directory: /tmp/skt_test
     - store_artifacts:
         path: /tmp/skt_test/workdir/*.log
     - store_artifacts:
