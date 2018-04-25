@@ -496,8 +496,14 @@ def setup_parser():
     #       state saving aborts. It's better to save state separately.
     #       It also breaks separation of concerns, as in principle skt doesn't
     #       need to modify its own configuration otherwise.
-    parser.add_argument("--state", help="Save/read state from 'state' section "
-                        "of rc file", action="store_true", default=False)
+    parser.add_argument(
+        "--state",
+        type=str,
+        default=DEFAULTSTATE,
+        help=(
+            "Path to file that holds the current state of skt"
+        )
+    )
 
     subparsers = parser.add_subparsers()
 
@@ -625,35 +631,9 @@ def load_config(args):
     config = ConfigParser.ConfigParser()
     config.read(os.path.expanduser(args.rc))
     cfg = vars(args)
+
     cfg['_parser'] = config
     cfg['_testcases'] = []
-
-    # Read 'state' section first so that it is not overwritten by 'config'
-    # section values.
-    if cfg.get('state') and config.has_section('state'):
-        for (name, value) in config.items('state'):
-            if not cfg.get(name):
-                if name.startswith("jobid_"):
-                    if "jobs" not in cfg:
-                        cfg["jobs"] = set()
-                    cfg["jobs"].add(value)
-                elif name.startswith("mergerepo_"):
-                    if "mergerepos" not in cfg:
-                        cfg["mergerepos"] = list()
-                    cfg["mergerepos"].append(value)
-                elif name.startswith("mergehead_"):
-                    if "mergeheads" not in cfg:
-                        cfg["mergeheads"] = list()
-                    cfg["mergeheads"].append(value)
-                elif name.startswith("localpatch_"):
-                    if "localpatches" not in cfg:
-                        cfg["localpatches"] = list()
-                    cfg["localpatches"].append(value)
-                elif name.startswith("patchwork_"):
-                    if "patchworks" not in cfg:
-                        cfg["patchworks"] = list()
-                    cfg["patchworks"].append(value)
-                cfg[name] = value
 
     if config.has_section('config'):
         for (name, value) in config.items('config'):
