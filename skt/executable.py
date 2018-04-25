@@ -321,8 +321,32 @@ def cmd_run(cfg):
     """
     global retcode
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                         cfg.get('wait'), uid=cfg.get('uid'))
+    state = read_state()
+
+    # Ensure that the state file has a krelease (comes from build step)
+    if not state.get('krelease'):
+        print(
+            "ERROR:"
+            "The 'krelease' item is missing from skt's state file. Please "
+            "run `skt build` before attempting to test a kernel."
+        )
+        sys.exit(1)
+
+    # Ensure that the state file has a buildurl (comes from the publish step)
+    if not state.get('buildurl'):
+        print(
+            "ERROR:"
+            "The 'buildurl' item is missing from skt's state file. Please "
+            "run `skt publish` before attempting to test a kernel."
+        )
+        sys.exit(1)
+
+    retcode = runner.run(
+        state.get('buildurl'),
+        state.get('krelease'),
+        cfg.get('wait'),
+        uid=state.get('uid')
+    )
 
     idx = 0
     for job in runner.jobs:
