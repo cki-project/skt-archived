@@ -58,9 +58,7 @@ class cppublisher(publisher):
     TYPE = 'cp'
 
     def publish(self, source):
-        # FIXME Move expansion up the call stack, as this limits the class
-        # usefulness, because tilde is a valid path character.
-        shutil.copy(os.path.expanduser(source), self.destination)
+        shutil.copy(source, self.destination)
         return self.geturl(source)
 
 
@@ -68,11 +66,13 @@ class scppublisher(publisher):
     TYPE = 'scp'
 
     def publish(self, source):
-        # FIXME Move expansion up the call stack, as this limits the class
-        # usefulness, because tilde is a valid path character.
-        subprocess.check_call(["scp",
-                               os.path.expanduser(source),
-                               self.destination])
+        subprocess.check_call(
+            [
+                "scp",
+                source,
+                self.destination
+            ]
+        )
         return self.geturl(source)
 
 

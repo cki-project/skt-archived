@@ -292,14 +292,20 @@ def cmd_publish(cfg):
     if not state.get('tarpkg'):
         raise Exception("skt publish is missing \"--tarpkg <path>\" option")
 
-    url = publisher.publish(state.get('tarpkg'))
+    # Get the full path to the tarball package and copy it to the destination
+    tarball_path = full_path(state.get('tarpkg'))
+    url = publisher.publish(tarball_path)
     logging.info("published url: %s", url)
 
+    # Copy the buildinfo CSV file to the destination
     if state.get('buildinfo'):
-        infourl = publisher.publish(state.get('buildinfo'))
+        buildinfo_path = full_path(state.get('buildinfo'))
+        infourl = publisher.publish(buildinfo_path)
 
+    # Copy the kernel build config file to the destination
     if state.get('buildconf'):
-        cfgurl = publisher.publish(state.get('buildconf'))
+        buildconf_path = full_path(state.get('buildconf'))
+        cfgurl = publisher.publish(buildconf_path)
 
     save_state(
         {
