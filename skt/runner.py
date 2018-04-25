@@ -45,10 +45,10 @@ class BeakerRunner(Runner):
                             should be submitted, or None, if the owner should
                             be the current user.
         """
-        # Beaker job template file path
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
-        self.template = os.path.expanduser(jobtemplate)
+        # Get an absolute path to the Beaker job template file
+        self.template = os.path.abspath(os.path.expanduser(jobtemplate))
         # Name of a Beaker user on whose behalf the job should be submitted,
         # or None, if the owner should be the current user.
         self.jobowner = jobowner
