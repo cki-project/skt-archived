@@ -22,7 +22,7 @@ defaults: &defaults
     - run:
         name: Test `skt merge`
         command: |
-          skt -vv --state -d workdir --rc sktrc merge \
+          skt -vv --state skt-state.yaml -d workdir --rc sktrc merge \
             --pw https://patchwork.ozlabs.org/patch/895383/ \
             -b git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \
             --ref v4.16 \
@@ -33,7 +33,7 @@ defaults: &defaults
         command: |
             make -C workdir tinyconfig
             mv workdir/.config config
-            skt -vv --state -d workdir --rc sktrc build -c config
+            skt -vv --state skt-state.yaml -d workdir --rc sktrc build -c config
         working_directory: /tmp/skt_test
     - store_artifacts:
         path: /tmp/skt_test/workdir/*.log
