@@ -688,6 +688,7 @@ def main():
     args = parser.parse_args()
 
     setup_logging(args.verbose)
+    global cfg
     cfg = load_config(args)
 
     args.func(cfg)
