@@ -25,6 +25,7 @@ import shutil
 import sys
 import time
 import traceback
+import yaml
 
 import junit_xml
 
@@ -34,38 +35,52 @@ import skt.reporter
 import skt.runner
 
 DEFAULTRC = "~/.sktrc"
+DEFAULTSTATE = "skt-state.yml"
 logger = logging.getLogger()
 retcode = 0
 
 
-def save_state(cfg, state):
-    """
-    Merge state to cfg, and then save cfg.
+def destroy_state():
+    """Destroy the state file"""
+    global cfg
+    state_file = cfg.get('state')
+    if os.path.isfile(state_file):
+        os.unlink(state_file)
 
-    Args:
-        cfg:    A dictionary of skt configuration.
-        state:  A dictionary of skt current state.
-    """
 
-    for (key, val) in state.iteritems():
-        cfg[key] = val
+def read_state():
+    """Read the state file from the disk"""
+    global cfg
+    state_file = cfg.get('state')
+    if os.path.isfile(state_file):
+        with open(state_file, 'r') as fileh:
+            current_state = yaml.load(fileh.read())
+    else:
+        current_state = {}
 
-    if not cfg.get('state'):
-        return
+    return current_state
 
-    config = cfg.get('_parser')
-    if not config.has_section("state"):
-        config.add_section("state")
 
-    for (key, val) in state.iteritems():
-        if val is not None:
-            logging.debug("state: %s -> %s", key, val)
-            config.set('state', key, val)
+def save_state(state_updates):
+    """Save state to the state file on disk"""
+    global cfg
+    current_state = read_state()
 
-    # FIXME Move expansion up the call stack, as this limits the function
-    # usefulness, because tilde is a valid path character.
-    with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
-        config.write(fp)
+    # Merge the current state and the updates.
+    new_state = current_state.copy()
+    new_state.update(state_updates)
+
+    logging.debug("Saving state: {}".format(state_updates))
+    state_file = cfg.get('state')
+    with open(state_file, 'w') as fileh:
+        fileh.write(
+            yaml.dump(new_state, default_flow_style=False)
+        )
+
+
+def full_path(path):
+    """Get an absolute path to a file"""
+    return os.path.abspath(os.path.expanduser(path))
 
 
 def junit(func):
@@ -677,6 +692,13 @@ def load_config(args):
 
     if cfg.get("bisect"):
         cfg['wait'] = True
+
+    # Certain configuration items are paths to directories or files on the
+    # system. These paths may be relative, absolute, or relative to a home
+    # directory with a tilde (such as ~/dir/file.txt). All of these must be
+    # converted to absolute paths for consistency.
+    if cfg.get('state'):
+        cfg['state'] = full_path(cfg.get('state'))
 
     return cfg
 
