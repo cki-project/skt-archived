@@ -700,7 +700,8 @@ def load_config(args):
         Loaded configuration dictionary.
     """
     config = ConfigParser.ConfigParser()
-    config.read(os.path.expanduser(args.rc))
+    rcfile = full_path(args.rc)
+    config.read(rcfile)
     cfg = vars(args)
 
     cfg['_parser'] = config
