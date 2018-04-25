@@ -13,11 +13,12 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import logging
-import os
 import re
 import subprocess
 import time
 import xml.etree.ElementTree as etree
+
+import executable
 
 
 class Runner(object):
@@ -46,9 +47,7 @@ class BeakerRunner(Runner):
                             be the current user.
         """
         # Beaker job template file path
-        # FIXME Move expansion up the call stack, as this limits the class
-        # usefulness, because tilde is a valid path character.
-        self.template = os.path.expanduser(jobtemplate)
+        self.template = executable.full_path(jobtemplate)
         # Name of a Beaker user on whose behalf the job should be submitted,
         # or None, if the owner should be the current user.
         self.jobowner = jobowner
