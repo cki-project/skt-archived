@@ -201,7 +201,8 @@ def cmd_build(cfg):
         cfg.get('baseconfig'),
         cfg.get('cfgtype'),
         cfg.get('makeopts'),
-        cfg.get('enable_debuginfo')
+        cfg.get('enable_debuginfo'),
+        cfg.get('jobcount')
     )
 
     try:
@@ -530,6 +531,14 @@ def setup_parser():
         type=bool,
         default=False,
         help="Build kernel with debuginfo (default: disabled)"
+    )
+    parser_build.add_argument(
+        "--jobcount",
+        type=str,
+        help=(
+            "Number of jobs to use when building "
+            "(default: number of CPUs on system)"
+        )
     )
     parser_build.add_argument("--makeopts", type=str,
                               help="Additional options to pass to make")
