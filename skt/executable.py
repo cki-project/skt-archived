@@ -151,15 +151,23 @@ def cmd_merge(cfg):
     )
     bhead = ktree.checkout()
     commitdate = ktree.get_commit_date(bhead)
-    save_state(cfg, {'baserepo': cfg.get('baserepo'),
-                     'basehead': bhead,
-                     'commitdate': commitdate})
+    save_state(
+        {
+            'baserepo': cfg.get('baserepo'),
+            'basehead': bhead,
+            'commitdate': commitdate
+        }
+    )
 
     try:
         idx = 0
         for mb in cfg.get('merge_ref'):
-            save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
-                             'mergehead_%02d' % idx: bhead})
+            save_state(
+                {
+                    'mergerepo_%02d' % idx: mb[0],
+                    'mergehead_%02d' % idx: bhead
+                }
+            )
             (retcode, head) = ktree.merge_git_ref(*mb)
 
             utypes.append("[git]")
@@ -183,7 +191,7 @@ def cmd_merge(cfg):
                 ktree.merge_patchwork_patch(patch)
                 idx += 1
     except Exception as e:
-        save_state(cfg, {'mergelog': ktree.mergelog})
+        save_state({'mergelog': ktree.mergelog})
         raise e
 
     uid = "[baseline]"
@@ -194,10 +202,14 @@ def cmd_merge(cfg):
     buildinfo = ktree.dumpinfo()
     buildhead = ktree.get_commit()
 
-    save_state(cfg, {'workdir': kpath,
-                     'buildinfo': buildinfo,
-                     'buildhead': buildhead,
-                     'uid': uid})
+    save_state(
+        {
+            'workdir': kpath,
+            'buildinfo': buildinfo,
+            'buildhead': buildhead,
+            'uid': uid
+        }
+    )
 
 
 @junit
@@ -222,33 +234,42 @@ def cmd_build(cfg):
     try:
         tgz = builder.mktgz(cfg.get('wipe'))
     except Exception as e:
-        save_state(cfg, {'buildlog': builder.buildlog})
+        save_state(
+            {
+                'buildlog': builder.buildlog
+            }
+        )
         raise e
 
-    if cfg.get('buildhead'):
-        ttgz = "%s.tar.gz" % cfg.get('buildhead')
+    state = read_state()
+    if state.get('buildhead'):
+        ttgz = "%s.tar.gz" % state.get('buildhead')
     else:
         ttgz = addtstamp(tgz, tstamp)
     os.rename(tgz, ttgz)
     logging.info("tarball path: %s", ttgz)
 
     tbuildinfo = None
-    if cfg.get('buildinfo'):
-        if cfg.get('buildhead'):
-            tbuildinfo = "%s.csv" % cfg.get('buildhead')
+    if state.get('buildinfo'):
+        if state.get('buildhead'):
+            tbuildinfo = "%s.csv" % state.get('buildhead')
         else:
-            tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
-        os.rename(cfg.get('buildinfo'), tbuildinfo)
+            tbuildinfo = addtstamp(state.get('buildinfo'), tstamp)
+        os.rename(state.get('buildinfo'), tbuildinfo)
 
     tconfig = "%s.config" % tbuildinfo
     shutil.copyfile(builder.get_cfgpath(), tconfig)
 
     krelease = builder.getrelease()
 
-    save_state(cfg, {'tarpkg': ttgz,
-                     'buildinfo': tbuildinfo,
-                     'buildconf': tconfig,
-                     'krelease': krelease})
+    save_state(
+        {
+            'tarpkg': ttgz,
+            'buildinfo': tbuildinfo,
+            'buildconf': tconfig,
+            'krelease': krelease
+        }
+    )
 
 
 @junit
@@ -263,25 +284,27 @@ def cmd_publish(cfg):
         cfg:    A dictionary of skt configuration.
     """
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
+    state = read_state()
 
-    if not cfg.get('tarpkg'):
+    if not state.get('tarpkg'):
         raise Exception("skt publish is missing \"--tarpkg <path>\" option")
 
-    infourl = None
-    cfgurl = None
-
-    url = publisher.publish(cfg.get('tarpkg'))
+    url = publisher.publish(state.get('tarpkg'))
     logging.info("published url: %s", url)
 
-    if cfg.get('buildinfo'):
-        infourl = publisher.publish(cfg.get('buildinfo'))
+    if state.get('buildinfo'):
+        infourl = publisher.publish(state.get('buildinfo'))
 
-    if cfg.get('buildconf'):
-        cfgurl = publisher.publish(cfg.get('buildconf'))
+    if state.get('buildconf'):
+        cfgurl = publisher.publish(state.get('buildconf'))
 
-    save_state(cfg, {'buildurl': url,
-                     'cfgurl': cfgurl,
-                     'infourl': infourl})
+    save_state(
+        {
+            'buildurl': url,
+            'cfgurl': cfgurl,
+            'infourl': infourl
+        }
+    )
 
 
 @junit
@@ -302,28 +325,45 @@ def cmd_run(cfg):
     for job in runner.jobs:
         if cfg.get('wait') and cfg.get('junit'):
             runner.dumpjunitresults(job, cfg.get('junit'))
-        save_state(cfg, {'jobid_%s' % (idx): job})
+        save_state(
+            {
+                'jobid_%s' % (idx): job
+            }
+        )
         idx += 1
 
     cfg['jobs'] = runner.jobs
 
-    if retcode and cfg.get('basehead') and cfg.get('publisher') \
-            and cfg.get('basehead') != cfg.get('buildhead'):
+    if retcode and state.get('basehead') and cfg.get('publisher') \
+            and state.get('basehead') != state.get('buildhead'):
         # TODO: there is a chance that baseline 'krelease' is different
         baserunner = skt.runner.getrunner(*cfg.get('runner'))
         publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
-        baseurl = publisher.geturl("%s.tar.gz" % cfg.get('basehead'))
+        baseurl = publisher.geturl("%s.tar.gz" % state.get('basehead'))
         basehost = runner.get_mfhost()
-        baseres = baserunner.run(baseurl, cfg.get('krelease'), cfg.get('wait'),
-                                 host=basehost, uid="baseline check",
-                                 reschedule=False)
-        save_state(cfg, {'baseretcode': baseres})
+        baseres = baserunner.run(
+            baseurl,
+            state.get('krelease'),
+            cfg.get('wait'),
+            host=basehost,
+            uid="baseline check",
+            reschedule=False
+        )
+        save_state(
+            {
+                'baseretcode': baseres
+            }
+        )
 
         # If baseline also fails - assume pass
         if baseres:
             retcode = 0
 
-    save_state(cfg, {'retcode': retcode})
+    save_state(
+        {
+            'retcode': retcode
+        }
+    )
 
     if retcode and cfg.get('bisect'):
         cfg['commitbad'] = cfg.get('mergehead')
@@ -360,25 +400,16 @@ def cmd_cleanup(cfg):
     Args:
         cfg:    A dictionary of skt configuration.
     """
-    config = cfg.get('_parser')
-    if config.has_section('state'):
-        config.remove_section('state')
-        # FIXME Move expansion up the call stack, as this limits the function
-        # usefulness, because tilde is a valid path character.
-        with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
-            config.write(fp)
+    state = read_state()
 
-    if cfg.get('buildinfo'):
-        try:
-            os.unlink(cfg.get('buildinfo'))
-        except OSError:
-            pass
+    if state.get('buildinfo') and os.path.isfile(state.get('buildinfo')):
+        os.unlink(state.get('buildinfo'))
 
-    if cfg.get('tarpkg'):
-        try:
-            os.unlink(cfg.get('tarpkg'))
-        except OSError:
-            pass
+    if state.get('tarpkg') and os.path.isfile(state.get('tarpkg')):
+        os.unlink(state.get('tarpkg'))
+
+    # Destroy the state file
+    destroy_state()
 
     if cfg.get('wipe') and cfg.get('workdir'):
         # FIXME Move expansion up the call stack, as this limits the function
