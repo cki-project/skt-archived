@@ -471,9 +471,7 @@ class kbuilder(object):
     def __init__(self, path, basecfg, cfgtype=None, makeopts=None,
                  enable_debuginfo=False):
         self.path = path
-        # FIXME Move expansion up the call stack, as this limits the class
-        # usefulness, because tilde is a valid path character.
-        self.basecfg = os.path.expanduser(basecfg)
+        self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
         self.makeopts = None

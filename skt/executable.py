@@ -753,6 +753,9 @@ def load_config(args):
     # system. These paths may be relative, absolute, or relative to a home
     # directory with a tilde (such as ~/dir/file.txt). All of these must be
     # converted to absolute paths for consistency.
+    if cfg.get('baseconfig'):
+        cfg['baseconfig'] = full_path(cfg.get('baseconfig'))
+
     if cfg.get('state'):
         cfg['state'] = full_path(cfg.get('state'))
 
