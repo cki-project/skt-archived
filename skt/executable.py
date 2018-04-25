@@ -177,19 +177,22 @@ def cmd_merge(cfg):
 
         if cfg.get('patchlist'):
             utypes.append("[local patch]")
-            idx = 0
-            for patch in cfg.get('patchlist'):
-                save_state(cfg, {'localpatch_%02d' % idx: patch})
+            # Make a list of the local patches provided by the user and
+            # save the list to the state file.
+            patches = [x for x in cfg.get("patchlist")]
+            save_state({"patchlist": patches})
+            for patch in patches:
                 ktree.merge_patch_file(patch)
-                idx += 1
 
         if cfg.get('pw'):
             utypes.append("[patchwork]")
-            idx = 0
-            for patch in cfg.get('pw'):
-                save_state(cfg, {'patchwork_%02d' % idx: patch})
+            # Make a list of the patchwork patches provided by the user and
+            # save the list to the state file.
+            patches = [x for x in cfg.get("pw")]
+            save_state({"patchwork": patches})
+            for patch in patches:
                 ktree.merge_patchwork_patch(patch)
-                idx += 1
+
     except Exception as e:
         save_state({'mergelog': ktree.mergelog})
         raise e
