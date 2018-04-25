@@ -439,9 +439,7 @@ def cmd_cleanup(cfg):
     destroy_state()
 
     if cfg.get('wipe') and cfg.get('workdir'):
-        # FIXME Move expansion up the call stack, as this limits the function
-        # usefulness, because tilde is a valid path character.
-        shutil.rmtree(os.path.expanduser(cfg.get('workdir')))
+        shutil.rmtree(cfg.get('workdir'))
 
 
 def cmd_all(cfg):
@@ -757,6 +755,9 @@ def load_config(args):
     # converted to absolute paths for consistency.
     if cfg.get('state'):
         cfg['state'] = full_path(cfg.get('state'))
+
+    if cfg.get('workdir'):
+        cfg['workdir'] = full_path(cfg.get('workdir'))
 
     return cfg
 
