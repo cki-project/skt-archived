@@ -273,24 +273,36 @@ class reporter(object):
         self.mergedata = mergedata
 
     def getmergeinfo(self):
-        result = ["\n-----------------------",
-                  "base repo: %s" % self.mergedata['base'][0],
-                  "     HEAD: %s" % self.mergedata['base'][1]]
+        """
+        Retrieve information about applied patches and base repository as a
+        list of strings which should be then appended to the report. Add the
+        configuration which was used to build the kernel to reporter's list
+        of attachments.
 
-        for (repo, head) in self.mergedata['merge_git']:
-            result += ["\nmerged git repo: %s" % repo,
-                       "           HEAD: %s" % head]
+        Returns: A list of strings representing data about applied patches and
+                 base repository.
+        """
+        result = ['We applied the following patch']
+        if len(self.mergedata['localpatch'] + self.mergedata['patchwork']) > 1:
+            result[0] += 'es:\n'
+        else:
+            result[0] += ':\n'
 
         for patchpath in self.mergedata['localpatch']:
-            result += ["\npatch: %s" % patchpath]
+            result += ['  - %s' % patchpath]
 
         for (purl, pname) in self.mergedata['patchwork']:
-            result += ["\npatchwork url: %s" % purl,
-                       "         name: %s" % pname]
+            result += ['  - %s,' % pname,
+                       '    grabbed from %s\n' % purl]
+
+        result += ['on top of commit %s from' % self.mergedata['base'][1][:12],
+                   '  %s' % self.mergedata['base'][0],
+                   'repository.']
 
         if not self.cfg.get("mergelog"):
             cfgname = "config.gz"
-            result.append("\nconfig: see attached '%s'" % cfgname)
+            result.append('\nThe kernel was built with the attached '
+                          'configuration (%s).' % cfgname)
             self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
 
         return result
