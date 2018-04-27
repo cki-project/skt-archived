@@ -416,11 +416,14 @@ class reporter(object):
         return result
 
     def getreport(self):
-        msg = list()
-
-        if self.cfg.get("krelease"):
-            msg.append("result report for kernel %s"
-                       % self.cfg.get("krelease"))
+        msg = ['Hello,\n',
+               'we appreciate your contributions to the Linux kernel and would'
+               ' like to help test',
+               'them. Below are the results of automatic tests we ran on a '
+               'patchset you\'re ',
+               'involved with, with hope it will help you find possible issues'
+               ' sooner.',
+               '\n']
 
         msg += self.getmergeinfo()
 
@@ -430,6 +433,14 @@ class reporter(object):
             msg += self.getbuildfailure()
         else:
             msg += self.getjobresults()
+
+        msg += ['\nPlease check out the report above and reply to this email '
+                'in case you find',
+                'an issue with the testing process or wish to not receive '
+                'these reports',
+                'anymore.',
+                '\nSincerely,',
+                '  Kernel CI Team']
 
         if self.attach and self.attach[0][0] == "config":
             self.attach.append(self.attach.pop(0))
