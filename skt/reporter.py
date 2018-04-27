@@ -437,21 +437,21 @@ class reporter(object):
         return '\n'.join(msg)
 
     def getsubject(self):
-        subject = "[skt] [%s] " % ("PASS"
-                                   if self.cfg.get("retcode") == "0"
-                                   else "FAIL")
-
-        if self.mergedata.get("base"):
-            subject += "[%s] " % self.mergedata['base'][0].split("/")[-1]
+        if not self.cfg.get('mergelog') and not self.cfg.get('buildlog'):
+            if self.cfg.get('retcode') == '0':
+                subject = 'PASS: '
+        else:
+            subject = 'FAIL: '
 
         if self.cfg.get("mergelog"):
-            subject += "patch application failed"
+            subject += "Patch application failed"
         elif self.cfg.get("buildlog"):
-            subject += "build failed"
+            subject += "Build failed"
         else:
-            subject += "result report"
-            if self.cfg.get("krelease"):
-                subject += " for kernel %s" % self.cfg.get("krelease")
+            subject += "Report"
+
+        if self.cfg.get("krelease"):
+            subject += " for kernel %s" % self.cfg.get("krelease")
 
         return subject
 
