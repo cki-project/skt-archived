@@ -249,6 +249,9 @@ def cmd_publish(cfg):
     """
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
+    if not cfg.get('tarpkg'):
+        raise Exception("skt publish is missing \"--tarpkg <path>\" option")
+
     infourl = None
     cfgurl = None
 
