@@ -186,7 +186,9 @@ class ktree(object):
         args = list(["git", "--work-tree", self.wdir, "--git-dir",
                      self.gdir]) + list(args)
         logging.debug("executing: %s", " ".join(args))
-        subprocess.check_call(args, **kwargs)
+        subprocess.check_call(args,
+                              env=dict(os.environ, **{'LC_ALL': 'C'}),
+                              **kwargs)
 
     def getpath(self):
         return self.wdir
@@ -384,7 +386,8 @@ class ktree(object):
             cwd=self.wdir,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
+            stderr=subprocess.STDOUT,
+            env=dict(os.environ, **{'LC_ALL': 'C'})
         )
 
         (stdout, stderr) = gam.communicate(pdata)
