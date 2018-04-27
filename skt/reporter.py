@@ -333,8 +333,9 @@ class reporter(object):
 
     def getbuildfailure(self):
         attname = "build.log"
-        result = ["\n-----------------------",
-                  "Build failed: see attached %s" % attname]
+        result = ['However, the build failed. We are attaching the build '
+                  'output for',
+                  'more information (build.log).']
 
         with open(self.cfg.get("buildlog"), 'r') as fp:
             self.attach.append((attname, fp.read()))
