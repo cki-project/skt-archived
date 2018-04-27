@@ -307,15 +307,6 @@ class reporter(object):
 
         return result
 
-    def gettested(self):
-        result = ["\n-----------------------",
-                  "Tested:"]
-
-        # TODO: Get info from sktrc when we have it there
-        for test in ['Boot test']:
-            result.append("  - %s" % test)
-        return result
-
     def getjobids(self):
         jobids = []
         if self.cfg.get("jobs"):
@@ -363,7 +354,14 @@ class reporter(object):
         Returns:
             A list of lines representing results of test runs.
         """
-        result = ['\n' + '=' * 70 + '\n']
+        result = ['\n\nWe ran the following tests:']
+
+        # TODO: Get info from sktrc when we have it there
+        for test in ['Boot test']:
+            result.append("  - %s" % test)
+
+        result += ['\nwhich produced the results below:']
+
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
         job_list = sorted(list(self.cfg.get("jobs", [])))
         vresults = runner.getverboseresults(job_list)
@@ -385,7 +383,7 @@ class reporter(object):
                     # any details is useless so skip it.
                     continue
 
-                result.append("Test run: #%d" % jidx)
+                result.append("Test run #%d" % jidx)
                 result.append("Result: %s" % res)
 
                 if res != "Pass":
@@ -412,7 +410,7 @@ class reporter(object):
                         result.append("Machine info: same as #%d" %
                                       minfo["short"].get(system))
 
-                result.append("-----")
+                result.append('')
                 jidx += 1
 
         return result
@@ -431,7 +429,6 @@ class reporter(object):
         elif self.cfg.get("buildlog"):
             msg += self.getbuildfailure()
         else:
-            msg += self.gettested()
             msg += self.getjobresults()
 
         if self.attach and self.attach[0][0] == "config":
