@@ -324,11 +324,17 @@ class reporter(object):
         return jobids
 
     def getmergefailure(self):
-        result = ["\n-----------------------",
-                  "Merge failed during application of the last patch above:\n"]
+        result = ['\nHowever, the application of the last patch above '
+                  'failed with the',
+                  'following output:\n']
 
         with open(self.cfg.get("mergelog"), 'r') as fp:
-            result.append(fp.read())
+            for line in fp:
+                # Skip the useless part of the 'git am' output
+                if "The copy of the patch" in line:
+                    break
+                result.append('    ' + line.strip())
+
         return result
 
     def getbuildfailure(self):
