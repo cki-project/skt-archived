@@ -467,7 +467,7 @@ class ktree(object):
 
 class kbuilder(object):
     def __init__(self, path, basecfg, cfgtype=None, makeopts=None,
-                 enable_debuginfo=False):
+                 enable_debuginfo=False, jobcount=None):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         self.path = os.path.expanduser(path)
@@ -480,6 +480,7 @@ class kbuilder(object):
         self.buildlog = "%s/build.log" % self.path
         self.defmakeargs = ["make", "-C", self.path]
         self.enable_debuginfo = enable_debuginfo
+        self.jobcount = jobcount
 
         if makeopts is not None:
             # FIXME: Might want something a bit smarter here, something that
@@ -563,9 +564,17 @@ class kbuilder(object):
         stdout_list = []
         self.prepare(clean)
 
-        args = self.defmakeargs + ["INSTALL_MOD_STRIP=1",
-                                   "-j%d" % multiprocessing.cpu_count(),
-                                   "targz-pkg"]
+        # If the user did not override the job count for the build, we can
+        # count the number of CPUs on the system and use that for the job
+        # count.
+        if self.jobcount is None:
+            self.jobcount = multiprocessing.cpu_count()
+
+        args = self.defmakeargs + [
+            "INSTALL_MOD_STRIP=1",
+            "-j{}".format(self.jobcount),
+            "targz-pkg"
+        ]
 
         logging.info("building kernel: %s", args)
 
