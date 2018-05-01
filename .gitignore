@@ -2,3 +2,5 @@
 *.swp
 *.swo
 skt.egg-info
+.tox/
+.coverage
