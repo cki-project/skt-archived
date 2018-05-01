@@ -1,13 +1,17 @@
 language: python
 python:
     - "2.7"
+env:
+    - TOX_ENV=py27
 install:
     # Install skt using pip to ensure dependencies are downloaded correctly.
     - pip install .
+    - pip install coveralls tox
 script:
     # Run tests and linters.
     - flake8 --show-source .
     - pylint tests
     - python -m unittest discover tests
     # Test the uninstallation of skt,
+    - tox -e $TOX_ENV
     - pip uninstall -y skt
