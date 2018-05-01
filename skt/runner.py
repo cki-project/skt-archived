@@ -117,6 +117,13 @@ class BeakerRunner(Runner):
         return etree.fromstring(stdout)
 
     def dumpjunitresults(self, jobid, junit):
+        """
+        Retrieve junit XML from beaker and write it to a file
+
+        Args:
+            jobid: The beaker jobid
+            junit: The directory where the junit XML will be written
+        """
         args = ["bkr", "job-results", "--format=junit-xml"]
         args.append(jobid)
 
@@ -148,6 +155,12 @@ class BeakerRunner(Runner):
         return url
 
     def _forget_cid(self, cid):
+        """
+        Remove a job or recipe from the current list
+
+        Args:
+            cid: The job (J:xxxxx) or recipe (R:xxxxx) id
+        """
         if cid.startswith("J:"):
             self.jobs.remove(cid)
             for rid in self.j2r[cid]:
@@ -167,6 +180,15 @@ class BeakerRunner(Runner):
             raise ValueError("Unknown cid type: %s" % cid)
 
     def getverboseresults(self, joblist):
+        """
+        Retrieve verbose results for a list of beaker jobs
+
+        Args:
+            joblist: A list of beaker jobs
+
+        Returns:
+            A dictionary with the jobid as a key and job results as the value
+        """
         result = dict()
         for jobid in joblist:
             result[jobid] = dict()
