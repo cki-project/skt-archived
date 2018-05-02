@@ -26,42 +26,6 @@ from mock import Mock
 import skt
 
 
-class TestInit(unittest.TestCase):
-    """Test cases for skt's __init__.py"""
-
-    def test_stringify_with_integer(self):
-        """Ensure stringify() can handle an integer"""
-        myinteger = int(42)
-        result = skt.stringify(myinteger)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, str(myinteger))
-
-    def test_stringify_with_string(self):
-        """Ensure stringify() can handle a plain string"""
-        mystring = "Test text"
-        result = skt.stringify(mystring)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, mystring)
-
-    def test_stringify_with_unicode(self):
-        """Ensure stringify() can handle a unicode byte string"""
-        myunicode = unicode("Test text")
-        result = skt.stringify(myunicode)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, myunicode.encode('utf-8'))
-
-    def test_parse_bad_patchwork_url(self):
-        """Ensure parse_patchwork_url() handles a parsing exception"""
-        patchwork_url = "garbage"
-        with self.assertRaises(Exception) as context:
-            skt.parse_patchwork_url(patchwork_url)
-
-        self.assertTrue(
-            "Can't parse patchwork url: '{}'".format(patchwork_url)
-            in context.exception
-        )
-
-
 class KBuilderTest(unittest.TestCase):
     # (Too many instance attributes) pylint: disable=R0902
     """Test cases for skt.kbuilder class"""
