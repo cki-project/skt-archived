@@ -19,11 +19,110 @@ import re
 import shutil
 import subprocess
 import tempfile
+import xmlrpclib
 import sys
 import io
 import time
 from threading import Timer
-import requests
+
+
+def stringify(v):
+    """Convert any value to a str object
+
+    xmlrpc is not consistent: sometimes the same field
+    is returned a str, sometimes as unicode. We need to
+    handle both cases properly.
+    """
+    if type(v) is str:
+        return v
+    elif type(v) is unicode:
+        return v.encode('utf-8')
+    else:
+        return str(v)
+
+
+class RpcProtocolMismatch(Exception):
+    """Exception for Patchwork API mismatch errors"""
+
+
+# PatchWork adds a magic API version with each call
+# this class just magically adds/removes it
+class RpcWrapper:
+    def __init__(self, real_rpc):
+        self.rpc = real_rpc
+        # patchwork api coded to
+        self.version = 1010
+
+    def _wrap_call(self, rpc, name):
+        # Wrap a RPC call, adding the expected version number as argument
+        fn = getattr(rpc, name)
+
+        def wrapper(*args, **kwargs):
+            return fn(self.version, *args, **kwargs)
+        return wrapper
+
+    def _return_check(self, r):
+        # Returns just the real return value, without the version info.
+        v = self.version
+        if r[0] != v:
+            raise RpcProtocolMismatch(
+                'Patchwork API mismatch (%i, expected %i)' % (r[0], v)
+            )
+        return r[1]
+
+    def _return_unwrapper(self, fn):
+        def unwrap(*args, **kwargs):
+            return self._return_check(fn(*args, **kwargs))
+        return unwrap
+
+    def __getattr__(self, name):
+        # Add the RPC version checking call/return wrappers
+        return self._return_unwrapper(self._wrap_call(self.rpc, name))
+
+
+# FIXME This doesn't just "parse" patchwork URL. Rename/refactor.
+def parse_patchwork_url(uri):
+    """
+    Create a Patchwork XML RPC interface and extract the patch ID from a
+    Patchwork patch URL.
+
+    Args:
+        uri:    The Patchwork patch URL.
+
+    Returns:
+        The created Patchwork XML RPC interface and the patch ID string.
+
+    Raises:
+        str: URL format was not recognized, or an XML RPC
+             compatibility/communication error has occurred and the string
+             describes it.
+    """
+    m = re.match(r"^(.*)/patch/(\d+)/?$", uri)
+    if not m:
+        raise Exception("Can't parse patchwork url: '%s'" % uri)
+
+    baseurl = m.group(1)
+    patchid = m.group(2)
+
+    rpc = xmlrpclib.ServerProxy("%s/xmlrpc/" % baseurl)
+    try:
+        ver = rpc.pw_rpc_version()
+        # check for normal patchwork1 xmlrpc version numbers
+        if not (ver == [1, 3, 0] or ver == 1):
+            raise Exception("Unknown xmlrpc version %s", ver)
+
+    except xmlrpclib.Fault as err:
+        if err.faultCode == 1 and \
+           re.search("index out of range", err.faultString):
+            # possible internal RH instance
+            rpc = RpcWrapper(rpc)
+            ver = rpc.pw_rpc_version()
+            if ver < 1010:
+                raise Exception("Unsupported xmlrpc version %s", ver)
+        else:
+            raise Exception("Unknown xmlrpc fault: %s", err.faultString)
+
+    return (rpc, patchid)
 
 
 class ktree(object):
@@ -269,17 +368,16 @@ class ktree(object):
         return (0, head)
 
     def merge_patchwork_patch(self, uri):
-        # Use os.path for manipulation with URL because urlparse can't deal
-        # with URLs ending both with and without slash.
-        mbox_url = os.path.join(uri, 'mbox')
+        (rpc, patchid) = parse_patchwork_url(uri)
 
-        try:
-            response = requests.get(mbox_url)
-        except requests.exceptions.RequestException:
-            raise()
+        patchinfo = rpc.patch_get(patchid)
 
-        if response.status_code != requests.codes.ok:
-            raise Exception('Nonexistent patch passed: %s' % uri)
+        if not patchinfo:
+            raise Exception(
+                "Failed to fetch patch info for patch %s" % patchid
+            )
+
+        pdata = stringify(rpc.patch_get_mbox(patchid))
 
         logging.info("Applying %s", uri)
 
@@ -292,7 +390,7 @@ class ktree(object):
             env=dict(os.environ, **{'LC_ALL': 'C'})
         )
 
-        (stdout, stderr) = gam.communicate(response.content)
+        (stdout, stderr) = gam.communicate(pdata)
         retcode = gam.wait()
 
         if retcode != 0:
@@ -301,12 +399,10 @@ class ktree(object):
             with open(self.mergelog, "w") as fp:
                 fp.write(stdout)
 
-            raise Exception("Failed to apply patch %s" %
-                            os.path.basename(os.path.normpath(uri)))
+            raise Exception("Failed to apply patch %s" % patchid)
 
-        # Retrieve patch name from the mbox and add it to mergeinfo
-        patchname = re.findall(r'Subject:\s(.*)', response.content)[0]
-        self.info.append(("patchwork", uri, patchname.replace(',', ';')))
+        self.info.append(("patchwork", uri,
+                          patchinfo.get("name").replace(',', ';')))
 
     def merge_patch_file(self, path):
         try:
