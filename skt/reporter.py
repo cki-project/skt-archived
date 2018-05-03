@@ -417,12 +417,12 @@ class reporter(object):
 
     def getreport(self):
         msg = ['Hello,\n',
-               'We appreciate your contributions to the Linux kernel and would'
-               ' like to help test',
-               'them. Below are the results of automatic tests we ran on a '
-               'patchset you\'re ',
-               'involved with, with hope it will help you find possible issues'
-               ' sooner.',
+               'We appreciate your contributions to the Linux kernel and '
+               'would like to help',
+               'test them. Below are the results of automatic tests we ran on '
+               'a patchset',
+               'you\'re involved with, with hope it will help you find '
+               'possible issues sooner.',
                '\n']
 
         msg += self.getmergeinfo()
