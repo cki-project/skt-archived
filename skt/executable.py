@@ -157,7 +157,7 @@ def cmd_merge(cfg):
             idx = 0
             for patch in cfg.get('patchlist'):
                 save_state(cfg, {'localpatch_%02d' % idx: patch})
-                ktree.merge_patch_file(patch)
+                ktree.merge_patch_file(os.path.abspath(patch))
                 idx += 1
 
         if cfg.get('pw'):

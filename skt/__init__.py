@@ -362,6 +362,8 @@ class ktree(object):
         self.info.append(("patchwork", uri, patchname.replace(',', ';')))
 
     def merge_patch_file(self, path):
+        if not os.path.exists(path):
+            raise Exception("Patch %s not found" % path)
         try:
             self.git_cmd("am", path)
         except subprocess.CalledProcessError:
