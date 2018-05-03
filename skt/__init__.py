@@ -279,7 +279,8 @@ class ktree(object):
             raise()
 
         if response.status_code != requests.codes.ok:
-            raise Exception('Nonexistent patch passed: %s' % uri)
+            raise Exception('Failed to retrieve patch from %s, returned %d' %
+                            (uri, response.status_code))
 
         logging.info("Applying %s", uri)
 
