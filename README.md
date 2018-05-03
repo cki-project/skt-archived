@@ -42,7 +42,7 @@ Install `skt` directly from git:
 If support for beaker is required, install ``skt`` with the ``beaker``
 extras:
 
-    $ pip install git+https://github.com/RH-FMK/skt[beaker]
+    $ pip install git+https://github.com/rh-fmk/skt.git#egg-project[beaker]
 
 Test the `skt` executable by printing the help text:
 
