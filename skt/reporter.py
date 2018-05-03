@@ -417,7 +417,7 @@ class reporter(object):
 
     def getreport(self):
         msg = ['Hello,\n',
-               'we appreciate your contributions to the Linux kernel and would'
+               'We appreciate your contributions to the Linux kernel and would'
                ' like to help test',
                'them. Below are the results of automatic tests we ran on a '
                'patchset you\'re ',
