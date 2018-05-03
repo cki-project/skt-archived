@@ -295,9 +295,9 @@ class reporter(object):
             result += ['  - %s,' % pname,
                        '    grabbed from %s\n' % purl]
 
-        result += ['on top of commit %s from' % self.mergedata['base'][1][:12],
-                   '  %s' % self.mergedata['base'][0],
-                   'repository.']
+        result += ['on top of commit %s from the repository at' %
+                   self.mergedata['base'][1][:12],
+                   '  %s' % self.mergedata['base'][0]]
 
         if not self.cfg.get("mergelog"):
             cfgname = "config.gz"
