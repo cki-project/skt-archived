@@ -434,11 +434,9 @@ class reporter(object):
         else:
             msg += self.getjobresults()
 
-        msg += ['\nPlease check out the report above and reply to this email '
-                'in case you find',
-                'an issue with the testing process or wish to not receive '
-                'these reports',
-                'anymore.',
+        msg += ['\nPlease reply to this email if you find an issue with our '
+                'testing process,',
+                'or wish to not receive these reports anymore.',
                 '\nSincerely,',
                 '  Kernel CI Team']
 
