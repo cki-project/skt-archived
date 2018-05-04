@@ -22,44 +22,47 @@ import os
 import subprocess
 import mock
 from mock import Mock
+from requests.exceptions import RequestException
 
 import skt
 
 
-class TestInit(unittest.TestCase):
-    """Test cases for skt's __init__.py"""
+class TestIndependent(unittest.TestCase):
+    """Test cases for independent functions in __init__.py"""
 
-    def test_stringify_with_integer(self):
-        """Ensure stringify() can handle an integer"""
-        myinteger = int(42)
-        result = skt.stringify(myinteger)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, str(myinteger))
+    def test_invalid_patch_url(self):
+        """Ensure get_patch_mbox() throws exception if the URL is invalid"""
+        self.assertRaises(RequestException,
+                          skt.get_patch_mbox,
+                          'this-is-invalid')
 
-    def test_stringify_with_string(self):
-        """Ensure stringify() can handle a plain string"""
-        mystring = "Test text"
-        result = skt.stringify(mystring)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, mystring)
+    def test_nonexistent_patch_subject(self):
+        """Ensure get_patch_name() handles nonexistent 'Subject' in mbox"""
+        mbox_body = 'nothing useful here'
+        self.assertEqual('<SUBJECT MISSING>', skt.get_patch_name(mbox_body))
 
-    def test_stringify_with_unicode(self):
-        """Ensure stringify() can handle a unicode byte string"""
-        myunicode = unicode("Test text")
-        result = skt.stringify(myunicode)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, myunicode.encode('utf-8'))
+    def test_ok_patch_subject(self):
+        """Ensure get_patch_name() returns correct 'Subject' if present"""
+        mbox_body = 'From Test Thu May 2 17:49:51 2018\nSubject: GOOD SUBJECT'
+        self.assertEqual('GOOD SUBJECT', skt.get_patch_name(mbox_body))
 
-    def test_parse_bad_patchwork_url(self):
-        """Ensure parse_patchwork_url() handles a parsing exception"""
-        patchwork_url = "garbage"
-        with self.assertRaises(Exception) as context:
-            skt.parse_patchwork_url(patchwork_url)
+    def test_encoded_patch_subject(self):
+        """Ensure get_patch_name() correctly decodes UTF-8 'Subject'"""
+        mbox_body = ('From Test Thu May 2 17:49:51 2018\n'
+                     'Subject: =?utf-8?q?=5BTEST=5D?=')
+        self.assertEqual('[TEST]', skt.get_patch_name(mbox_body))
 
-        self.assertTrue(
-            "Can't parse patchwork url: '{}'".format(patchwork_url)
-            in context.exception
-        )
+    def test_multipart_encoded_subject(self):
+        """
+        Ensure get_patch_name() correctly decodes multipart encoding
+        of 'Subject'
+        """
+        mbox_body = ('From Test Thu May 2 17:49:51 2018\nSubject: '
+                     '=?ISO-8859-1?B?SWYgeW91IGNhbiByZWFkIHRoaXMgeW8=?=\n'
+                     '    =?ISO-8859-2?B?dSB1bmRlcnN0YW5kIHRoZSBleGFtcGxlLg'
+                     '==?=')
+        self.assertEqual('If you can read this you understand the example.',
+                         skt.get_patch_name(mbox_body))
 
 
 class KBuilderTest(unittest.TestCase):
