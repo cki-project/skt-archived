@@ -12,6 +12,9 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
+from email.errors import HeaderParseError
+import email.header
+import email.parser
 import logging
 import multiprocessing
 import os
@@ -19,110 +22,69 @@ import re
 import shutil
 import subprocess
 import tempfile
-import xmlrpclib
 import sys
 import io
 import time
 from threading import Timer
+import requests
 
 
-def stringify(v):
-    """Convert any value to a str object
-
-    xmlrpc is not consistent: sometimes the same field
-    is returned a str, sometimes as unicode. We need to
-    handle both cases properly.
+def get_patch_mbox(url):
     """
-    if type(v) is str:
-        return v
-    elif type(v) is unicode:
-        return v.encode('utf-8')
-    else:
-        return str(v)
-
-
-class RpcProtocolMismatch(Exception):
-    """Exception for Patchwork API mismatch errors"""
-
-
-# PatchWork adds a magic API version with each call
-# this class just magically adds/removes it
-class RpcWrapper:
-    def __init__(self, real_rpc):
-        self.rpc = real_rpc
-        # patchwork api coded to
-        self.version = 1010
-
-    def _wrap_call(self, rpc, name):
-        # Wrap a RPC call, adding the expected version number as argument
-        fn = getattr(rpc, name)
-
-        def wrapper(*args, **kwargs):
-            return fn(self.version, *args, **kwargs)
-        return wrapper
-
-    def _return_check(self, r):
-        # Returns just the real return value, without the version info.
-        v = self.version
-        if r[0] != v:
-            raise RpcProtocolMismatch(
-                'Patchwork API mismatch (%i, expected %i)' % (r[0], v)
-            )
-        return r[1]
-
-    def _return_unwrapper(self, fn):
-        def unwrap(*args, **kwargs):
-            return self._return_check(fn(*args, **kwargs))
-        return unwrap
-
-    def __getattr__(self, name):
-        # Add the RPC version checking call/return wrappers
-        return self._return_unwrapper(self._wrap_call(self.rpc, name))
-
-
-# FIXME This doesn't just "parse" patchwork URL. Rename/refactor.
-def parse_patchwork_url(uri):
-    """
-    Create a Patchwork XML RPC interface and extract the patch ID from a
-    Patchwork patch URL.
+    Retrieve a string representing mbox of the patch.
 
     Args:
-        uri:    The Patchwork patch URL.
+        url: Patchwork URL of the patch to retrieve
 
     Returns:
-        The created Patchwork XML RPC interface and the patch ID string.
+        String representing body of the patch mbox
 
     Raises:
-        str: URL format was not recognized, or an XML RPC
-             compatibility/communication error has occurred and the string
-             describes it.
+        Exception in case the URL is currently unavailable or invalid
     """
-    m = re.match(r"^(.*)/patch/(\d+)/?$", uri)
-    if not m:
-        raise Exception("Can't parse patchwork url: '%s'" % uri)
+    # Use os.path for manipulation with URL because urlparse can't deal
+    # with URLs ending both with and without slash.
+    mbox_url = os.path.join(url, 'mbox')
 
-    baseurl = m.group(1)
-    patchid = m.group(2)
-
-    rpc = xmlrpclib.ServerProxy("%s/xmlrpc/" % baseurl)
     try:
-        ver = rpc.pw_rpc_version()
-        # check for normal patchwork1 xmlrpc version numbers
-        if not (ver == [1, 3, 0] or ver == 1):
-            raise Exception("Unknown xmlrpc version %s", ver)
+        response = requests.get(mbox_url)
+    except requests.exceptions.RequestException as exc:
+        raise(exc)
 
-    except xmlrpclib.Fault as err:
-        if err.faultCode == 1 and \
-           re.search("index out of range", err.faultString):
-            # possible internal RH instance
-            rpc = RpcWrapper(rpc)
-            ver = rpc.pw_rpc_version()
-            if ver < 1010:
-                raise Exception("Unsupported xmlrpc version %s", ver)
-        else:
-            raise Exception("Unknown xmlrpc fault: %s", err.faultString)
+    if response.status_code != requests.codes.ok:
+        raise Exception('Failed to retrieve patch from %s, returned %d' %
+                        (url, response.status_code))
 
-    return (rpc, patchid)
+    return response.content
+
+
+def get_patch_name(content):
+    """
+    Retrieve patch name from 'Subject' header from the mbox string
+    representing a patch.
+
+    Args:
+        content: String representing patch mbox
+
+    Returns:
+        Name of the patch. <SUBJECT MISSING> is returned if no subject is
+        found, and <SUBJECT ENCODING INVALID> if header decoding fails.
+    """
+    headers = email.parser.Parser().parsestr(content, True)
+    subject = headers['Subject']
+    if not subject:
+        # Emails return None if the header is not found so use a stub subject
+        # instead of it
+        return '<SUBJECT MISSING>'
+
+    try:
+        # decode_header() returns a list of tuples (value, charset)
+        decoded = [value for value, _ in email.header.decode_header(subject)]
+    except HeaderParseError:
+        # We can't parse the original subject so use a stub one instead
+        return '<SUBJECT ENCODING INVALID>'
+
+    return ''.join(decoded)
 
 
 class ktree(object):
@@ -368,16 +330,7 @@ class ktree(object):
         return (0, head)
 
     def merge_patchwork_patch(self, uri):
-        (rpc, patchid) = parse_patchwork_url(uri)
-
-        patchinfo = rpc.patch_get(patchid)
-
-        if not patchinfo:
-            raise Exception(
-                "Failed to fetch patch info for patch %s" % patchid
-            )
-
-        pdata = stringify(rpc.patch_get_mbox(patchid))
+        patch_content = get_patch_mbox(uri)
 
         logging.info("Applying %s", uri)
 
@@ -390,7 +343,7 @@ class ktree(object):
             env=dict(os.environ, **{'LC_ALL': 'C'})
         )
 
-        (stdout, stderr) = gam.communicate(pdata)
+        (stdout, stderr) = gam.communicate(patch_content)
         retcode = gam.wait()
 
         if retcode != 0:
@@ -399,10 +352,11 @@ class ktree(object):
             with open(self.mergelog, "w") as fp:
                 fp.write(stdout)
 
-            raise Exception("Failed to apply patch %s" % patchid)
+            raise Exception("Failed to apply patch %s" %
+                            os.path.basename(os.path.normpath(uri)))
 
-        self.info.append(("patchwork", uri,
-                          patchinfo.get("name").replace(',', ';')))
+        patchname = get_patch_name(patch_content)
+        self.info.append(("patchwork", uri, patchname.replace(',', ';')))
 
     def merge_patch_file(self, path):
         try:
