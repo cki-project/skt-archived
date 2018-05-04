@@ -446,9 +446,10 @@ class reporter(object):
         return '\n'.join(msg)
 
     def getsubject(self):
-        if not self.cfg.get('mergelog') and not self.cfg.get('buildlog'):
-            if self.cfg.get('retcode') == '0':
-                subject = 'PASS: '
+        if not self.cfg.get('mergelog') and \
+           not self.cfg.get('buildlog') and \
+           self.cfg.get('retcode') == '0':
+            subject = 'PASS: '
         else:
             subject = 'FAIL: '
 
