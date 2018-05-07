@@ -488,7 +488,8 @@ class mailreporter(reporter):
     """A reporter sending results by e-mail"""
     TYPE = 'mail'
 
-    def __init__(self, cfg, mailfrom, mailto, mailinreplyto=None):
+    def __init__(self, cfg, mailfrom, mailto, mailinreplyto=None,
+                 subject=None):
         """
         Initialize an e-mail reporter
 
@@ -500,6 +501,9 @@ class mailreporter(reporter):
             mailinreplyto:  A string containing the value of the "In-Reply-To"
                             header to add to the message. No header is added
                             if evaluates to False.
+            subject:        Subject to use, for example subject of the message
+                            to reply to. Default subject describing test
+                            results is used if not present.
         """
         # The From: address string
         self.mailfrom = mailfrom
@@ -507,12 +511,13 @@ class mailreporter(reporter):
         self.mailto = [to.strip() for to in mailto.split(",")]
         # The value of "In-Reply-To" header
         self.mailinreplyto = mailinreplyto
+        self.subject = subject
         super(mailreporter, self).__init__(cfg)
 
     def report(self):
         self.update_mergedata()
         msg = MIMEMultipart()
-        msg['Subject'] = self.getsubject()
+        msg['Subject'] = self.subject if self.subject else self.getsubject()
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
         if self.mailinreplyto:
