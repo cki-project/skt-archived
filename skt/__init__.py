@@ -307,11 +307,12 @@ class ktree(object):
 
     def get_remote_url(self, remote):
         rurl = None
+        args = ["git",
+                "--work-tree", self.wdir,
+                "--git-dir", self.gdir,
+                "remote", "show", remote]
         try:
-            grs = subprocess.Popen(["git",
-                                    "--work-tree", self.wdir,
-                                    "--git-dir", self.gdir,
-                                    "remote", "show", remote],
+            grs = subprocess.Popen(args,
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
             (stdout, stderr) = grs.communicate()
@@ -416,11 +417,11 @@ class ktree(object):
     def bisect_start(self, good):
         os.chdir(self.wdir)
         binfo = None
-        gbs = subprocess.Popen(["git",
-                                "--work-tree", self.wdir,
-                                "--git-dir", self.gdir,
-                                "bisect", "start", "HEAD", good],
-                               stdout=subprocess.PIPE)
+        args = ["git",
+                "--work-tree", self.wdir,
+                "--git-dir", self.gdir,
+                "bisect", "start", "HEAD", good]
+        gbs = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = gbs.communicate()
 
         for line in stdout.split("\n"):
@@ -443,10 +444,11 @@ class ktree(object):
             status = "bad"
 
         logging.info("git bisect %s", status)
-        gbs = subprocess.Popen(["git",
-                                "--work-tree", self.wdir,
-                                "--git-dir", self.gdir,
-                                "bisect", status],
+        args = ["git",
+                "--work-tree", self.wdir,
+                "--git-dir", self.gdir,
+                "bisect", status]
+        gbs = subprocess.Popen(args,
                                stdout=subprocess.PIPE)
         (stdout, stderr) = gbs.communicate()
 
