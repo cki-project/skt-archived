@@ -356,6 +356,9 @@ class ktree(object):
                             os.path.basename(os.path.normpath(uri)))
 
         patchname = get_patch_name(patch_content)
+        # FIXME Do proper CSV escaping, or switch data format instead of
+        #       maiming subjects (ha-ha). See issue #119.
+        # Replace commas with semicolons to avoid clashes with CSV separator
         self.info.append(("patchwork", uri, patchname.replace(',', ';')))
 
     def merge_patch_file(self, path):
