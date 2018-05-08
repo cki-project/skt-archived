@@ -364,10 +364,17 @@ class ktree(object):
     def merge_patch_file(self, path):
         if not os.path.exists(path):
             raise Exception("Patch %s not found" % path)
+        args = ["git", "am", path]
         try:
-            self.git_cmd("am", path)
-        except subprocess.CalledProcessError:
+            subprocess.check_output(args,
+                                    cwd=self.wdir,
+                                    env=dict(os.environ, **{'LC_ALL': 'C'}))
+        except subprocess.CalledProcessError as exc:
             self.git_cmd("am", "--abort")
+
+            with open(self.mergelog, "w") as fp:
+                fp.write(exc.output)
+
             raise Exception("Failed to apply patch %s" % path)
 
         self.info.append(("patch", path))
