@@ -11,6 +11,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+from __future__ import print_function
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -474,13 +475,13 @@ class stdioreporter(reporter):
 
     def report(self):
         self.update_mergedata()
-        print "Subject: %s\n" % self.getsubject()
-        print self.getreport()
+        print("Subject:", self.getsubject())
+        print(self.getreport())
 
         for (name, att) in self.attach:
             if name.endswith(('.log', '.txt', 'config')):
-                print "\n---------------\n%s\n" % name
-                print att
+                print("\n---------------\n", name, sep='')
+                print(att)
 
 
 class mailreporter(reporter):
