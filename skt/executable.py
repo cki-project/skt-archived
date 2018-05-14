@@ -23,6 +23,7 @@ import logging
 import os
 import shutil
 import sys
+import tempfile
 import time
 import traceback
 
@@ -487,7 +488,13 @@ def setup_parser():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
+    parser.add_argument(
+        "-d",
+        "--workdir",
+        default=tempfile.mkdtemp(),
+        type=str,
+        help="Path to work dir"
+    )
     parser.add_argument("-w", "--wipe",
                         help="Clean build (make mrproper before building), "
                         "remove workdir when finished",
