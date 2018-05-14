@@ -105,10 +105,8 @@ class ktree(object):
                     The amount of git history to include with the clone.
                     Smaller depths lead to faster repo clones.
         """
-        # FIXME Move expansion up the call stack, as this limits the class
-        # usefulness, because tilde is a valid path character.
         # The git "working directory" (the "checkout")
-        self.wdir = os.path.expanduser(wdir)
+        self.wdir = wdir
         # The cloned git repository
         self.gdir = "%s/.git" % self.wdir
         # The origin remote's URL
@@ -434,9 +432,7 @@ class ktree(object):
 class kbuilder(object):
     def __init__(self, path, basecfg, cfgtype=None, makeopts=None,
                  enable_debuginfo=False):
-        # FIXME Move expansion up the call stack, as this limits the class
-        # usefulness, because tilde is a valid path character.
-        self.path = os.path.expanduser(path)
+        self.path = path
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         self.basecfg = os.path.expanduser(basecfg)
