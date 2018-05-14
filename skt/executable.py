@@ -68,9 +68,7 @@ def save_state(cfg, state):
             logging.debug("state: %s -> %s", key, val)
             config.set('state', key, val)
 
-    # FIXME Move expansion up the call stack, as this limits the function
-    # usefulness, because tilde is a valid path character.
-    with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
+    with open(cfg.get('rc'), 'w') as fp:
         config.write(fp)
 
 
@@ -354,9 +352,7 @@ def cmd_cleanup(cfg):
     config = cfg.get('_parser')
     if config.has_section('state'):
         config.remove_section('state')
-        # FIXME Move expansion up the call stack, as this limits the function
-        # usefulness, because tilde is a valid path character.
-        with open(os.path.expanduser(cfg.get('rc')), 'w') as fp:
+        with open(cfg.get('rc'), 'w') as fp:
             config.write(fp)
 
     if cfg.get('buildinfo'):
@@ -716,6 +712,10 @@ def load_config(args):
     # Get an absolute path for the kernel configuration file
     if cfg.get('basecfg'):
         cfg['basecfg'] = full_path(cfg.get('basecfg'))
+
+    # Get an absolute path for the configuration file
+    if cfg.get('rc'):
+        cfg['rc'] = full_path(cfg.get('rc'))
 
     return cfg
 
