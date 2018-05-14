@@ -1,0 +1,4 @@
+<xml>
+  <test>This is test xml!</test>
+  <test_replace>##TEST##</test_replace>
+</xml>
