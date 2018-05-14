@@ -711,6 +711,8 @@ def load_config(args):
     # Get absolute paths for files and directories
     if cfg.get('workdir'):
         cfg['workdir'] = full_path(cfg.get('workdir'))
+    if cfg.get('basecfg'):
+        cfg['basecfg'] = full_path(cfg.get('basecfg'))
 
     return cfg
 
