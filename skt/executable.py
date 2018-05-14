@@ -38,6 +38,11 @@ logger = logging.getLogger()
 retcode = 0
 
 
+def full_path(path):
+    """Get an absolute path to a file"""
+    return os.path.abspath(os.path.expanduser(path))
+
+
 def save_state(cfg, state):
     """
     Merge state to cfg, and then save cfg.
