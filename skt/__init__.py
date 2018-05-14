@@ -21,7 +21,6 @@ import os
 import re
 import shutil
 import subprocess
-import tempfile
 import sys
 import io
 import time
@@ -109,9 +108,7 @@ class ktree(object):
         # FIXME Move expansion up the call stack, as this limits the class
         # usefulness, because tilde is a valid path character.
         # The git "working directory" (the "checkout")
-        self.wdir = (os.path.expanduser(wdir)
-                     if wdir is not None
-                     else tempfile.mkdtemp())
+        self.wdir = os.path.expanduser(wdir)
         # The cloned git repository
         self.gdir = "%s/.git" % self.wdir
         # The origin remote's URL
