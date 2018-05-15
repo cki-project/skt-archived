@@ -719,13 +719,23 @@ def setup_parser():
     parser_all.set_defaults(func=cmd_all)
     parser_all.set_defaults(_name="all")
 
+    # These arguments apply to the 'bisect' skt subcommand
     parser_bisect = subparsers.add_parser("bisect", add_help=True)
-    parser_bisect.add_argument("commitbad", type=str,
-                               help="Bad commit for bisect")
-    parser_bisect.add_argument("--commitgood", type=str, help="Good commit "
-                               "for bisect. Default's to baserepo's HEAD")
-    parser_bisect.add_argument("--host", type=str, help="If needs to be "
-                               "bisected on specific host")
+    parser_bisect.add_argument(
+        "commitbad",
+        type=str,
+        help="Bad commit for bisect"
+    )
+    parser_bisect.add_argument(
+        "--commitgood",
+        type=str,
+        help="Good commit for bisect. Default's to baserepo's HEAD"
+    )
+    parser_bisect.add_argument(
+        "--host",
+        type=str,
+        help="If needs to be bisected on specific host"
+    )
     parser_bisect.set_defaults(func=cmd_bisect)
     parser_bisect.set_defaults(_name="bisect")
 
