@@ -19,6 +19,7 @@ import logging
 import multiprocessing
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -430,22 +431,21 @@ class ktree(object):
 
 
 class kbuilder(object):
-    def __init__(self, path, basecfg, cfgtype=None, makeopts=None,
+    def __init__(self, path, basecfg, cfgtype=None, extra_make_args=None,
                  enable_debuginfo=False):
         self.path = path
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
-        self.makeopts = None
         self.buildlog = "%s/build.log" % self.path
-        self.defmakeargs = ["make", "-C", self.path]
+        self.make_argv_base = ["make", "-C", self.path]
         self.enable_debuginfo = enable_debuginfo
 
-        if makeopts is not None:
-            # FIXME: Might want something a bit smarter here, something that
-            # would parse it the same way bash does
-            self.makeopts = makeopts.split(' ')
-            self.defmakeargs += self.makeopts
+        # Split the extra make arguments provided by the user
+        if extra_make_args:
+            self.extra_make_args = shlex.split(extra_make_args)
+        else:
+            self.extra_make_args = []
 
         try:
             os.unlink(self.buildlog)
@@ -457,7 +457,7 @@ class kbuilder(object):
 
     def prepare(self, clean=True):
         if (clean):
-            args = self.defmakeargs + ["mrproper"]
+            args = self.make_argv_base + ["mrproper"]
             logging.info("cleaning up tree: %s", args)
             subprocess.check_call(args)
 
@@ -475,7 +475,7 @@ class kbuilder(object):
             logging.info("disabling debuginfo: %s", args)
             subprocess.check_call(args)
 
-        args = self.defmakeargs + [self.cfgtype]
+        args = self.make_argv_base + [self.cfgtype]
         logging.info("prepare config: %s", args)
         subprocess.check_call(args)
         self._ready = 1
@@ -488,7 +488,7 @@ class kbuilder(object):
         if not self._ready:
             self.prepare(False)
 
-        args = self.defmakeargs + ["kernelrelease"]
+        args = self.make_argv_base + ["kernelrelease"]
         mk = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, stderr) = mk.communicate()
         for line in stdout.split("\n"):
@@ -523,15 +523,23 @@ class kbuilder(object):
         stdout_list = []
         self.prepare(clean)
 
-        args = self.defmakeargs + ["INSTALL_MOD_STRIP=1",
-                                   "-j%d" % multiprocessing.cpu_count(),
-                                   "targz-pkg"]
+        # Set up the arguments and options for the kernel build
+        targz_pkg_argv = [
+            "INSTALL_MOD_STRIP=1",
+            "-j%d" % multiprocessing.cpu_count(),
+            "targz-pkg"
+        ]
+        kernel_build_argv = (
+            self.make_argv_base +
+            targz_pkg_argv +
+            self.extra_make_args
+        )
 
-        logging.info("building kernel: %s", args)
+        logging.info("building kernel: %s", kernel_build_argv)
 
         with io.open(self.buildlog, 'wb') as writer, \
                 io.open(self.buildlog, 'rb') as reader:
-            make = subprocess.Popen(args,
+            make = subprocess.Popen(kernel_build_argv,
                                     stdout=writer,
                                     stderr=subprocess.STDOUT)
             make_timedout = []
@@ -555,11 +563,15 @@ class kbuilder(object):
                 timer.cancel()
             if make_timedout:
                 raise CommandTimeoutError(
-                    "'{}' was taking too long".format(' '.join(args))
+                    "'{}' was taking too long".format(
+                        ' '.join(kernel_build_argv)
+                    )
                 )
             if make.returncode != 0:
-                raise subprocess.CalledProcessError(make.returncode,
-                                                    ' '.join(args))
+                raise subprocess.CalledProcessError(
+                    make.returncode,
+                    ' '.join(kernel_build_argv)
+                )
 
         match = re.search("^Tarball successfully created in (.*)$",
                           ''.join(stdout_list), re.MULTILINE)
