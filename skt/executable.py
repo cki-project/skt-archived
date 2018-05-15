@@ -668,20 +668,46 @@ def setup_parser():
 
     parser_all = subparsers.add_parser(
         "all",
-        parents=[parser_merge, parser_build, parser_publish, parser_run,
-                 parser_report, parser_cleanup]
+        parents=[
+            parser_merge,
+            parser_build,
+            parser_publish,
+            parser_run,
+            parser_report,
+            parser_cleanup
+        ]
     )
 
-    parser_merge.add_argument("-h", "--help", help="Merge sub-command help",
-                              action="help")
-    parser_build.add_argument("-h", "--help", help="Build sub-command help",
-                              action="help")
-    parser_publish.add_argument("-h", "--help", action="help",
-                                help="Publish sub-command help")
-    parser_run.add_argument("-h", "--help", help="Run sub-command help",
-                            action="help")
-    parser_report.add_argument("-h", "--help", help="Report sub-command help",
-                               action="help")
+    parser_merge.add_argument(
+        "-h",
+        "--help",
+        help="Merge sub-command help",
+        action="help"
+    )
+    parser_build.add_argument(
+        "-h",
+        "--help",
+        help="Build sub-command help",
+        action="help"
+    )
+    parser_publish.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        help="Publish sub-command help"
+    )
+    parser_run.add_argument(
+        "-h",
+        "--help",
+        help="Run sub-command help",
+        action="help"
+    )
+    parser_report.add_argument(
+        "-h",
+        "--help",
+        help="Report sub-command help",
+        action="help"
+    )
 
     parser_merge.set_defaults(func=cmd_merge)
     parser_merge.set_defaults(_name="merge")
