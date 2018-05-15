@@ -244,7 +244,7 @@ class reporter(object):
         if self.cfg.get("patchworks"):
             for purl in self.cfg.get("patchworks"):
                 patch_mbox = skt.get_patch_mbox(purl)
-                patchname = skt.get_patch_subject(patch_mbox)
+                patchname = skt.get_patch_name(patch_mbox)
                 mergedata['patchwork'].append((purl, patchname))
 
         return mergedata
