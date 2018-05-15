@@ -530,18 +530,38 @@ def setup_parser():
 
     subparsers = parser.add_subparsers()
 
+    # These arguments apply to the 'merge' skt subcommand
     parser_merge = subparsers.add_parser("merge", add_help=False)
-    parser_merge.add_argument("-b", "--baserepo", type=str,
-                              help="Base repo URL")
-    parser_merge.add_argument("--ref", type=str,
-                              help="Base repo ref (default: master")
-    parser_merge.add_argument("--patchlist", type=str, nargs="+",
-                              help="List of patch paths to apply")
-    parser_merge.add_argument("--pw", type=str, nargs="+",
-                              help="Patchwork urls")
-    parser_merge.add_argument("-m", "--merge-ref", nargs="+",
-                              help="Merge ref format: 'url [ref]'",
-                              action="append")
+    parser_merge.add_argument(
+        "-b",
+        "--baserepo",
+        type=str,
+        help="Base repo URL"
+    )
+    parser_merge.add_argument(
+        "--ref",
+        type=str,
+        help="Base repo ref to which patches are applied (default: master)"
+    )
+    parser_merge.add_argument(
+        "--patchlist",
+        type=str,
+        nargs="+",
+        help="Paths to each local patch to apply (space delimited)"
+    )
+    parser_merge.add_argument(
+        "--pw",
+        type=str,
+        nargs="+",
+        help="URLs to each Patchwork patch to apply (space delimited)"
+    )
+    parser_merge.add_argument(
+        "-m",
+        "--merge-ref",
+        nargs="+",
+        help="Merge ref format: 'url [ref]'",
+        action="append"
+    )
     parser_merge.add_argument(
         "--fetch-depth",
         type=str,
