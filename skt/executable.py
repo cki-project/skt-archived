@@ -622,18 +622,37 @@ def setup_parser():
         help="Path to accompanying buildinfo"
     )
 
+    # These arguments apply to the 'run' skt command
     parser_run = subparsers.add_parser("run", add_help=False)
-    parser_run.add_argument("-r", "--runner", nargs=2, type=str,
-                            help="Runner config in 'type \"{'key' : 'val', "
-                            "...}\"' format")
-    parser_run.add_argument("--buildurl", type=str, help="Build tarpkg url")
-    parser_run.add_argument("--krelease", type=str,
-                            help="Kernel release version of the build")
-    parser_run.add_argument("--wait", action="store_true", default=False,
-                            help="Do not exit until tests are finished")
-    parser_run.add_argument("--bisect", help="Try to bisect the failure if "
-                            "any.  (Implies --wait)",
-                            action="store_true", default=False)
+    parser_run.add_argument(
+        "-r",
+        "--runner",
+        nargs=2,
+        type=str,
+        help="Runner config in 'type \"{'key' : 'val', ...}\"' format"
+    )
+    parser_run.add_argument(
+        "--buildurl",
+        type=str,
+        help="Build tarpkg url"
+    )
+    parser_run.add_argument(
+        "--krelease",
+        type=str,
+        help="Kernel release version of the build"
+    )
+    parser_run.add_argument(
+        "--wait",
+        action="store_true",
+        default=False,
+        help="Do not exit until tests are finished"
+    )
+    parser_run.add_argument(
+        "--bisect",
+        help="Try to bisect the failure if any.  (Implies --wait)",
+        action="store_true",
+        default=False
+    )
 
     parser_report = subparsers.add_parser("report", add_help=False)
     parser_report.add_argument("--reporter", nargs=2, type=str,
