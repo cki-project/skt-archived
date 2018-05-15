@@ -334,6 +334,10 @@ class reporter(object):
                     break
                 result.append('    ' + line.strip())
 
+        result += ['\nPlease note that if there are subsequent patches in the '
+                   'series, they weren\'t',
+                   'applied because of the error message stated above.\n']
+
         return result
 
     def getbuildfailure(self):
