@@ -651,10 +651,13 @@ def setup_parser():
         default=False
     )
 
+    # These arguments apply to the 'report' skt subcommand
     parser_report = subparsers.add_parser("report", add_help=False)
-    parser_report.add_argument("--reporter", nargs=2, type=str,
-                               help="Reporter config in 'type \"{'key' : "
-                               "'val', ...}\"' format")
+    parser_report.add_argument(
+        "--reporter",
+        nargs=2,
+        type=str,
+        help="Reporter config in 'type \"{'key' : 'val', ...}\"' format")
     parser_report.set_defaults(func=cmd_report)
     parser_report.set_defaults(_name="report")
 
