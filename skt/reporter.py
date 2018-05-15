@@ -283,22 +283,29 @@ class reporter(object):
         Returns: A list of strings representing data about applied patches and
                  base repository.
         """
-        result = ['We applied the following patch']
-        if len(self.mergedata['localpatch'] + self.mergedata['patchwork']) > 1:
-            result[0] += 'es:\n'
+        patchlist = self.mergedata['localpatch'] + self.mergedata['patchwork']
+
+        if patchlist:
+            result = ['We applied the following patch']
+            if len(patchlist) > 1:
+                result[0] += 'es:\n'
+            else:
+                result[0] += ':\n'
+
+            for patchpath in self.mergedata['localpatch']:
+                result += ['  - %s' % patchpath]
+
+            for (purl, pname) in self.mergedata['patchwork']:
+                result += ['  - %s,' % pname,
+                           '    grabbed from %s\n' % purl]
+
+            result += ['on top of commit %s from the repository at' %
+                       self.mergedata['base'][1][:12],
+                       '  %s' % self.mergedata['base'][0]]
         else:
-            result[0] += ':\n'
-
-        for patchpath in self.mergedata['localpatch']:
-            result += ['  - %s' % patchpath]
-
-        for (purl, pname) in self.mergedata['patchwork']:
-            result += ['  - %s,' % pname,
-                       '    grabbed from %s\n' % purl]
-
-        result += ['on top of commit %s from the repository at' %
-                   self.mergedata['base'][1][:12],
-                   '  %s' % self.mergedata['base'][0]]
+            result = ['We cloned the git tree and checked out %s from the '
+                      'repository at' % self.mergedata['base'][1][:12],
+                      '  %s' % self.mergedata['base'][0]]
 
         if not self.cfg.get("mergelog"):
             cfgname = "config.gz"
@@ -420,13 +427,17 @@ class reporter(object):
         msg = ['Hello,\n',
                'We appreciate your contributions to the Linux kernel and '
                'would like to help',
-               'test them. Below are the results of automatic tests we ran on '
-               'a patchset',
-               'you\'re involved with, with hope it will help you find '
-               'possible issues sooner.',
-               '\n']
+               'test them. Below are the results of automatic tests we ran']
+        if self.mergedata['localpatch'] or self.mergedata['patchwork']:
+            msg[-1] += ' on a patchset'
+            msg += ['you\'re involved with, with hope it will help you find '
+                    'possible issues sooner.']
+        else:
+            # There is no patchset the person was involved with
+            msg[-1] += ', with hope it'
+            msg += ['will help you find possible issues sooner.']
 
-        msg += self.getmergeinfo()
+        msg += ['\n'] + self.getmergeinfo()
 
         if self.cfg.get("mergelog"):
             msg += self.getmergefailure()
