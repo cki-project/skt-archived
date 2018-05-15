@@ -597,14 +597,25 @@ def setup_parser():
         help="Additional options to pass to make"
     )
 
+    # These arguments apply to the 'publish' skt command
     parser_publish = subparsers.add_parser("publish", add_help=False)
-    parser_publish.add_argument("-p", "--publisher", type=str, nargs=3,
-                                help="Publisher config string in 'type "
-                                "destination baseurl' format")
-    parser_publish.add_argument("--tarpkg", type=str,
-                                help="Path to tar pkg to publish")
-    parser_publish.add_argument("--buildinfo", type=str,
-                                help="Path to accompanying buildinfo")
+    parser_publish.add_argument(
+        "-p",
+        "--publisher",
+        type=str,
+        nargs=3,
+        help="Publisher config string in 'type destination baseurl' format"
+    )
+    parser_publish.add_argument(
+        "--tarpkg",
+        type=str,
+        help="Path to tar pkg to publish"
+    )
+    parser_publish.add_argument(
+        "--buildinfo",
+        type=str,
+        help="Path to accompanying buildinfo"
+    )
 
     parser_run = subparsers.add_parser("run", add_help=False)
     parser_run.add_argument("-r", "--runner", nargs=2, type=str,
