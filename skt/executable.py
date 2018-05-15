@@ -489,7 +489,6 @@ def setup_parser():
     parser.add_argument(
         "-d",
         "--workdir",
-        default=tempfile.mkdtemp(),
         type=str,
         help="Path to work dir"
     )
@@ -708,9 +707,13 @@ def load_config(args):
     if cfg.get("bisect"):
         cfg['wait'] = True
 
-    # Get absolute paths for files and directories
+    # Get an absolute path for the work directory
     if cfg.get('workdir'):
         cfg['workdir'] = full_path(cfg.get('workdir'))
+    else:
+        cfg['workdir'] = tempfile.mkdtemp()
+
+    # Get an absolute path for the kernel configuration file
     if cfg.get('basecfg'):
         cfg['basecfg'] = full_path(cfg.get('basecfg'))
 
