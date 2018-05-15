@@ -574,19 +574,30 @@ def setup_parser():
         default=None
     )
 
+    # These arguments apply to the 'build' skt command
     parser_build = subparsers.add_parser("build", add_help=False)
-    parser_build.add_argument("-c", "--baseconfig", type=str,
-                              help="Path to kernel config to use")
-    parser_build.add_argument("--cfgtype", type=str, help="How to process "
-                              "default config (default: olddefconfig)")
+    parser_build.add_argument(
+        "-c",
+        "--baseconfig",
+        type=str,
+        help="Path to kernel config to use"
+    )
+    parser_build.add_argument(
+        "--cfgtype",
+        type=str,
+        help="How to process default config (default: olddefconfig)"
+    )
     parser_build.add_argument(
         "--enable-debuginfo",
         type=bool,
         default=False,
         help="Build kernel with debuginfo (default: disabled)"
     )
-    parser_build.add_argument("--makeopts", type=str,
-                              help="Additional options to pass to make")
+    parser_build.add_argument(
+        "--makeopts",
+        type=str,
+        help="Additional options to pass to make"
+    )
 
     parser_publish = subparsers.add_parser("publish", add_help=False)
     parser_publish.add_argument("-p", "--publisher", type=str, nargs=3,
