@@ -482,27 +482,51 @@ def setup_parser():
     """
     parser = argparse.ArgumentParser()
 
+    # These arguments apply to all commands within skt
     parser.add_argument(
         "-d",
         "--workdir",
         type=str,
         help="Path to work dir"
     )
-    parser.add_argument("-w", "--wipe",
-                        help="Clean build (make mrproper before building), "
-                        "remove workdir when finished",
-                        action="store_true", default=False)
-    parser.add_argument("--junit",
-                        help="Path to dir to store junit results in")
-    parser.add_argument("-v", "--verbose", help="Increase verbosity level",
-                        action="count", default=0)
-    parser.add_argument("--rc", help="Path to rc file", default=DEFAULTRC)
+    parser.add_argument(
+        "-w",
+        "--wipe",
+        help=(
+            "Clean build (make mrproper before building) and remove workdir"
+            "when finished"
+        ),
+        action="store_true",
+        default=False
+    )
+    parser.add_argument(
+        "--junit",
+        help="Directory for storing junit XML results"
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        help="Increase verbosity level",
+        action="count",
+        default=0
+    )
+    parser.add_argument(
+        "--rc",
+        help="Path to rc file",
+        default=DEFAULTRC
+    )
     # FIXME Storing state in config file can break the whole system in case
     #       state saving aborts. It's better to save state separately.
     #       It also breaks separation of concerns, as in principle skt doesn't
     #       need to modify its own configuration otherwise.
-    parser.add_argument("--state", help="Save/read state from 'state' section "
-                        "of rc file", action="store_true", default=False)
+    parser.add_argument(
+        "--state",
+        help=(
+            "Save/read state from 'state' section of rc file"
+        ),
+        action="store_true",
+        default=False
+    )
 
     subparsers = parser.add_subparsers()
 
