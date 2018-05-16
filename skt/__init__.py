@@ -76,6 +76,13 @@ def get_patch_name(content):
         # instead of it
         return '<SUBJECT MISSING>'
 
+    # skt's custom CSV parsing doesn't understand multiline values, until we
+    # switch to a proper parser we need a temporary fix. Use separate
+    # replacements to handle Windows / *nix endlines and mboxes which contain
+    # '\n' and a space instead of '\n\t' as well.
+    # Tracking issue: https://github.com/RH-FMK/skt/issues/119
+    subject = subject.replace('\n', ' ').replace('\t', '').replace('\r', '')
+
     try:
         # decode_header() returns a list of tuples (value, charset)
         decoded = [value for value, _ in email.header.decode_header(subject)]
