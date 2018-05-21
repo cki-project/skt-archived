@@ -200,7 +200,7 @@ class ktree(object):
 
         logging.debug("git_commit_date: %s", args)
         grs = subprocess.Popen(args, stdout=subprocess.PIPE)
-        (stdout, stderr) = grs.communicate()
+        (stdout, _) = grs.communicate()
 
         return int(stdout.rstrip())
 
@@ -228,7 +228,7 @@ class ktree(object):
 
         logging.debug("git_commit: %s", args)
         grs = subprocess.Popen(args, stdout=subprocess.PIPE)
-        (stdout, stderr) = grs.communicate()
+        (stdout, _) = grs.communicate()
 
         return stdout.rstrip()
 
@@ -278,7 +278,7 @@ class ktree(object):
                                     "remote", "show", remote],
                                    stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
-            (stdout, stderr) = grs.communicate()
+            (stdout, _) = grs.communicate()
             for line in stdout.split("\n"):
                 m = re.match('Fetch URL: (.*)', line)
                 if m:
@@ -345,7 +345,7 @@ class ktree(object):
             env=dict(os.environ, **{'LC_ALL': 'C'})
         )
 
-        (stdout, stderr) = gam.communicate(patch_content)
+        (stdout, _) = gam.communicate(patch_content)
         retcode = gam.wait()
 
         if retcode != 0:
@@ -389,7 +389,7 @@ class ktree(object):
                                 "--git-dir", self.gdir,
                                 "bisect", "start", "HEAD", good],
                                stdout=subprocess.PIPE)
-        (stdout, stderr) = gbs.communicate()
+        (stdout, _) = gbs.communicate()
 
         for line in stdout.split("\n"):
             m = re.match('^Bisecting: (.*)$', line)
@@ -416,7 +416,7 @@ class ktree(object):
                                 "--git-dir", self.gdir,
                                 "bisect", status],
                                stdout=subprocess.PIPE)
-        (stdout, stderr) = gbs.communicate()
+        (stdout, _) = gbs.communicate()
 
         for line in stdout.split("\n"):
             m = re.match('^Bisecting: (.*)$', line)
@@ -497,7 +497,7 @@ class kbuilder(object):
 
         args = self.defmakeargs + ["kernelrelease"]
         mk = subprocess.Popen(args, stdout=subprocess.PIPE)
-        (stdout, stderr) = mk.communicate()
+        (stdout, _) = mk.communicate()
         for line in stdout.split("\n"):
             m = re.match(r'^\d+\.\d+\.\d+.*$', line)
             if m:

@@ -385,7 +385,7 @@ class reporter(object):
                 if recipe == "result":
                     continue
 
-                (res, system, clogurl, slshwurl, llshwurl) = rdata
+                (res, system, clogurl, slshwurl, _) = rdata
 
                 clog = consolelog(self.cfg.get("krelease"), clogurl)
                 if not clog.data and res != 'Pass':
