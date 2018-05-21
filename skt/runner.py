@@ -83,8 +83,8 @@ class BeakerRunner(Runner):
             The job XML text with template replacements applied.
         """
         xml = ''
-        with open(self.template, 'r') as f:
-            for line in f:
+        with open(self.template, 'r') as fileh:
+            for line in fileh:
                 for match in re.finditer(r"##(\w+)##", line):
                     if match.group(1) in replacements:
                         line = line.replace(match.group(0),
@@ -128,8 +128,8 @@ class BeakerRunner(Runner):
         args.append(jobid)
 
         fname = "%s/%s.xml" % (junit, jobid.replace(":", "_").lower())
-        with open(fname, 'w') as fp:
-            bkr = subprocess.Popen(args, stdout=fp)
+        with open(fname, 'w') as fileh:
+            bkr = subprocess.Popen(args, stdout=fileh)
             bkr.communicate()
 
     def getconsolelog(self, jobid=None):

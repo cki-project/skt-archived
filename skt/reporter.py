@@ -270,8 +270,8 @@ class Reporter(object):
             if response:
                 mergedata['config'] = response.text
         else:
-            with open("%s/.config" % self.cfg.get("workdir"), "r") as fp:
-                mergedata['config'] = fp.read()
+            with open("%s/.config" % self.cfg.get("workdir"), "r") as fileh:
+                mergedata['config'] = fileh.read()
 
         self.mergedata = mergedata
 
@@ -329,8 +329,8 @@ class Reporter(object):
                   'failed with the',
                   'following output:\n']
 
-        with open(self.cfg.get("mergelog"), 'r') as fp:
-            for line in fp:
+        with open(self.cfg.get("mergelog"), 'r') as fileh:
+            for line in fileh:
                 # Skip the useless part of the 'git am' output
                 if "The copy of the patch" in line:
                     break
@@ -348,8 +348,8 @@ class Reporter(object):
                   'output for',
                   'more information (%s).' % attname]
 
-        with open(self.cfg.get("buildlog"), 'r') as fp:
-            self.attach.append((attname, gzipdata(fp.read())))
+        with open(self.cfg.get("buildlog"), 'r') as fileh:
+            self.attach.append((attname, gzipdata(fileh.read())))
 
         return result
 
