@@ -67,11 +67,11 @@ class TestIndependent(unittest.TestCase):
 
 class KBuilderTest(unittest.TestCase):
     # (Too many instance attributes) pylint: disable=R0902
-    """Test cases for skt.kbuilder class"""
+    """Test cases for skt.KernelBuilder class"""
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         self.tmpconfig = tempfile.NamedTemporaryFile()
-        self.kbuilder = skt.kbuilder(self.tmpdir, self.tmpconfig.name)
+        self.kbuilder = skt.KernelBuilder(self.tmpdir, self.tmpconfig.name)
         self.m_popen = Mock()
         self.m_popen.returncode = 0
         self.ctx_popen = mock.patch('subprocess.Popen',

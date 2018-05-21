@@ -436,7 +436,7 @@ class ktree(object):
         return (ret, binfo)
 
 
-class kbuilder(object):
+class KernelBuilder(object):
     def __init__(self, path, basecfg, cfgtype=None, makeopts=None,
                  enable_debuginfo=False):
         self.path = path
