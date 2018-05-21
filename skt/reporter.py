@@ -133,10 +133,12 @@ class ConsoleLog(object):
         if not self.url:
             return []
 
-        r = requests.get(self.url)
+        response = requests.get(self.url)
 
         try:
-            str_data = r.text[r.text.index("Linux version %s" % self.kver):]
+            str_data = response.text[
+                response.text.index("Linux version %s" % self.kver):
+            ]
         except ValueError:
             # Targeted kernel didn't even start booting
             str_data = ''
@@ -212,8 +214,8 @@ class Reporter(object):
         self.mergedata = None
 
     def infourldata(self, mergedata):
-        r = requests.get(self.cfg.get("infourl"))
-        for line in r.text.split('\n'):
+        response = requests.get(self.cfg.get("infourl"))
+        for line in response.text.split('\n'):
             if line:
                 idata = line.split(',')
                 if idata[0] == 'base':
@@ -264,9 +266,9 @@ class Reporter(object):
             mergedata = self.stateconfigdata(mergedata)
 
         if self.cfg.get("cfgurl"):
-            r = requests.get(self.cfg.get("cfgurl"))
-            if r:
-                mergedata['config'] = r.text
+            response = requests.get(self.cfg.get("cfgurl"))
+            if response:
+                mergedata['config'] = response.text
         else:
             with open("%s/.config" % self.cfg.get("workdir"), "r") as fp:
                 mergedata['config'] = fp.read()
@@ -413,10 +415,10 @@ class Reporter(object):
 
                 if slshwurl is not None:
                     if system not in minfo["short"]:
-                        r = requests.get(slshwurl)
-                        if r:
+                        response = requests.get(slshwurl)
+                        if response:
                             result.append("\nMachine info:")
-                            result += r.text.split('\n')
+                            result += response.text.split('\n')
                             minfo["short"][system] = jidx
                     else:
                         result.append("Machine info: same as #%d" %
