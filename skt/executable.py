@@ -200,7 +200,7 @@ def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
 
-    builder = skt.kbuilder(
+    builder = skt.KernelBuilder(
         cfg.get('workdir'),
         cfg.get('baseconfig'),
         cfg.get('cfgtype'),
