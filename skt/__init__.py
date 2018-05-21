@@ -204,8 +204,7 @@ class ktree(object):
 
         return int(stdout.rstrip())
 
-    # FIXME Rename to say the hash is being retrieved
-    def get_commit(self, ref=None):
+    def get_commit_hash(self, ref=None):
         """
         Get the full hash of the commit pointed at by the specified reference,
         or of the currently checked-out commit, if not specified.
@@ -260,7 +259,7 @@ class ktree(object):
         self.git_cmd("checkout", "-q", "--detach", dstref)
         self.git_cmd("reset", "--hard", dstref)
 
-        head = self.get_commit()
+        head = self.get_commit_hash()
         self.info.append(("base", self.uri, head))
         logging.info("baserepo %s: %s", self.ref, head)
         return str(head).rstrip()
@@ -320,7 +319,7 @@ class ktree(object):
                 logging.getLogger().level > logging.DEBUG else {}
 
             self.git_cmd("merge", "--no-edit", dstref, **grargs)
-            head = self.get_commit(dstref)
+            head = self.get_commit_hash(dstref)
             self.info.append(("git", uri, head))
             logging.info("%s %s: %s", rname, ref, head)
         except subprocess.CalledProcessError:
