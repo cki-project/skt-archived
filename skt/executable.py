@@ -35,7 +35,7 @@ import skt.reporter
 import skt.runner
 
 DEFAULTRC = "~/.sktrc"
-logger = logging.getLogger()
+LOGGER = logging.getLogger()
 retcode = 0
 
 
@@ -470,7 +470,7 @@ def setup_logging(verbose):
         verbose:    Verbosity level to setup log message filtering.
     """
     logging.basicConfig(format="%(asctime)s %(levelname)8s   %(message)s")
-    logger.setLevel(logging.WARNING - (verbose * 10))
+    LOGGER.setLevel(logging.WARNING - (verbose * 10))
 
 
 def setup_parser():
