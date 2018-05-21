@@ -93,14 +93,14 @@ def get_patch_name(content):
     return ''.join(decoded)
 
 
-class ktree(object):
+class KernelTree(object):
     """
-    Ktree - a kernel git repository "checkout", i.e. a clone with a working
-    directory
+    KernelTree - a kernel git repository "checkout", i.e. a clone with a
+    working directory
     """
     def __init__(self, uri, ref=None, wdir=None, fetch_depth=None):
         """
-        Initialize a ktree.
+        Initialize a KernelTree.
 
         Args:
             uri:    The Git URI of the repository's origin remote.

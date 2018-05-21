@@ -132,7 +132,7 @@ def cmd_merge(cfg):
     """
     global retcode
     utypes = []
-    ktree = skt.ktree(
+    ktree = skt.KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
         wdir=cfg.get('workdir'),
@@ -402,9 +402,11 @@ def cmd_bisect(cfg):
             "Bisecting currently works only with exactly one mergeref"
         )
 
-    ktree = skt.ktree(cfg.get('baserepo'),
-                      ref=cfg.get('commitgood'),
-                      wdir=cfg.get('workdir'))
+    ktree = skt.KernelTree(
+        cfg.get('baserepo'),
+        ref=cfg.get('commitgood'),
+        wdir=cfg.get('workdir')
+    )
     head = ktree.checkout()
 
     cfg['workdir'] = ktree.getpath()
