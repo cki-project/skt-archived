@@ -352,8 +352,8 @@ class KernelTree(object):
         if retcode != 0:
             self.git_cmd("am", "--abort")
 
-            with open(self.mergelog, "w") as fp:
-                fp.write(stdout)
+            with open(self.mergelog, "w") as fileh:
+                fileh.write(stdout)
 
             raise Exception("Failed to apply patch %s" %
                             os.path.basename(os.path.normpath(uri)))
@@ -375,8 +375,8 @@ class KernelTree(object):
         except subprocess.CalledProcessError as exc:
             self.git_cmd("am", "--abort")
 
-            with open(self.mergelog, "w") as fp:
-                fp.write(exc.output)
+            with open(self.mergelog, "w") as fileh:
+                fileh.write(exc.output)
 
             raise Exception("Failed to apply patch %s" % path)
 

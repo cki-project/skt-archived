@@ -68,8 +68,8 @@ def save_state(cfg, state):
             logging.debug("state: %s -> %s", key, val)
             config.set('state', key, val)
 
-    with open(cfg.get('rc'), 'w') as fp:
-        config.write(fp)
+    with open(cfg.get('rc'), 'w') as fileh:
+        config.write(fileh)
 
 
 def junit(func):
@@ -352,8 +352,8 @@ def cmd_cleanup(cfg):
     config = cfg.get('_parser')
     if config.has_section('state'):
         config.remove_section('state')
-        with open(cfg.get('rc'), 'w') as fp:
-            config.write(fp)
+        with open(cfg.get('rc'), 'w') as fileh:
+            config.write(fileh)
 
     if cfg.get('buildinfo'):
         try:
@@ -858,8 +858,8 @@ def main():
     args.func(cfg)
     if cfg.get('junit'):
         ts = junit_xml.TestSuite("skt", cfg.get('_testcases'))
-        with open("%s/%s.xml" % (cfg.get('junit'), args._name), 'w') as fp:
-            junit_xml.TestSuite.to_file(fp, [ts])
+        with open("%s/%s.xml" % (cfg.get('junit'), args._name), 'w') as fileh:
+            junit_xml.TestSuite.to_file(fileh, [ts])
 
     sys.exit(retcode)
 
