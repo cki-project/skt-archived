@@ -27,11 +27,11 @@ from tests import misc
 
 
 class TestConsoleLog(unittest.TestCase):
-    """Test cases for reporter.consolelog class"""
+    """Test cases for reporter.ConsoleLog class"""
     @staticmethod
     @contextmanager
     def request_get_mocked(filename):
-        """Mock request.get to allow feeding consolelog with known inputs. When
+        """Mock request.get to allow feeding ConsoleLog with known inputs. When
         request.get is called, it "fetches" the content of the asset passed as
         parameter.
 
@@ -75,14 +75,14 @@ class TestConsoleLog(unittest.TestCase):
         match.
         """
         with self.request_get_mocked('x86_one_trace.txt'):
-            consolelog = reporter.consolelog('4-4', 'someurl')
+            consolelog = reporter.ConsoleLog('4-4', 'someurl')
             traces = consolelog.gettraces()
         self.assertListEqual(traces, [])
 
     def test_match_one_trace(self):
         """Check one trace can be extracted from a console log"""
         with self.request_get_mocked('x86_one_trace.txt'):
-            consolelog = reporter.consolelog('4-5-fake', 'someurl')
+            consolelog = reporter.ConsoleLog('4-5-fake', 'someurl')
             traces = consolelog.gettraces()
             self.assertEqual(len(traces), 1)
         expected_trace = self.get_expected_traces('x86_one_trace.txt')[0]
@@ -91,7 +91,7 @@ class TestConsoleLog(unittest.TestCase):
     def test_match_three_traces(self):
         """Check three traces can be extracted from a console log"""
         with self.request_get_mocked('x86_three_traces.txt'):
-            consolelog = reporter.consolelog('4.16-fake', 'someurl')
+            consolelog = reporter.ConsoleLog('4.16-fake', 'someurl')
             traces = consolelog.gettraces()
             self.assertEqual(len(traces), 3)
         expected_traces = self.get_expected_traces('x86_three_traces.txt')

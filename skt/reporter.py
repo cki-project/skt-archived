@@ -44,7 +44,7 @@ def gzipdata(data):
     return tstr.getvalue()
 
 
-class consolelog(object):
+class ConsoleLog(object):
     """Console log parser"""
 
     # List of regular expression strings matching
@@ -387,7 +387,7 @@ class reporter(object):
 
                 (res, system, clogurl, slshwurl, llshwurl) = rdata
 
-                clog = consolelog(self.cfg.get("krelease"), clogurl)
+                clog = ConsoleLog(self.cfg.get("krelease"), clogurl)
                 if not clog.data and res != 'Pass':
                     # The targeted kernel either didn't start booting or the
                     # console wasn't logged. The second one isn't an issue if
