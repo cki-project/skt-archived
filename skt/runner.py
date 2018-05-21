@@ -113,7 +113,7 @@ class BeakerRunner(Runner):
         args.append(jobid)
 
         bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
-        (stdout, stderr) = bkr.communicate()
+        (stdout, _) = bkr.communicate()
         return etree.fromstring(stdout)
 
     def dumpjunitresults(self, jobid, junit):
@@ -130,7 +130,7 @@ class BeakerRunner(Runner):
         fname = "%s/%s.xml" % (junit, jobid.replace(":", "_").lower())
         with open(fname, 'w') as fp:
             bkr = subprocess.Popen(args, stdout=fp)
-            (stdout, stderr) = bkr.communicate()
+            bkr.communicate()
 
     def getconsolelog(self, jobid=None):
         """
@@ -253,7 +253,7 @@ class BeakerRunner(Runner):
         tfailures = 0
 
         if jobid is not None:
-            (ret, result) = self.jobresult(jobid)
+            (ret, _) = self.jobresult(jobid)
 
         if jobid is None or ret != 0:
             for (recipe, data) in self.failures.iteritems():
@@ -414,7 +414,7 @@ class BeakerRunner(Runner):
         bkr = subprocess.Popen(args, stdin=subprocess.PIPE,
                                stdout=subprocess.PIPE)
 
-        (stdout, stderr) = bkr.communicate(xml)
+        (stdout, _) = bkr.communicate(xml)
 
         for line in stdout.split("\n"):
             m = re.match(r"^Submitted: \['([^']+)'\]$", line)
