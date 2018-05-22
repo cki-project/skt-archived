@@ -484,7 +484,7 @@ class Reporter(object):
     # TODO Define abstract "report" method.
 
 
-class stdioreporter(Reporter):
+class StdioReporter(Reporter):
     """A reporter sending results to stdout"""
     TYPE = 'stdio'
 
