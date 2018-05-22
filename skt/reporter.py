@@ -189,7 +189,7 @@ class ConsoleLog(object):
         return result
 
 
-class reporter(object):
+class Reporter(object):
     """Abstract test result reporter"""
     # TODO This probably shouldn't be here as we never use it, and it should
     # not be inherited
@@ -484,7 +484,7 @@ class reporter(object):
     # TODO Define abstract "report" method.
 
 
-class stdioreporter(reporter):
+class stdioreporter(Reporter):
     """A reporter sending results to stdout"""
     TYPE = 'stdio'
 
@@ -499,7 +499,7 @@ class stdioreporter(reporter):
                 print(att)
 
 
-class mailreporter(reporter):
+class mailreporter(Reporter):
     """A reporter sending results by e-mail"""
     TYPE = 'mail'
 
@@ -572,7 +572,7 @@ def getreporter(rtype, rarg):
     Raises:
         ValueError if the rtype match wasn't found.
     """
-    for cls in reporter.__subclasses__():
+    for cls in Reporter.__subclasses__():
         if cls.TYPE == rtype:
             return cls(**rarg)
     raise ValueError("Unknown reporter type: %s" % rtype)
