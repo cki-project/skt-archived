@@ -19,6 +19,7 @@ import logging
 import multiprocessing
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -450,9 +451,7 @@ class KernelBuilder(object):
 
         # Split the extra make arguments provided by the user
         if extra_make_args:
-            # FIXME: Might want something a bit smarter here, something that
-            # would parse it the same way bash does
-            self.extra_make_args = extra_make_args.split(' ')
+            self.extra_make_args = shlex.split(extra_make_args)
         else:
             self.extra_make_args = []
 
