@@ -64,7 +64,7 @@ class CpPublisher(Publisher):
         return self.geturl(source)
 
 
-class scppublisher(Publisher):
+class ScpPublisher(Publisher):
     TYPE = 'scp'
 
     def publish(self, source):
