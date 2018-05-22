@@ -54,7 +54,7 @@ class Publisher(object):
     # TODO Define abstract "publish" method.
 
 
-class cppublisher(Publisher):
+class CpPublisher(Publisher):
     TYPE = 'cp'
 
     def publish(self, source):
