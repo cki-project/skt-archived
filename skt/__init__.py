@@ -50,7 +50,7 @@ def get_patch_mbox(url):
     except requests.exceptions.RequestException as exc:
         raise(exc)
 
-    if response.status_code != requests.codes.ok:
+    if not response.ok:
         raise Exception('Failed to retrieve patch from %s, returned %d' %
                         (url, response.status_code))
 
