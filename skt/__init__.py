@@ -294,8 +294,10 @@ class KernelTree(object):
                  if not uri.endswith('/')
                  else uri.split('/')[-2].replace('.git', ''))
         while self.get_remote_url(rname) == uri:
-            logging.warning("remote '%s' already exists with a different uri, "
-                            "adding '_'" % rname)
+            logging.warning(
+                "remote '%s' already exists with a different uri, adding '_'",
+                rname
+            )
             rname += '_'
 
         return rname
@@ -428,7 +430,7 @@ class KernelTree(object):
                 if m:
                     binfo = m.group(1)
                     ret = 1
-                    logging.warning("Bisected, bad commit: %s" % binfo)
+                    logging.warning("Bisected, bad commit: %s", binfo)
                     break
                 else:
                     logging.info(line)

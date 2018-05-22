@@ -395,10 +395,10 @@ class BeakerRunner(Runner):
         if jobid is None:
             jobid = self.lastsubmitted
 
-        logging.info("gethost for %s" % jobid)
+        logging.info("gethost for %s", jobid)
         root = self.getresultstree(jobid)
         recipe = root.find("recipeSet/recipe")
-        logging.info("%s: %s" % (jobid, recipe.attrib.get("system")))
+        logging.info("%s: %s", jobid, recipe.attrib.get("system"))
 
         return recipe.attrib.get("system")
 
