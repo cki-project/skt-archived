@@ -843,6 +843,18 @@ def load_config(args):
     if cfg.get('rc'):
         cfg['rc'] = full_path(cfg.get('rc'))
 
+    # Get an absolute path for the buildinfo
+    if cfg.get('buildinfo'):
+        cfg['buildinfo'] = full_path(cfg.get('buildinfo'))
+
+    # Get an absolute path for the buildconf
+    if cfg.get('buildconf'):
+        cfg['buildconf'] = full_path(cfg.get('buildconf'))
+
+    # Get an absolute path for the tarpkg
+    if cfg.get('tarpkg'):
+        cfg['tarpkg'] = full_path(cfg.get('tarpkg'))
+
     return cfg
 
 
