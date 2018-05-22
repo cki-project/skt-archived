@@ -18,7 +18,7 @@ import shutil
 import subprocess
 
 
-class publisher(object):
+class Publisher(object):
     """An abstract result publisher"""
     # TODO This probably shouldn't be here as we never use it, and it should
     # not be inherited
@@ -54,7 +54,7 @@ class publisher(object):
     # TODO Define abstract "publish" method.
 
 
-class cppublisher(publisher):
+class cppublisher(Publisher):
     TYPE = 'cp'
 
     def publish(self, source):
@@ -64,7 +64,7 @@ class cppublisher(publisher):
         return self.geturl(source)
 
 
-class scppublisher(publisher):
+class scppublisher(Publisher):
     TYPE = 'scp'
 
     def publish(self, source):
@@ -90,7 +90,7 @@ def getpublisher(ptype, parg, pburl):
     Raises:
         ValueError if the rtype match wasn't found.
     """
-    for cls in publisher.__subclasses__():
+    for cls in Publisher.__subclasses__():
         if cls.TYPE == ptype:
             return cls(parg, pburl)
     raise ValueError("Unknown publisher type: %s" % ptype)
