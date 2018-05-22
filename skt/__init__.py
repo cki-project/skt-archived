@@ -12,9 +12,9 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-from email.errors import HeaderParseError
 import email.header
 import email.parser
+import io
 import logging
 import multiprocessing
 import os
@@ -22,9 +22,10 @@ import re
 import shutil
 import subprocess
 import sys
-import io
 import time
+from email.errors import HeaderParseError
 from threading import Timer
+
 import requests
 
 

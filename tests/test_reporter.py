@@ -16,7 +16,6 @@ Test cases for reporter module.
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 import re
 import unittest
-
 from contextlib import contextmanager
 
 import mock

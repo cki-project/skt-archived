@@ -15,13 +15,16 @@ Test cases for __init__.py.
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 from __future__ import division
-import unittest
-import tempfile
-import shutil
+
 import os
+import shutil
 import subprocess
+import tempfile
+import unittest
+
 import mock
 from mock import Mock
+
 from requests.exceptions import RequestException
 
 import skt

@@ -17,8 +17,8 @@ Test cases for runner module.
 import os
 import tempfile
 import unittest
-
 import xml.etree.ElementTree as etree
+
 import mock
 
 from skt import runner
