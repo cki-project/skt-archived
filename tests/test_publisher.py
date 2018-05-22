@@ -20,8 +20,8 @@ from skt import publisher
 
 
 class TestPublisher(unittest.TestCase):
-    """Test cases for publisher.publisher class"""
+    """Test cases for publisher.Publisher class"""
     def test_geturl(self):
         """Check if the source url is built correctly"""
-        pub = publisher.publisher('dest', 'file:///tmp/test')
+        pub = publisher.Publisher('dest', 'file:///tmp/test')
         self.assertEqual(pub.geturl('source'), 'file:///tmp/test/source')
