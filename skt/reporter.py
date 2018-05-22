@@ -499,7 +499,7 @@ class StdioReporter(Reporter):
                 print(att)
 
 
-class mailreporter(Reporter):
+class MailReporter(Reporter):
     """A reporter sending results by e-mail"""
     TYPE = 'mail'
 
@@ -527,7 +527,7 @@ class mailreporter(Reporter):
         # The value of "In-Reply-To" header
         self.mailinreplyto = mailinreplyto
         self.subject = subject
-        super(mailreporter, self).__init__(cfg)
+        super(MailReporter, self).__init__(cfg)
 
     def report(self):
         self.update_mergedata()
