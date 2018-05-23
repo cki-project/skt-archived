@@ -216,6 +216,9 @@ and improve build times. In some cases, deep troubleshooting may require
 debug symbols. Use the `--enable-debuginfo` argument to build a kernel with
 debug symbols included.
 
+Provide additional arguments and options to `make` by using
+`--makeopts`.
+
 ### Publish
 
 To "publish" the resulting build using the simple "cp" (copy) publisher run:
