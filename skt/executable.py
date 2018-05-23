@@ -135,7 +135,7 @@ def cmd_merge(cfg):
     ktree = skt.KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
-        wdir=cfg.get('workdir'),
+        workdir=cfg.get('workdir'),
         fetch_depth=cfg.get('fetch_depth')
     )
     bhead = ktree.checkout()
