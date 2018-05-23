@@ -439,14 +439,14 @@ class KernelTree(object):
 
 
 class KernelBuilder(object):
-    def __init__(self, path, basecfg, cfgtype=None, extra_make_args=None,
-                 enable_debuginfo=False):
-        self.path = path
+    def __init__(self, source_dir, basecfg, cfgtype=None,
+                 extra_make_args=None, enable_debuginfo=False):
+        self.source_dir = source_dir
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
-        self.buildlog = "%s/build.log" % self.path
-        self.make_argv_base = ["make", "-C", self.path]
+        self.buildlog = "%s/build.log" % self.source_dir
+        self.make_argv_base = ["make", "-C", self.source_dir]
         self.enable_debuginfo = enable_debuginfo
 
         # Split the extra make arguments provided by the user
@@ -469,7 +469,7 @@ class KernelBuilder(object):
             logging.info("cleaning up tree: %s", args)
             subprocess.check_call(args)
 
-        shutil.copyfile(self.basecfg, "%s/.config" % self.path)
+        shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
 
         # NOTE(mhayden): Building kernels with debuginfo can increase the
         # final kernel tarball size by 3-4x and can increase build time
@@ -477,7 +477,7 @@ class KernelBuilder(object):
         # of kernel issues on a specific system. This is why debuginfo is
         # disabled by default.
         if not self.enable_debuginfo:
-            args = ["%s/scripts/config" % self.path,
+            args = ["%s/scripts/config" % self.source_dir,
                     "--file", self.get_cfgpath(),
                     "--disable", "debug_info"]
             logging.info("disabling debuginfo: %s", args)
@@ -489,7 +489,7 @@ class KernelBuilder(object):
         self._ready = 1
 
     def get_cfgpath(self):
-        return "%s/.config" % self.path
+        return "%s/.config" % self.source_dir
 
     def getrelease(self):
         krelease = None
@@ -584,7 +584,12 @@ class KernelBuilder(object):
         match = re.search("^Tarball successfully created in (.*)$",
                           ''.join(stdout_list), re.MULTILINE)
         if match:
-            fpath = os.path.realpath(os.path.join(self.path, match.group(1)))
+            fpath = os.path.realpath(
+                os.path.join(
+                    self.source_dir,
+                    match.group(1)
+                )
+            )
         else:
             raise ParsingError('Failed to find tgz path in stdout')
 
