@@ -201,11 +201,11 @@ def cmd_build(cfg):
                                         "%Y%m%d%H%M%S")
 
     builder = skt.KernelBuilder(
-        cfg.get('workdir'),
-        cfg.get('baseconfig'),
-        cfg.get('cfgtype'),
-        cfg.get('makeopts'),
-        cfg.get('enable_debuginfo')
+        source_dir=cfg.get('workdir'),
+        basecfg=cfg.get('baseconfig'),
+        cfgtype=cfg.get('cfgtype'),
+        extra_make_args=cfg.get('makeopts'),
+        enable_debuginfo=cfg.get('enable_debuginfo')
     )
 
     try:
