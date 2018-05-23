@@ -99,7 +99,7 @@ class KernelTree(object):
     KernelTree - a kernel git repository "checkout", i.e. a clone with a
     working directory
     """
-    def __init__(self, uri, ref=None, wdir=None, fetch_depth=None):
+    def __init__(self, uri, ref=None, workdir=None, fetch_depth=None):
         """
         Initialize a KernelTree.
 
@@ -107,25 +107,26 @@ class KernelTree(object):
             uri:    The Git URI of the repository's origin remote.
             ref:    The remote reference to checkout. Assumed to be "master",
                     if not specified.
-            wdir:   The directory to house the clone and to checkout into.
+            workdir:
+                    The directory to house the clone and to checkout into.
                     Creates and uses a temporary directory if not specified.
             fetch_depth:
                     The amount of git history to include with the clone.
                     Smaller depths lead to faster repo clones.
         """
         # The git "working directory" (the "checkout")
-        self.wdir = wdir
+        self.workdir = workdir
         # The cloned git repository
-        self.gdir = "%s/.git" % self.wdir
+        self.gdir = "%s/.git" % self.workdir
         # The origin remote's URL
         self.uri = uri
         # The remote reference to checkout
         self.ref = ref if ref is not None else "master"
         self.info = []
-        self.mergelog = "%s/merge.log" % self.wdir
+        self.mergelog = "%s/merge.log" % self.workdir
 
         try:
-            os.mkdir(self.wdir)
+            os.mkdir(self.workdir)
         except OSError:
             pass
 
@@ -145,10 +146,10 @@ class KernelTree(object):
 
         logging.info("base repo url: %s", self.uri)
         logging.info("base ref: %s", self.ref)
-        logging.info("work dir: %s", self.wdir)
+        logging.info("work dir: %s", self.workdir)
 
     def git_cmd(self, *args, **kwargs):
-        args = list(["git", "--work-tree", self.wdir, "--git-dir",
+        args = list(["git", "--work-tree", self.workdir, "--git-dir",
                      self.gdir]) + list(args)
         logging.debug("executing: %s", " ".join(args))
         subprocess.check_call(args,
@@ -156,7 +157,7 @@ class KernelTree(object):
                               **kwargs)
 
     def getpath(self):
-        return self.wdir
+        return self.workdir
 
     def dumpinfo(self, fname='buildinfo.csv'):
         """
@@ -171,7 +172,7 @@ class KernelTree(object):
         Returns:
             Full path to the written file.
         """
-        fpath = '/'.join([self.wdir, fname])
+        fpath = '/'.join([self.workdir, fname])
         with open(fpath, 'w') as f:
             for iitem in self.info:
                 f.write(','.join(iitem) + "\n")
@@ -190,7 +191,7 @@ class KernelTree(object):
             The epoch timestamp string of the commit's committer date.
         """
         args = ["git",
-                "--work-tree", self.wdir,
+                "--work-tree", self.workdir,
                 "--git-dir", self.gdir,
                 "show",
                 "--format=%ct",
@@ -217,7 +218,7 @@ class KernelTree(object):
             The commit's full hash string.
         """
         args = ["git",
-                "--work-tree", self.wdir,
+                "--work-tree", self.workdir,
                 "--git-dir", self.gdir,
                 "show",
                 "--format=%H",
@@ -266,14 +267,14 @@ class KernelTree(object):
         return str(head).rstrip()
 
     def cleanup(self):
-        logging.info("cleaning up %s", self.wdir)
-        shutil.rmtree(self.wdir)
+        logging.info("cleaning up %s", self.workdir)
+        shutil.rmtree(self.workdir)
 
     def get_remote_url(self, remote):
         rurl = None
         try:
             grs = subprocess.Popen(["git",
-                                    "--work-tree", self.wdir,
+                                    "--work-tree", self.workdir,
                                     "--git-dir", self.gdir,
                                     "remote", "show", remote],
                                    stdout=subprocess.PIPE,
@@ -340,7 +341,7 @@ class KernelTree(object):
 
         gam = subprocess.Popen(
             ["git", "am", "-"],
-            cwd=self.wdir,
+            cwd=self.workdir,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -371,7 +372,7 @@ class KernelTree(object):
         args = ["git", "am", path]
         try:
             subprocess.check_output(args,
-                                    cwd=self.wdir,
+                                    cwd=self.workdir,
                                     env=dict(os.environ, **{'LC_ALL': 'C'}))
         except subprocess.CalledProcessError as exc:
             self.git_cmd("am", "--abort")
@@ -384,10 +385,10 @@ class KernelTree(object):
         self.info.append(("patch", path))
 
     def bisect_start(self, good):
-        os.chdir(self.wdir)
+        os.chdir(self.workdir)
         binfo = None
         gbs = subprocess.Popen(["git",
-                                "--work-tree", self.wdir,
+                                "--work-tree", self.workdir,
                                 "--git-dir", self.gdir,
                                 "bisect", "start", "HEAD", good],
                                stdout=subprocess.PIPE)
@@ -404,7 +405,7 @@ class KernelTree(object):
         return binfo
 
     def bisect_iter(self, bad):
-        os.chdir(self.wdir)
+        os.chdir(self.workdir)
         ret = 0
         binfo = None
         status = "good"
@@ -414,7 +415,7 @@ class KernelTree(object):
 
         logging.info("git bisect %s", status)
         gbs = subprocess.Popen(["git",
-                                "--work-tree", self.wdir,
+                                "--work-tree", self.workdir,
                                 "--git-dir", self.gdir,
                                 "bisect", status],
                                stdout=subprocess.PIPE)
