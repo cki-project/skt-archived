@@ -34,6 +34,7 @@ import skt.publisher
 import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder
+from skt.kerneltree import KernelTree
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
@@ -133,7 +134,7 @@ def cmd_merge(cfg):
     """
     global retcode
     utypes = []
-    ktree = skt.KernelTree(
+    ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
         wdir=cfg.get('workdir'),
@@ -403,7 +404,7 @@ def cmd_bisect(cfg):
             "Bisecting currently works only with exactly one mergeref"
         )
 
-    ktree = skt.KernelTree(
+    ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('commitgood'),
         wdir=cfg.get('workdir')
