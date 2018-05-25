@@ -33,6 +33,7 @@ import skt
 import skt.publisher
 import skt.reporter
 import skt.runner
+from skt.kernelbuilder import KernelBuilder
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
@@ -200,7 +201,7 @@ def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
 
-    builder = skt.KernelBuilder(
+    builder = KernelBuilder(
         source_dir=cfg.get('workdir'),
         basecfg=cfg.get('baseconfig'),
         cfgtype=cfg.get('cfgtype'),
