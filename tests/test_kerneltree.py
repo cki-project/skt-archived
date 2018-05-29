@@ -140,7 +140,10 @@ class KernelTreeTest(unittest.TestCase):
         """Ensure checkout() runs git commands to check out a ref."""
         self.m_popen_good.communicate = Mock(return_value=('stdout', None))
 
-        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.git_cmd')
+        mock_git_cmd = mock.patch(
+            'skt.kerneltree.KernelTree.git_cmd',
+            Mock(return_value="stdout")
+        )
 
         with self.popen_good, mock_git_cmd:
             result = self.kerneltree.checkout()
@@ -170,32 +173,36 @@ class KernelTreeTest(unittest.TestCase):
 
     def test_get_commit_date(self):
         """Ensure that get_commit_date() returns an integer date."""
-        # Mock up an integer response that would normally come from the
-        # 'git show' command
-        self.m_popen_good.communicate = Mock(return_value=('100', None))
+        mock_git_cmd = mock.patch(
+            'skt.kerneltree.KernelTree.git_cmd',
+            Mock(return_value="100")
+        )
 
-        with self.popen_good:
+        with mock_git_cmd:
             result = self.kerneltree.get_commit_date(ref='master')
 
         self.assertEqual(result, 100)
 
     def test_get_commit_hash(self):
         """Ensure get_commit_hash() returns a git commit hash."""
-        self.m_popen_good.communicate = Mock(return_value=('abcdef', None))
+        mock_git_cmd = mock.patch(
+            'skt.kerneltree.KernelTree.git_cmd',
+            Mock(return_value="abcdef")
+        )
 
-        with self.popen_good:
+        with mock_git_cmd:
             result = self.kerneltree.get_commit_hash(ref='master')
 
         self.assertEqual(result, 'abcdef')
 
     def test_get_remote_url(self):
         """Ensure get_remote_url() returns a fetch url."""
-        expected_stdout = "Fetch URL: http://example.com/"
-        self.m_popen_good.communicate = Mock(
-            return_value=(expected_stdout, None)
+        mock_git_cmd = mock.patch(
+            'skt.kerneltree.KernelTree.git_cmd',
+            Mock(return_value="Fetch URL: http://example.com/")
         )
 
-        with self.popen_good:
+        with mock_git_cmd:
             result = self.kerneltree.get_remote_url('origin')
 
         self.assertEqual(result, 'http://example.com/')

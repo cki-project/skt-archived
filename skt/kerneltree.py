@@ -117,8 +117,7 @@ class KernelTree(object):
 
     def get_commit_date(self, ref=None):
         """
-        Get the committer date of the commit pointed at by the specified
-        reference, or of the currently checked-out commit, if not specified.
+        Get date of current commit or provided ref.
 
         Args:
             ref:    The reference to commit to get the committer date of,
@@ -126,47 +125,32 @@ class KernelTree(object):
                     used instead.
         Returns:
             The epoch timestamp string of the commit's committer date.
+
         """
-        args = ["git",
-                "--work-tree", self.wdir,
-                "--git-dir", self.gdir,
-                "show",
-                "--format=%ct",
-                "-s"]
-
-        if ref is not None:
+        args = ['show', '--format=%ct', '-s']
+        if ref:
             args.append(ref)
-
         logging.debug("git_commit_date: %s", args)
-        grs = subprocess.Popen(args, stdout=subprocess.PIPE)
-        (stdout, _) = grs.communicate()
+        stdout = self.git_cmd(*args)
 
         return int(stdout.rstrip())
 
     def get_commit_hash(self, ref=None):
         """
-        Get the full hash of the commit pointed at by the specified reference,
-        or of the currently checked-out commit, if not specified.
+        Get full commit hash of current commit or provided ref.
 
         Args:
             ref:    The reference to commit to get the hash of, or None, if
                     the currently checked-out commit should be used instead.
         Returns:
             The commit's full hash string.
+
         """
-        args = ["git",
-                "--work-tree", self.wdir,
-                "--git-dir", self.gdir,
-                "show",
-                "--format=%H",
-                "-s"]
-
-        if ref is not None:
+        args = ['show', '--format=%H', '-s']
+        if ref:
             args.append(ref)
-
         logging.debug("git_commit: %s", args)
-        grs = subprocess.Popen(args, stdout=subprocess.PIPE)
-        (stdout, _) = grs.communicate()
+        stdout = self.git_cmd(*args)
 
         return stdout.rstrip()
 
@@ -208,21 +192,17 @@ class KernelTree(object):
         shutil.rmtree(self.wdir)
 
     def get_remote_url(self, remote):
+        """
+        Get the URL of a git remote repository for a repo.
+
+        Args:
+            remote:     Name of a remote repository.
+        """
         rurl = None
-        grs = subprocess.Popen(
-            [
-                "git",
-                "--work-tree", self.wdir,
-                "--git-dir", self.gdir,
-                "remote",
-                "show",
-                remote
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        (stdout, _) = grs.communicate()
-        for line in stdout.split("\n"):
+        args = ['remote', 'show', remote]
+        result = self.git_cmd(*args)
+
+        for line in result.split("\n"):
             m = re.match('Fetch URL: (.*)', line)
             if m:
                 rurl = m.group(1)
