@@ -199,21 +199,24 @@ class KernelTree(object):
 
     def get_remote_url(self, remote):
         rurl = None
-        try:
-            grs = subprocess.Popen(["git",
-                                    "--work-tree", self.wdir,
-                                    "--git-dir", self.gdir,
-                                    "remote", "show", remote],
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE)
-            (stdout, _) = grs.communicate()
-            for line in stdout.split("\n"):
-                m = re.match('Fetch URL: (.*)', line)
-                if m:
-                    rurl = m.group(1)
-                    break
-        except subprocess.CalledProcessError:
-            pass
+        grs = subprocess.Popen(
+            [
+                "git",
+                "--work-tree", self.wdir,
+                "--git-dir", self.gdir,
+                "remote",
+                "show",
+                remote
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        (stdout, _) = grs.communicate()
+        for line in stdout.split("\n"):
+            m = re.match('Fetch URL: (.*)', line)
+            if m:
+                rurl = m.group(1)
+                break
 
         return rurl
 
