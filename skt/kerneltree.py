@@ -76,12 +76,22 @@ class KernelTree(object):
         logging.info("work dir: %s", self.wdir)
 
     def git_cmd(self, *args, **kwargs):
-        args = list(["git", "--work-tree", self.wdir, "--git-dir",
-                     self.gdir]) + list(args)
-        logging.debug("executing: %s", " ".join(args))
-        subprocess.check_call(args,
-                              env=dict(os.environ, **{'LC_ALL': 'C'}),
-                              **kwargs)
+        """Run a git subcommand."""
+        base_args = [
+            "git",
+            "--work-tree", self.wdir,
+            "--git-dir", self.gdir
+        ]
+        cmd_args = list(base_args) + list(args)
+
+        # Run the command
+        logging.debug("executing: %s", " ".join(cmd_args))
+        output = subprocess.check_output(
+            cmd_args,
+            stderr=subprocess.STDOUT,
+            env=dict(os.environ, **{'LC_ALL': 'C'}), **kwargs
+        )
+        return output
 
     def getpath(self):
         return self.wdir
