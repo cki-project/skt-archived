@@ -202,6 +202,7 @@ def cmd_build(cfg, state):
 
     builder = KernelBuilder(
         source_dir=cfg.get('source_dir'),
+        output_dir=cfg.get('output_dir'),
         basecfg=cfg.get('baseconfig'),
         cfgtype=cfg.get('cfgtype'),
         extra_make_args=cfg.get('makeopts'),
