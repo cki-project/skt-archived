@@ -1,6 +1,9 @@
 skt - sonic kernel testing
 ==========================
 
+[![Travis CI Build Status][travis_badge]][travis_page]
+[![Test Coverage Status][coveralls_badge]][coveralls_page]
+
 Skt is a tool for automatically fetching, building, and testing kernel
 patches published on Patchwork instances.
 
@@ -417,3 +420,8 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+[travis_badge]: https://travis-ci.org/RH-FMK/skt.svg?branch=master
+[travis_page]: https://travis-ci.org/RH-FMK/skt
+[coveralls_badge]: https://coveralls.io/repos/github/RH-FMK/skt/badge.svg?branch=master
+[coveralls_page]: https://coveralls.io/github/RH-FMK/skt?branch=master
