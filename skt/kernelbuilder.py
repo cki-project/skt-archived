@@ -64,12 +64,13 @@ class KernelBuilder(object):
         logging.info("%s config option '%s': %s", action, option, args)
         subprocess.check_call(args)
 
-    def prepare(self, clean=True):
-        if (clean):
-            args = self.make_argv_base + ["mrproper"]
-            logging.info("cleaning up tree: %s", args)
-            subprocess.check_call(args)
+    def clean_kernel_source(self):
+        """Clean the kernel source directory with 'make mrproper'."""
+        args = self.make_argv_base + ["mrproper"]
+        logging.info("cleaning up tree: %s", args)
+        subprocess.check_call(args)
 
+    def prepare(self):
         shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
 
         # NOTE(mhayden): Building kernels with debuginfo can increase the
@@ -91,7 +92,7 @@ class KernelBuilder(object):
     def getrelease(self):
         krelease = None
         if not self._ready:
-            self.prepare(False)
+            self.prepare()
 
         args = self.make_argv_base + ["kernelrelease"]
         mk = subprocess.Popen(args, stdout=subprocess.PIPE)
@@ -107,12 +108,11 @@ class KernelBuilder(object):
 
         return krelease
 
-    def mktgz(self, clean=True, timeout=60 * 60 * 12):
+    def mktgz(self, timeout=60 * 60 * 12):
         """
         Build kernel and modules, after that, pack everything into a tarball.
 
         Args:
-            clean:      If it is True, run the `mrproper` target before build.
             timeout:    Max time in seconds will wait for build.
         Returns:
             The full path of the tarball generated.
@@ -126,7 +126,7 @@ class KernelBuilder(object):
         """
         fpath = None
         stdout_list = []
-        self.prepare(clean)
+        self.prepare()
 
         # Set up the arguments and options for the kernel build
         targz_pkg_argv = [
