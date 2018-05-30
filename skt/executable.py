@@ -112,6 +112,7 @@ def cmd_merge(cfg, state):
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
         wdir=cfg.get('workdir'),
+        source_dir=cfg.get('source_dir'),
         fetch_depth=cfg.get('fetch_depth')
     )
     bhead = ktree.checkout()
@@ -200,7 +201,7 @@ def cmd_build(cfg, state):
                                         "%Y%m%d%H%M%S")
 
     builder = KernelBuilder(
-        source_dir=cfg.get('workdir'),
+        source_dir=cfg.get('source_dir'),
         basecfg=cfg.get('baseconfig'),
         cfgtype=cfg.get('cfgtype'),
         extra_make_args=cfg.get('makeopts'),
@@ -820,6 +821,9 @@ def load_config(args):
         cfg['workdir'] = full_path(cfg.get('workdir'))
     else:
         cfg['workdir'] = tempfile.mkdtemp()
+
+    # Add a kernel source directory within the work directory
+    cfg['source_dir'] = "{}/source".format(cfg['workdir'])
 
     # Get an absolute path for the kernel configuration file
     if cfg.get('basecfg'):
