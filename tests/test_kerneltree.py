@@ -66,6 +66,7 @@ class KernelTreeTest(unittest.TestCase):
             ),
             ref='master',
             wdir=self.tmpdir,
+            source_dir="{}/source".format(self.tmpdir),
             fetch_depth='1'
         )
 
