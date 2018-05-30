@@ -5,11 +5,13 @@ defaults: &defaults
     - run:
         name: Install skt using pip
         command: pip install .
+    # Disable R0801 in pylint that checks for duplicate content in multiple
+    # files. See https://github.com/PyCQA/pylint/issues/214 for details.
     - run:
         name: Run Python linters and tests
         command: |
           flake8 --show-source .
-          pylint tests
+          pylint -d R0801 tests
           python -m unittest discover tests
     # TODO(mhayden): Add --depth support to skt and then let skt to the clone
     # rather than using the git command below.
@@ -22,7 +24,7 @@ defaults: &defaults
     - run:
         name: Test `skt merge`
         command: |
-          skt -vv --state -d workdir --rc sktrc merge \
+          skt -vv -d workdir --rc sktrc --state skt-state.yml merge \
             --pw https://patchwork.ozlabs.org/patch/895383/ \
             -b git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \
             --ref v4.16 \
@@ -31,9 +33,10 @@ defaults: &defaults
     - run:
         name: Test `skt build`
         command: |
-            make -C workdir tinyconfig
-            mv workdir/.config config
-            skt -vv --state -d workdir --rc sktrc build -c config
+            make -C workdir/source tinyconfig
+            mv workdir/source/.config config
+            skt -vv -d workdir --rc sktrc --state skt-state.yml build \
+              -c config
         working_directory: /tmp/skt_test
     - store_artifacts:
         path: /tmp/skt_test/workdir/*.log

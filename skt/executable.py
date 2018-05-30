@@ -34,8 +34,11 @@ import skt.publisher
 import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder
+from skt.kerneltree import KernelTree
+import skt.state_file as state_file
 
 DEFAULTRC = "~/.sktrc"
+DEFAULT_STATE_FILE = 'skt-state.yml'
 LOGGER = logging.getLogger()
 retcode = 0
 
@@ -43,34 +46,6 @@ retcode = 0
 def full_path(path):
     """Get an absolute path to a file"""
     return os.path.abspath(os.path.expanduser(path))
-
-
-def save_state(cfg, state):
-    """
-    Merge state to cfg, and then save cfg.
-
-    Args:
-        cfg:    A dictionary of skt configuration.
-        state:  A dictionary of skt current state.
-    """
-
-    for (key, val) in state.iteritems():
-        cfg[key] = val
-
-    if not cfg.get('state'):
-        return
-
-    config = cfg.get('_parser')
-    if not config.has_section("state"):
-        config.add_section("state")
-
-    for (key, val) in state.iteritems():
-        if val is not None:
-            logging.debug("state: %s -> %s", key, val)
-            config.set('state', key, val)
-
-    with open(cfg.get('rc'), 'w') as fileh:
-        config.write(fileh)
 
 
 def junit(func):
@@ -97,14 +72,14 @@ def junit(func):
     Return:
         The created function.
     """
-    def wrapper(cfg):
+    def wrapper(cfg, state):
         global retcode
         if cfg.get('junit'):
             tstart = time.time()
             tc = junit_xml.TestCase(func.__name__, classname="skt")
 
             try:
-                func(cfg)
+                func(cfg, state)
             except Exception:
                 logging.error("Exception caught: %s", traceback.format_exc())
                 tc.add_failure_info(traceback.format_exc())
@@ -118,12 +93,12 @@ def junit(func):
             tc.elapsed_sec = time.time() - tstart
             cfg['_testcases'].append(tc)
         else:
-            func(cfg)
+            func(cfg, state)
     return wrapper
 
 
 @junit
-def cmd_merge(cfg):
+def cmd_merge(cfg, state):
     """
     Fetch a kernel repository, checkout particular references, and optionally
     apply patches from patchwork instances.
@@ -133,23 +108,35 @@ def cmd_merge(cfg):
     """
     global retcode
     utypes = []
-    ktree = skt.KernelTree(
+    ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
         wdir=cfg.get('workdir'),
+        source_dir=cfg.get('source_dir'),
         fetch_depth=cfg.get('fetch_depth')
     )
     bhead = ktree.checkout()
     commitdate = ktree.get_commit_date(bhead)
-    save_state(cfg, {'baserepo': cfg.get('baserepo'),
-                     'basehead': bhead,
-                     'commitdate': commitdate})
+
+    # Save state data about the merge before applying any patches
+    new_state = {
+            'baserepo': cfg.get('baserepo'),
+            'basehead': bhead,
+            'commitdate': commitdate
+    }
+    state_file.update(cfg, new_state)
 
     try:
         idx = 0
         for mb in cfg.get('merge_ref'):
-            save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
-                             'mergehead_%02d' % idx: bhead})
+
+            # Save state data about the ref we are merging
+            new_state = {
+                'mergerepo_%02d' % idx: mb[0],
+                'mergehead_%02d' % idx: bhead
+            }
+            state_file.update(cfg, new_state)
+
             (retcode, _) = ktree.merge_git_ref(*mb)
 
             utypes.append("[git]")
@@ -161,7 +148,10 @@ def cmd_merge(cfg):
             utypes.append("[local patch]")
             idx = 0
             for patch in cfg.get('patchlist'):
-                save_state(cfg, {'localpatch_%02d' % idx: patch})
+
+                # Save state data about this local patch
+                state_file.update(cfg, {'localpatch_%02d' % idx: patch})
+
                 ktree.merge_patch_file(os.path.abspath(patch))
                 idx += 1
 
@@ -169,11 +159,15 @@ def cmd_merge(cfg):
             utypes.append("[patchwork]")
             idx = 0
             for patch in cfg.get('pw'):
-                save_state(cfg, {'patchwork_%02d' % idx: patch})
+
+                # Save state data about this patchwork patch
+                state_file.update(cfg, {'patchwork_%02d' % idx: patch})
+
                 ktree.merge_patchwork_patch(patch)
                 idx += 1
     except Exception as e:
-        save_state(cfg, {'mergelog': ktree.mergelog})
+        # Save state data about any exceptions that occurred during the merge
+        state_file.update(cfg, {'mergelog': ktree.mergelog})
         raise e
 
     uid = "[baseline]"
@@ -184,14 +178,19 @@ def cmd_merge(cfg):
     buildinfo = ktree.dumpinfo()
     buildhead = ktree.get_commit_hash()
 
-    save_state(cfg, {'workdir': kpath,
-                     'buildinfo': buildinfo,
-                     'buildhead': buildhead,
-                     'uid': uid})
+    # Now that the merging is complete, save state data about the results of
+    # the merge.
+    new_state = {
+        'workdir': kpath,
+        'buildinfo': buildinfo,
+        'buildhead': buildhead,
+        'uid': uid
+    }
+    state_file.update(cfg, new_state)
 
 
 @junit
-def cmd_build(cfg):
+def cmd_build(cfg, state):
     """
     Build the kernel with specified configuration and put it into a tarball.
 
@@ -202,7 +201,8 @@ def cmd_build(cfg):
                                         "%Y%m%d%H%M%S")
 
     builder = KernelBuilder(
-        source_dir=cfg.get('workdir'),
+        source_dir=cfg.get('source_dir'),
+        output_dir=cfg.get('output_dir'),
         basecfg=cfg.get('baseconfig'),
         cfgtype=cfg.get('cfgtype'),
         extra_make_args=cfg.get('makeopts'),
@@ -212,7 +212,8 @@ def cmd_build(cfg):
     try:
         tgz = builder.mktgz(cfg.get('wipe'))
     except Exception as e:
-        save_state(cfg, {'buildlog': builder.buildlog})
+        # Save state data about any exceptions during the kernel build
+        state_file.update(cfg, {'buildlog': builder.buildlog})
         raise e
 
     if cfg.get('buildhead'):
@@ -235,14 +236,18 @@ def cmd_build(cfg):
 
     krelease = builder.getrelease()
 
-    save_state(cfg, {'tarpkg': ttgz,
-                     'buildinfo': tbuildinfo,
-                     'buildconf': tconfig,
-                     'krelease': krelease})
+    # Save state data about the completed build
+    new_state = {
+        'tarpkg': ttgz,
+        'buildinfo': tbuildinfo,
+        'buildconf': tconfig,
+        'krelease': krelease
+    }
+    state_file.update(cfg, new_state)
 
 
 @junit
-def cmd_publish(cfg):
+def cmd_publish(cfg, state):
     """
     Publish (copy) the kernel tarball, configuration, and build information to
     the specified location, generating their resulting URLs, using the
@@ -269,13 +274,17 @@ def cmd_publish(cfg):
     if cfg.get('buildconf'):
         cfgurl = publisher.publish(cfg.get('buildconf'))
 
-    save_state(cfg, {'buildurl': url,
-                     'cfgurl': cfgurl,
-                     'infourl': infourl})
+    # Save state data for the publishing of the kernel build
+    new_state = {
+        'buildurl': url,
+        'cfgurl': cfgurl,
+        'infourl': infourl
+    }
+    state_file.update(cfg, new_state)
 
 
 @junit
-def cmd_run(cfg):
+def cmd_run(cfg, state):
     """
     Run tests on a built kernel using the specified "runner". Only "Beaker"
     runner is currently supported.
@@ -292,7 +301,10 @@ def cmd_run(cfg):
     for job in runner.jobs:
         if cfg.get('wait') and cfg.get('junit'):
             runner.dumpjunitresults(job, cfg.get('junit'))
-        save_state(cfg, {'jobid_%s' % (idx): job})
+
+        # Save the Beaker jobid to the state file
+        state_file.update(cfg, {'jobid_%s' % (idx): job})
+
         idx += 1
 
     cfg['jobs'] = runner.jobs
@@ -307,20 +319,23 @@ def cmd_run(cfg):
         baseres = baserunner.run(baseurl, cfg.get('krelease'), cfg.get('wait'),
                                  host=basehost, uid="baseline check",
                                  reschedule=False)
-        save_state(cfg, {'baseretcode': baseres})
+
+        # Save the result of the beaker job call to the state file
+        state_file.update(cfg, {'baseretcode': baseres})
 
         # If baseline also fails - assume pass
         if baseres:
             retcode = 0
 
-    save_state(cfg, {'retcode': retcode})
+    # Save the return code of the call to beaker to start a job
+    state_file.update(cfg, {'retcode': retcode})
 
     if retcode and cfg.get('bisect'):
         cfg['commitbad'] = cfg.get('mergehead')
-        cmd_bisect(cfg)
+        cmd_bisect(cfg, state)
 
 
-def cmd_report(cfg):
+def cmd_report(cfg, state):
     """
     Report build and/or test results using the specified "reporter". Currently
     results can be reported by e-mail or printed to stdout.
@@ -340,7 +355,7 @@ def cmd_report(cfg):
     reporter.report()
 
 
-def cmd_cleanup(cfg):
+def cmd_cleanup(cfg, state):
     """
     Remove the build information file, kernel tarball. Remove state information
     from the configuration file, if saving state was enabled with the global
@@ -372,7 +387,7 @@ def cmd_cleanup(cfg):
         shutil.rmtree(cfg.get('workdir'))
 
 
-def cmd_all(cfg):
+def cmd_all(cfg, state):
     """
     Run the following commands in order: merge, build, publish, run, report (if
     --wait option was specified), and cleanup.
@@ -380,17 +395,17 @@ def cmd_all(cfg):
     Args:
         cfg:    A dictionary of skt configuration.
     """
-    cmd_merge(cfg)
-    cmd_build(cfg)
-    cmd_publish(cfg)
-    cmd_run(cfg)
+    cmd_merge(cfg, state)
+    cmd_build(cfg, state)
+    cmd_publish(cfg, state)
+    cmd_run(cfg, state)
     if cfg.get('wait'):
-        cmd_report(cfg)
-    cmd_cleanup(cfg)
+        cmd_report(cfg, state)
+    cmd_cleanup(cfg, state)
 
 
 @junit
-def cmd_bisect(cfg):
+def cmd_bisect(cfg, state):
     """
     Bisect Git history between a known bad and a known good commit (defaulting
     to "master"), running tests to locate the offending commit.
@@ -403,7 +418,7 @@ def cmd_bisect(cfg):
             "Bisecting currently works only with exactly one mergeref"
         )
 
-    ktree = skt.KernelTree(
+    ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('commitgood'),
         wdir=cfg.get('workdir')
@@ -414,8 +429,8 @@ def cmd_bisect(cfg):
     cfg['buildinfo'] = None
 
     logging.info("Building good commit: %s", head)
-    cmd_build(cfg)
-    cmd_publish(cfg)
+    cmd_build(cfg, state)
+    cmd_publish(cfg, state)
     os.unlink(cfg.get('tarpkg'))
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
@@ -429,7 +444,7 @@ def cmd_bisect(cfg):
 
     if retcode:
         logging.warning("Good commit %s failed, aborting bisect", head)
-        cmd_cleanup(cfg)
+        cmd_cleanup(cfg, state)
         return
 
     ktree.merge_git_ref(cfg.get('merge_ref')[0][0], cfg.get('commitbad'))
@@ -437,8 +452,8 @@ def cmd_bisect(cfg):
 
     ret = 0
     while ret == 0:
-        cmd_build(cfg)
-        cmd_publish(cfg)
+        cmd_build(cfg, state)
+        cmd_publish(cfg, state)
         os.unlink(cfg.get('tarpkg'))
         retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                              wait=True, host=cfg.get('host'),
@@ -447,7 +462,7 @@ def cmd_bisect(cfg):
 
         (ret, binfo) = ktree.bisect_iter(retcode)
 
-    cmd_cleanup(cfg)
+    cmd_cleanup(cfg, state)
 
 
 def addtstamp(path, tstamp):
@@ -493,6 +508,12 @@ def setup_parser():
         help="Path to work dir"
     )
     parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        help="Path to the output directory for kernel build artifacts"
+    )
+    parser.add_argument(
         "-w",
         "--wipe",
         help=(
@@ -518,17 +539,12 @@ def setup_parser():
         help="Path to rc file",
         default=DEFAULTRC
     )
-    # FIXME Storing state in config file can break the whole system in case
-    #       state saving aborts. It's better to save state separately.
-    #       It also breaks separation of concerns, as in principle skt doesn't
-    #       need to modify its own configuration otherwise.
     parser.add_argument(
         "--state",
         help=(
-            "Save/read state from 'state' section of rc file"
+            "Path to the state file (holds information throughout testing)"
         ),
-        action="store_true",
-        default=False
+        default=DEFAULT_STATE_FILE
     )
 
     subparsers = parser.add_subparsers()
@@ -760,33 +776,6 @@ def load_config(args):
     cfg['_parser'] = config
     cfg['_testcases'] = []
 
-    # Read 'state' section first so that it is not overwritten by 'config'
-    # section values.
-    if cfg.get('state') and config.has_section('state'):
-        for (name, value) in config.items('state'):
-            if not cfg.get(name):
-                if name.startswith("jobid_"):
-                    if "jobs" not in cfg:
-                        cfg["jobs"] = set()
-                    cfg["jobs"].add(value)
-                elif name.startswith("mergerepo_"):
-                    if "mergerepos" not in cfg:
-                        cfg["mergerepos"] = list()
-                    cfg["mergerepos"].append(value)
-                elif name.startswith("mergehead_"):
-                    if "mergeheads" not in cfg:
-                        cfg["mergeheads"] = list()
-                    cfg["mergeheads"].append(value)
-                elif name.startswith("localpatch_"):
-                    if "localpatches" not in cfg:
-                        cfg["localpatches"] = list()
-                    cfg["localpatches"].append(value)
-                elif name.startswith("patchwork_"):
-                    if "patchworks" not in cfg:
-                        cfg["patchworks"] = list()
-                    cfg["patchworks"].append(value)
-                cfg[name] = value
-
     if config.has_section('config'):
         for (name, value) in config.items('config'):
             if not cfg.get(name):
@@ -836,6 +825,15 @@ def load_config(args):
     else:
         cfg['workdir'] = tempfile.mkdtemp()
 
+    # Add a kernel source directory within the work directory
+    cfg['source_dir'] = "{}/source".format(cfg['workdir'])
+
+    # Set up the kernel build output directory
+    if cfg.get('output_dir'):
+        cfg['output_dir'] = full_path(cfg.get('output_dir'))
+    else:
+        cfg['output_dir'] = "{}/output".format(cfg['workdir'])
+
     # Get an absolute path for the kernel configuration file
     if cfg.get('basecfg'):
         cfg['basecfg'] = full_path(cfg.get('basecfg'))
@@ -856,6 +854,10 @@ def load_config(args):
     if cfg.get('tarpkg'):
         cfg['tarpkg'] = full_path(cfg.get('tarpkg'))
 
+    # Check to see if the user specified a state file
+    if cfg.get('state'):
+        cfg['state'] = full_path(cfg.get('state'))
+
     return cfg
 
 
@@ -866,9 +868,14 @@ def main():
     args = parser.parse_args()
 
     setup_logging(args.verbose)
+
+    # Load skt's config from the rc file
     cfg = load_config(args)
 
-    args.func(cfg)
+    # Load the state from the state file
+    state = state_file.read(cfg)
+
+    args.func(cfg, state)
     if cfg.get('junit'):
         ts = junit_xml.TestSuite("skt", cfg.get('_testcases'))
         with open("%s/%s.xml" % (cfg.get('junit'), args._name), 'w') as fileh:

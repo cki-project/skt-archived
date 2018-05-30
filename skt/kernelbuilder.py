@@ -12,6 +12,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Class for building kernels"""
+import errno
 import io
 import logging
 import multiprocessing
@@ -26,14 +27,19 @@ from threading import Timer
 
 
 class KernelBuilder(object):
-    def __init__(self, source_dir, basecfg, cfgtype=None,
+    def __init__(self, source_dir, basecfg, output_dir=None, cfgtype=None,
                  extra_make_args=None, enable_debuginfo=False):
         self.source_dir = source_dir
+        self.output_dir = output_dir
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
         self.buildlog = "%s/build.log" % self.source_dir
-        self.make_argv_base = ["make", "-C", self.source_dir]
+        self.make_argv_base = [
+            "make",
+            "-C", self.source_dir,
+            "O={}".format(self.output_dir),
+        ]
         self.enable_debuginfo = enable_debuginfo
 
         # Split the extra make arguments provided by the user
@@ -47,8 +53,17 @@ class KernelBuilder(object):
         except OSError:
             pass
 
+        # Create the output directory and raise any exceptions found (unless
+        # the directory already exists)
+        try:
+            os.makedirs(self.output_dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
         logging.info("basecfg: %s", self.basecfg)
         logging.info("cfgtype: %s", self.cfgtype)
+        logging.info("output_dir: %s", self.output_dir)
 
     def prepare(self, clean=True):
         if (clean):

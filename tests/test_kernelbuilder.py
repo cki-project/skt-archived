@@ -34,7 +34,8 @@ class KBuilderTest(unittest.TestCase):
         self.tmpconfig = tempfile.NamedTemporaryFile()
         self.kbuilder = kernelbuilder.KernelBuilder(
             self.tmpdir,
-            self.tmpconfig.name
+            self.tmpconfig.name,
+            output_dir="{}/output".format(self.tmpdir)
         )
         self.m_popen = Mock()
         self.m_popen.returncode = 0
@@ -63,14 +64,28 @@ class KBuilderTest(unittest.TestCase):
                               clean=True)
             self.assertEqual(
                 m_check_call.mock_calls[0],
-                mock.call(['make', '-C', self.tmpdir, 'mrproper'])
+                mock.call(
+                    [
+                        'make',
+                        '-C', self.tmpdir,
+                        "O={}/output".format(self.tmpdir),
+                        'mrproper'
+                    ]
+                )
             )
             m_check_call.reset_mock()
             self.assertRaises(Exception, self.kbuilder_mktgz_silent,
                               clean=False)
             self.assertNotEqual(
                 m_check_call.mock_calls[0],
-                mock.call(['make', '-C', self.tmpdir, 'mrproper']),
+                mock.call(
+                    [
+                        'make',
+                        '-C', self.tmpdir,
+                        "O={}/output".format(self.tmpdir),
+                        'mrproper'
+                    ]
+                )
             )
 
     def test_mktgz_timeout(self):
@@ -144,6 +159,7 @@ class KBuilderTest(unittest.TestCase):
         kbuilder = kernelbuilder.KernelBuilder(
             self.tmpdir,
             self.tmpconfig.name,
+            output_dir="{}/output".format(self.tmpdir),
             extra_make_args=extra_make_args_example
         )
         self.assertEqual(kbuilder.extra_make_args, [extra_make_args_example])
