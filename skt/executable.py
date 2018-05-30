@@ -210,8 +210,12 @@ def cmd_build(cfg):
         enable_debuginfo=cfg.get('enable_debuginfo')
     )
 
+    # Clean the kernel source with 'make mrproper' if requested.
+    if cfg.get('wipe'):
+        builder.clean_kernel_source()
+
     try:
-        tgz = builder.mktgz(cfg.get('wipe'))
+        tgz = builder.mktgz()
     except Exception as e:
         save_state(cfg, {'buildlog': builder.buildlog})
         raise e
