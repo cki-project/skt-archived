@@ -53,24 +53,13 @@ class KBuilderTest(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
 
-    def test_mktgz_clean(self):
-        """
-        Check if `mrproper` target is called when `clean` is True and not
-        called when `clean` is False.
-        """
-        with self.ctx_popen, self.ctx_check_call as m_check_call:
-            self.assertRaises(Exception, self.kbuilder_mktgz_silent,
-                              clean=True)
+    def test_clean_kernel_source(self):
+        """Ensure clean_kernel_source() calls 'make mrproper'."""
+        with self.ctx_check_call as m_check_call:
+            self.kbuilder.clean_kernel_source()
             self.assertEqual(
                 m_check_call.mock_calls[0],
-                mock.call(['make', '-C', self.tmpdir, 'mrproper'])
-            )
-            m_check_call.reset_mock()
-            self.assertRaises(Exception, self.kbuilder_mktgz_silent,
-                              clean=False)
-            self.assertNotEqual(
-                m_check_call.mock_calls[0],
-                mock.call(['make', '-C', self.tmpdir, 'mrproper']),
+                mock.call(self.kbuilder.make_argv_base + ['mrproper'])
             )
 
     def test_adjust_config_option(self):
