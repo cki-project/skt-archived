@@ -507,6 +507,12 @@ def setup_parser():
         help="Path to work dir"
     )
     parser.add_argument(
+        "-o",
+        "--output",
+        type=str,
+        help="Path to the output directory for kernel build artifacts"
+    )
+    parser.add_argument(
         "-w",
         "--wipe",
         help=(
@@ -820,6 +826,12 @@ def load_config(args):
 
     # Add a kernel source directory within the work directory
     cfg['source_dir'] = "{}/source".format(cfg['workdir'])
+
+    # Set up the kernel build output directory
+    if cfg.get('output_dir'):
+        cfg['output_dir'] = full_path(cfg.get('output_dir'))
+    else:
+        cfg['output_dir'] = "{}/output".format(cfg['workdir'])
 
     # Get an absolute path for the kernel configuration file
     if cfg.get('basecfg'):
