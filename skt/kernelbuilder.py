@@ -50,6 +50,20 @@ class KernelBuilder(object):
         logging.info("basecfg: %s", self.basecfg)
         logging.info("cfgtype: %s", self.cfgtype)
 
+    def adjust_config_option(self, action, option):
+        """Adjust a kernel config option using kernel scripts."""
+        if action not in ['enable', 'disable']:
+            raise LookupError("Only 'enable' and 'disable' are supported.")
+
+        args = [
+            "{}/scripts/config".format(self.source_dir),
+            "--file", self.get_cfgpath(),
+            "--{}".format(action),
+            option
+        ]
+        logging.info("%s config option '%s': %s", action, option, args)
+        subprocess.check_call(args)
+
     def prepare(self, clean=True):
         if (clean):
             args = self.make_argv_base + ["mrproper"]
