@@ -73,6 +73,32 @@ class KBuilderTest(unittest.TestCase):
                 mock.call(['make', '-C', self.tmpdir, 'mrproper']),
             )
 
+    def test_adjust_config_option(self):
+        """Ensure adjust_config_option() calls the correct commands."""
+        expected_args = [
+            "{}/scripts/config".format(self.tmpdir),
+            "--file",
+            "{}/.config".format(self.tmpdir),
+            "--disable",
+            "some_option"
+        ]
+
+        with self.ctx_check_call as m_check_call:
+            self.kbuilder.adjust_config_option('disable', 'some_option')
+            self.assertEqual(
+                m_check_call.mock_calls[0],
+                mock.call(expected_args)
+            )
+
+    def test_adjust_config_option_bogus(self):
+        """Ensure adjust_config_option() rejects bogus actions."""
+        with self.assertRaises(LookupError) as excmsg:
+            self.kbuilder.adjust_config_option('foo', 'some option')
+            self.assertEqual(
+                excmsg,
+                "Only 'enable' and 'disable' are supported."
+            )
+
     def test_mktgz_timeout(self):
         """
         Check if timeout error is raised when kernel building takes longer than
