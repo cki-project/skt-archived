@@ -33,8 +33,8 @@ defaults: &defaults
     - run:
         name: Test `skt build`
         command: |
-            make -C workdir tinyconfig
-            mv workdir/.config config
+            make -C workdir/source tinyconfig
+            mv workdir/source/.config config
             skt -vv -d workdir --rc sktrc --state skt-state.yml build \
               -c config
         working_directory: /tmp/skt_test
