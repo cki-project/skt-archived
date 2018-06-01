@@ -12,27 +12,27 @@ Dependencies
 
 Install dependencies needed for running skt like this:
 
-    $ sudo dnf install python2 python2-junit_xml beaker-client
+    sudo dnf install -y python2 python2-junit_xml beaker-client
 
 Dependencies needed to build kernels:
 
-    $ sudo dnf install bison flex dnf-plugins-core
-    $ sudo dnf builddep kernel-`uname -r`
+    sudo dnf install -y bison flex dnf-plugins-core
+    sudo dnf builddep -y kernel-`uname -r`
 
 Extra dependencies needed for running the testsuite:
 
-    $ sudo dnf install python2-mock
+    sudo dnf install -y python2-mock
 
 Run tests
 ---------
 
 For running all tests write down:
 
-    $ python -m unittest discover tests
+    python -m unittest discover tests
 
 For running some specific tests you can do this as following:
 
-    $ python -m unittest tests.test_publisher
+    python -m unittest tests.test_publisher
 
 
 Installation
@@ -40,16 +40,16 @@ Installation
 
 Install `skt` directly from git:
 
-    $ pip install git+https://github.com/RH-FMK/skt
+    pip install git+https://github.com/RH-FMK/skt
 
 If support for beaker is required, install ``skt`` with the ``beaker``
 extras:
 
-    $ pip install git+https://github.com/rh-fmk/skt.git#egg-project[beaker]
+    pip install git+https://github.com/rh-fmk/skt.git#egg-project[beaker]
 
 Test the `skt` executable by printing the help text:
 
-    $ skt -h
+    skt -h
 
 Usage
 -----
@@ -134,8 +134,8 @@ written to the `<JUNIT_DIR>` directory.
 
 To checkout a kernel tree run:
 
-    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-             merge --baserepo <REPO_URL> --ref <REPO_REF>
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+        merge --baserepo <REPO_URL> --ref <REPO_REF>
 
 Here `<SKTRC>` would be the configuration file to retrieve the configuration
 and the state from, and store the updated state in. `<WORKDIR>` would be the
@@ -145,16 +145,16 @@ checkout.
 
 E.g. to checkout "master" branch of the "net-next" repo:
 
-    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
-             merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
-                   --ref master
+    skt --rc skt-rc --state --workdir skt-workdir -vv \
+        merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
+              --ref master
 
 To apply a patch from Patchwork run:
 
-    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-             merge --baserepo <REPO_URL> \
-                   --ref <REPO_REF> \
-                   --pw <PATCHWORK_PATCH_URL>
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+        merge --baserepo <REPO_URL> \
+              --ref <REPO_REF> \
+              --pw <PATCHWORK_PATCH_URL>
 
 Here, `<REPO_REF>` would be the reference to checkout, and to apply the patch
 on top of, and `<PATCHWORK_PATCH_URL>` would be the URL pointing to a patch on
@@ -163,26 +163,26 @@ a Patchwork instance.
 E.g. to apply a particular patch to a particular, known-good commit from the
 "net-next" repo, run:
 
-    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
-             merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
-                   --ref a870a02cc963de35452bbed932560ed69725c4f2 \
-                   --pw https://patchwork.ozlabs.org/patch/886637
+    skt --rc skt-rc --state --workdir skt-workdir -vv \
+        merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
+              --ref a870a02cc963de35452bbed932560ed69725c4f2 \
+              --pw https://patchwork.ozlabs.org/patch/886637
 
 To apply a local patch run:
 
-    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-             merge --baserepo <REPO_URL> \
-                   --ref <REPO_REF> \
-                   --patchlist <PATH_TO_PATCH>
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+        merge --baserepo <REPO_URL> \
+              --ref <REPO_REF> \
+              --patchlist <PATH_TO_PATCH>
 
 Here, `<PATH_TO_PATCH>` would be the patch file.
 E.g. to apply a particular patch to a particular, known-good commit from the
 "net-next" repo, run:
 
-     $ skt --rc skt-rc --state --workdir skt-workdir -vv \
-              merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
-                    --ref a870a02cc963de35452bbed932560ed69725c4f2 \
-                    --patchlist net-next-cxgb4-notify-fatal-error-to-uld-drivers.patch
+    skt --rc skt-rc --state --workdir skt-workdir -vv \
+        merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
+              --ref a870a02cc963de35452bbed932560ed69725c4f2 \
+              --patchlist net-next-cxgb4-notify-fatal-error-to-uld-drivers.patch
 
 #### Faster clones
 
@@ -191,7 +191,7 @@ repositories that have a truncated history and they can be cloned much faster
 than a full copy of the repository. Use the `--fetch-depth` option with
 `skt merge`:
 
-    $ skt ... merge ... --fetch-depth 5
+    skt ... merge ... --fetch-depth 5
 
 In the example above, the repository will be cloned with a git history of five
 commits. This speeds up the cloning process, but it also prevents the use of
@@ -202,8 +202,8 @@ commits.
 
 And to build the kernel run:
 
-    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-             build -c `<CONFIG_FILE>`
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+        build -c `<CONFIG_FILE>`
 
 Where `<CONFIG_FILE>` would be the kernel configuration file to build the
 kernel with. The configuration will be applied with `make olddefconfig`, by
@@ -211,8 +211,8 @@ default.
 
 E.g. to build with the current system's config file run:
 
-    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
-             build -c /boot/config-`uname -r`
+    skt --rc skt-rc --state --workdir skt-workdir -vv \
+        build -c /boot/config-`uname -r`
 
 **NOTE:** Kernels are built without debuginfo by default to save disk space
 and improve build times. In some cases, deep troubleshooting may require
@@ -226,8 +226,8 @@ Provide additional arguments and options to `make` by using
 
 To "publish" the resulting build using the simple "cp" (copy) publisher run:
 
-    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-          publish -p cp <DIRECTORY> <URL_PREFIX>
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+        publish -p cp <DIRECTORY> <URL_PREFIX>
 
 Here `<DIRECTORY>` would be the location for the copied build artifacts, and
 `URL_PREFIX` would be the string to add to prepend the filenames with
@@ -238,8 +238,8 @@ the saved state in the configuration file.
 E.g. to publish to the `/srv/builds` directory available at
 `http://skt-server` run:
 
-    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
-          publish -p cp /srv/builds http://skt-server
+    skt --rc skt-rc --state --workdir skt-workdir -vv \
+        publish -p cp /srv/builds http://skt-server
 
 ### Run
 
@@ -304,9 +304,9 @@ Below is an example of a superficial template. Note that it won't work as is.
 Provided you have both Beaker access and a suitable job XML template, you can
 run the tests with the built kernel as such:
 
-    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv run \
-          --runner beaker '{"jobtemplate": "<JOBTEMPLATE>"}' \
-          --wait
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv run \
+        --runner beaker '{"jobtemplate": "<JOBTEMPLATE>"}' \
+        --wait
 
 Here, `<JOBTEMPLATE>` would be the name of the file with the Beaker job XML
 template. If you remove the `--wait` option, the command will return once the
@@ -315,9 +315,9 @@ result.
 
 E.g. to run the tests from a job XML template named `beakerjob.xml`, execute:
 
-    $ skt --rc skt-rc --state --workdir skt-workdir -vv run \
-          --runner beaker '{"jobtemplate": "beakerjob.xml"}' \
-          --wait
+    skt --rc skt-rc --state --workdir skt-workdir -vv run \
+        --runner beaker '{"jobtemplate": "beakerjob.xml"}' \
+        --wait
 
 ### Report
 
@@ -342,23 +342,23 @@ the "run" command. E.g., continuing from the example above, it can be:
 After adding the above snippet to the configuration file, execute this to have
 `skt` print the report on its stdout:
 
-    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-          report --reporter <REPORTER_TYPE> <REPORTER_PARAMS>
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+        report --reporter <REPORTER_TYPE> <REPORTER_PARAMS>
 
 Here, `<REPORTER_TYPE>` would be the reporter type: either `stdio`, or `mail`,
 and `<REPORTER_PARAMS>` would be the type-specific parameters in JSON
 representation. The `stdio` reporter doesn't need any parameters, so you can
 just pass an empty object, like this:
 
-    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
-          report --reporter stdio '{}'
+    skt --rc skt-rc --state --workdir skt-workdir -vv \
+        report --reporter stdio '{}'
 
 The `mail` reporter parameters are a bit more involved and to include the
 "From" address, and a list of "To" addresses for the message to send:
 
-    $ skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-          report --reporter mail \
-          '{"mailfrom": "<MAILFROM>", "mailto": "<MAILTO_LIST>"}'
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+        report --reporter mail \
+        '{"mailfrom": "<MAILFROM>", "mailto": "<MAILTO_LIST>"}'
 
 Here, `<MAILFROM>` would be the "From" address, and `<MAILTO_LIST>`
 would be a comma-separated list of "To" addresses.
@@ -366,9 +366,9 @@ would be a comma-separated list of "To" addresses.
 The following example sends the report to the current user and to root on the
 same host, with "From" address being the current user:
 
-    $ skt --rc skt-rc --state --workdir skt-workdir -vv \
-          report --reporter mail \
-          '{"mailfrom": "'$USER'@localhost", "mailto": "'$USER'@localhost, root@localhost"}'
+    skt --rc skt-rc --state --workdir skt-workdir -vv \
+        report --reporter mail \
+        '{"mailfrom": "'$USER'@localhost", "mailto": "'$USER'@localhost, root@localhost"}'
 
 Note that the `report` command will reach for build artifacts via the URLs
 generated by the `publish` command.
@@ -388,7 +388,7 @@ Developers can test changes to `skt` by using "development mode" from python's
 `setuptools` package. First, `cd` to the directory where `skt` is cloned and
 run:
 
-    $ pip install --user -e .
+    pip install --user -e .
 
 This installs `skt` in a mode where any changes within the repo are
 immediately available simply by running `skt`. There is no need to repeatedly
@@ -398,9 +398,9 @@ Using a virtual environment is highly recommended. This keeps `skt` and all
 its dependencies in a separate Python environment. Developers can build a
 virtual environment for skt quickly:
 
-    $ virtualenv ~/skt-venv/
-    $ source ~/skt-venv/bin/activate
-    $ pip install -e .
+    virtualenv ~/skt-venv/
+    source ~/skt-venv/bin/activate
+    pip install -e .
 
 To deactivate the virtual environment, simply run `deactivate`.
 
