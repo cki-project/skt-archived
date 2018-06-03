@@ -21,7 +21,7 @@ Dependencies needed to build kernels:
 
 Extra dependencies needed for running the testsuite:
 
-    sudo dnf install -y python2-mock
+    sudo dnf install -y python2-mock PyYAML
 
 Run tests
 ---------
