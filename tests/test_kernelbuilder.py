@@ -62,6 +62,11 @@ class KBuilderTest(unittest.TestCase):
                 mock.call(self.kbuilder.make_argv_base + ['mrproper'])
             )
 
+    def test_get_cfgpath(self):
+        """Ensure get_cfgpath() get cfg path."""
+        result = self.kbuilder.get_cfgpath()
+        self.assertEqual(result, "{}/.config".format(self.tmpdir))
+
     def test_adjust_config_option(self):
         """Ensure adjust_config_option() calls the correct commands."""
         expected_args = [
