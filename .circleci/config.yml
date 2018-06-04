@@ -10,9 +10,8 @@ defaults: &defaults
     - run:
         name: Run Python linters and tests
         command: |
-          flake8 --show-source .
-          pylint -d R0801 tests
-          python -m unittest discover tests
+          pip install tox coveralls
+          tox
     # TODO(mhayden): Add --depth support to skt and then let skt to the clone
     # rather than using the git command below.
     - run:
