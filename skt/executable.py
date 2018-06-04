@@ -320,10 +320,6 @@ def cmd_run(cfg):
 
     save_state(cfg, {'retcode': retcode})
 
-    if retcode and cfg.get('bisect'):
-        cfg['commitbad'] = cfg.get('mergehead')
-        cmd_bisect(cfg)
-
 
 def cmd_report(cfg):
     """
@@ -391,67 +387,6 @@ def cmd_all(cfg):
     cmd_run(cfg)
     if cfg.get('wait'):
         cmd_report(cfg)
-    cmd_cleanup(cfg)
-
-
-@junit
-def cmd_bisect(cfg):
-    """
-    Bisect Git history between a known bad and a known good commit (defaulting
-    to "master"), running tests to locate the offending commit.
-
-    Args:
-        cfg:    A dictionary of skt configuration.
-    """
-    if len(cfg.get('merge_ref')) != 1:
-        raise Exception(
-            "Bisecting currently works only with exactly one mergeref"
-        )
-
-    ktree = KernelTree(
-        cfg.get('baserepo'),
-        ref=cfg.get('commitgood'),
-        wdir=cfg.get('workdir')
-    )
-    head = ktree.checkout()
-
-    cfg['workdir'] = ktree.getpath()
-    cfg['buildinfo'] = None
-
-    logging.info("Building good commit: %s", head)
-    cmd_build(cfg)
-    cmd_publish(cfg)
-    os.unlink(cfg.get('tarpkg'))
-
-    runner = skt.runner.getrunner(*cfg.get('runner'))
-
-    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                         wait=True, host=cfg.get('host'),
-                         uid="[bisect] [good %s]" % head,
-                         reschedule=False)
-
-    cfg['host'] = runner.gethost()
-
-    if retcode:
-        logging.warning("Good commit %s failed, aborting bisect", head)
-        cmd_cleanup(cfg)
-        return
-
-    ktree.merge_git_ref(cfg.get('merge_ref')[0][0], cfg.get('commitbad'))
-    binfo = ktree.bisect_start(head)
-
-    ret = 0
-    while ret == 0:
-        cmd_build(cfg)
-        cmd_publish(cfg)
-        os.unlink(cfg.get('tarpkg'))
-        retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                             wait=True, host=cfg.get('host'),
-                             uid="[bisect] [%s]" % binfo,
-                             reschedule=False)
-
-        (ret, binfo) = ktree.bisect_iter(retcode)
-
     cmd_cleanup(cfg)
 
 
@@ -650,12 +585,6 @@ def setup_parser():
         default=False,
         help="Do not exit until tests are finished"
     )
-    parser_run.add_argument(
-        "--bisect",
-        help="Try to bisect the failure if any.  (Implies --wait)",
-        action="store_true",
-        default=False
-    )
 
     # These arguments apply to the 'report' skt subcommand
     parser_report = subparsers.add_parser("report", add_help=False)
@@ -724,26 +653,6 @@ def setup_parser():
     parser_cleanup.set_defaults(_name="cleanup")
     parser_all.set_defaults(func=cmd_all)
     parser_all.set_defaults(_name="all")
-
-    # These arguments apply to the 'bisect' skt subcommand
-    parser_bisect = subparsers.add_parser("bisect", add_help=True)
-    parser_bisect.add_argument(
-        "commitbad",
-        type=str,
-        help="Bad commit for bisect"
-    )
-    parser_bisect.add_argument(
-        "--commitgood",
-        type=str,
-        help="Good commit for bisect. Default's to baserepo's HEAD"
-    )
-    parser_bisect.add_argument(
-        "--host",
-        type=str,
-        help="If needs to be bisected on specific host"
-    )
-    parser_bisect.set_defaults(func=cmd_bisect)
-    parser_bisect.set_defaults(_name="bisect")
 
     return parser
 
@@ -831,9 +740,6 @@ def load_config(args):
             if config.has_option(section, 'ref'):
                 mdesc.append(config.get(section, 'ref'))
             cfg['merge_ref'].append(mdesc)
-
-    if cfg.get("bisect"):
-        cfg['wait'] = True
 
     # Get an absolute path for the work directory
     if cfg.get('workdir'):

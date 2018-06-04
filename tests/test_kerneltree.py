@@ -76,61 +76,6 @@ class KernelTreeTest(unittest.TestCase):
         if os.path.isdir(self.tmpdir):
             shutil.rmtree(self.tmpdir)
 
-    def test_bisect_start(self):
-        """Ensure bisect_start() starts a git bisect."""
-        self.m_popen_good.communicate = Mock(
-            return_value=('Bisecting: foo', None)
-        )
-        mock_chdir = mock.patch('os.chdir')
-
-        with self.popen_good, mock_chdir:
-            result = self.kerneltree.bisect_start('abcdef')
-
-        self.assertEqual('foo', result)
-
-    def test_bisect_start_failure(self):
-        """Ensure bisect_start() handles a failure properly."""
-        self.m_popen_good.communicate = Mock(return_value=('error', None))
-        mock_chdir = mock.patch('os.chdir')
-
-        with self.popen_good, mock_chdir:
-            result = self.kerneltree.bisect_start('abcdef')
-
-        self.assertIsNone(result)
-
-    def test_bisect_iter(self):
-        """Ensure bisect_iter() continues the bisect."""
-        self.m_popen_good.communicate = Mock(
-            return_value=('Bisecting: foo', None)
-        )
-        mock_chdir = mock.patch('os.chdir')
-
-        with self.popen_good, mock_chdir:
-            result = self.kerneltree.bisect_iter(1)
-
-        self.assertTupleEqual((0, 'foo'), result)
-
-    def test_bisect_iter_completed(self):
-        """Ensure bisect_iter() handles the completion of the bisection."""
-        stdout = 'abcdef is the first bad commit'
-        self.m_popen_good.communicate = Mock(return_value=(stdout, None))
-        mock_chdir = mock.patch('os.chdir')
-
-        with self.popen_good, mock_chdir:
-            result = self.kerneltree.bisect_iter(1)
-
-        self.assertTupleEqual((1, 'abcdef'), result)
-
-    def test_bisect_iter_error(self):
-        """Ensure bisect_iter() handles an error message."""
-        self.m_popen_good.communicate = Mock(return_value=('error', None))
-        mock_chdir = mock.patch('os.chdir')
-
-        with self.popen_good, mock_chdir:
-            result = self.kerneltree.bisect_iter(1)
-
-        self.assertTupleEqual((0, None), result)
-
     def test_cleanup(self):
         """Ensure cleanup() removes the workdir."""
         ktree = self.kerneltree
