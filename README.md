@@ -114,9 +114,6 @@ The following commands are supported by `skt`:
 * `all`
     - Run the following commands in order: `merge`, `build`, `publish`, `run`,
       `report` (if `--wait` option was specified), and `cleanup`.
-* `bisect`
-    - Bisect Git history between a known bad and a known good commit
-      (defaulting to "master"), running tests to locate the offending commit.
 
 The following is a walk through the process of checking out a kernel commit,
 applying a patch from Patchwork, building the kernel, running the tests,
