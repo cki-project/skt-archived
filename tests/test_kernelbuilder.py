@@ -67,6 +67,15 @@ class KBuilderTest(unittest.TestCase):
         result = self.kbuilder.get_cfgpath()
         self.assertEqual(result, "{}/.config".format(self.tmpdir))
 
+    def test_prepare(self):
+        """Ensure prepare() calls 'make olddefconfig'."""
+        with self.ctx_check_call as m_check_call:
+            self.kbuilder.prepare()
+            self.assertEqual(
+                m_check_call.mock_calls[1],
+                mock.call(self.kbuilder.make_argv_base + ['olddefconfig'])
+            )
+
     def test_adjust_config_option(self):
         """Ensure adjust_config_option() calls the correct commands."""
         expected_args = [
