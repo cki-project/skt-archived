@@ -33,9 +33,8 @@ defaults: &defaults
     - run:
         name: Test `skt build`
         command: |
-            make -C workdir tinyconfig
-            mv workdir/.config config
-            skt -vv --state -d workdir --rc sktrc build -c config
+            skt -vv --state -d workdir --rc sktrc build -c config \
+                --cfgtype tinyconfig
         working_directory: /tmp/skt_test
     - store_artifacts:
         path: /tmp/skt_test/workdir/*.log
