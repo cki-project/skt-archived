@@ -12,6 +12,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Class for building kernels"""
+import glob
 import io
 import logging
 import multiprocessing
@@ -70,6 +71,10 @@ class KernelBuilder(object):
         logging.info("cleaning up tree: %s", args)
         subprocess.check_call(args)
 
+    def glob_escape(self, pathname):
+        """Escape any wildcard/glob characters in pathname."""
+        return re.sub("[]*?[]", "[\g<0>]", pathname)
+
     def prepare_kernel_config(self):
         """Prepare the kernel config for the compile."""
         shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
@@ -86,6 +91,25 @@ class KernelBuilder(object):
         logging.info("prepare config: %s", args)
         subprocess.check_call(args)
         self._ready = 1
+
+    def make_redhat_config(self):
+        """Prepare the Red Hat kernel config files."""
+        # These configs build into /redhat/configs
+        args = self.make_argv_base + ['rh-configs']
+        logging.info("building Red Hat configs: %s", args)
+        subprocess.check_call(args)
+
+        # Copy the correct kernel config into place
+        # TODO Add multi-arch support later.
+        escaped_source_dir = self.glob_escape(self.source_dir)
+        config = "{}/configs/kernel*x86_64.config".format(escaped_source_dir)
+        config_filename = glob.glob(config)
+
+        logging.info("copying Red Hat config: %s", config_filename[0])
+        shutil.copyfile(
+            config_filename[0],
+            "{}/.config".format(self.source_dir)
+        )
 
     def get_cfgpath(self):
         return "%s/.config" % self.source_dir
