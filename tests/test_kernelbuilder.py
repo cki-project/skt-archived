@@ -188,3 +188,37 @@ class KBuilderTest(unittest.TestCase):
         with mock_popen, mock_prepare:
             with self.assertRaises(Exception):
                 self.kbuilder.getrelease()
+
+    @mock.patch("skt.kernelbuilder.KernelBuilder.adjust_config_option")
+    @mock.patch('shutil.copyfile')
+    @mock.patch("glob.glob")
+    @mock.patch("subprocess.check_call")
+    def test_prep_config_redhat(self, mock_check_call, mock_glob, mock_shutil,
+                                mock_adjust_cfg):
+        """Ensure KernelBuilder handles Red Hat configs."""
+        self.kbuilder.cfgtype = 'rh-configs'
+        self.kbuilder.enable_debuginfo = True
+        mock_glob.return_value = ['configs/config-3.10.0-x86_64.config']
+        self.kbuilder.prepare_kernel_config()
+
+        # Ensure the configs were built using the correct command
+        check_call_args = mock_check_call.call_args[0]
+        expected_args = self.kbuilder.make_argv_base + ['rh-configs']
+        self.assertEqual(expected_args, check_call_args[0])
+
+        mock_shutil.assert_called_once()
+        mock_adjust_cfg.assert_not_called()
+
+    @mock.patch("skt.kernelbuilder.KernelBuilder.adjust_config_option")
+    @mock.patch("subprocess.check_call")
+    def test_prep_config_tinyconfig(self, mock_check_call, mock_adjust_cfg):
+        """Ensure KernelBuilder handles tinyconfig."""
+        self.kbuilder.cfgtype = 'tinyconfig'
+        self.kbuilder.prepare_kernel_config()
+
+        # Ensure the config was built using the correct command
+        check_call_args = mock_check_call.call_args[0]
+        expected_args = self.kbuilder.make_argv_base + ['tinyconfig']
+        self.assertEqual(expected_args, check_call_args[0])
+
+        mock_adjust_cfg.assert_called_once()
