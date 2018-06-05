@@ -80,6 +80,9 @@ class KernelBuilder(object):
         if self.cfgtype == 'rh-configs':
             # Build Red Hat configs and copy the correct one into place
             self.make_redhat_config()
+        elif self.cfgtype == 'tinyconfig':
+            # Build an extremely small config file for quick testing
+            self.make_tinyconfig()
         else:
             # Copy the existing config file into place
             shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
@@ -114,6 +117,12 @@ class KernelBuilder(object):
             config_filename[0],
             "{}/.config".format(self.source_dir)
         )
+
+    def make_tinyconfig(self):
+        """Make the smallest kernel config file possible for quick testing."""
+        args = self.make_argv_base + ['tinyconfig']
+        logging.info("building tinyconfig: %s", args)
+        subprocess.check_call(args)
 
     def get_cfgpath(self):
         return "%s/.config" % self.source_dir
