@@ -668,8 +668,11 @@ def load_config(args):
     Returns:
         Loaded configuration dictionary.
     """
+    # NOTE(mhayden): The shell should do any tilde expansions on the path
+    # before the rc path is provided to Python.
     config = ConfigParser.ConfigParser()
-    config.read(os.path.expanduser(args.rc))
+    config.read(os.path.abspath(args.rc))
+
     cfg = vars(args)
     cfg['_parser'] = config
     cfg['_testcases'] = []
