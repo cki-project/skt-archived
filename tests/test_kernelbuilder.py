@@ -30,6 +30,7 @@ class KBuilderTest(unittest.TestCase):
     """Test cases for KernelBuilder class."""
 
     def setUp(self):
+        """Test fixtures."""
         self.tmpdir = tempfile.mkdtemp()
         self.tmpconfig = tempfile.NamedTemporaryFile()
         self.kbuilder = kernelbuilder.KernelBuilder(
@@ -51,6 +52,7 @@ class KBuilderTest(unittest.TestCase):
         self.success_str = self.success_str.format(self.kernel_tarball)
 
     def tearDown(self):
+        """Tear down test fixtures."""
         shutil.rmtree(self.tmpdir)
 
     def test_clean_kernel_source(self):
@@ -101,17 +103,15 @@ class KBuilderTest(unittest.TestCase):
             )
 
     def test_mktgz_timeout(self):
-        """
-        Check if timeout error is raised when kernel building takes longer than
-        specified timeout.
-        """
+        """Ensure the build fails properly when it exceeds the timeout."""
         self.m_popen.poll = Mock(side_effect=[None, None, -15])
         self.m_popen.returncode = -15
         from time import sleep as real_sleep
 
         def m_sleep(seconds):
-            """sleep function but acelerated 100x"""
+            """Sleep function but acelerated 100x."""
             real_sleep(seconds/100)
+
         ctx_sleep = mock.patch('time.sleep', m_sleep)
         with ctx_sleep, self.ctx_check_call, self.ctx_popen:
             self.assertRaises(
@@ -121,7 +121,7 @@ class KBuilderTest(unittest.TestCase):
             )
 
     def test_mktgz_parsing_error(self):
-        """Check if ParsingError is raised when no kernel is found in stdout"""
+        """Check if ParsingError is raised when no kernel found in stdout."""
         self.m_io_open.readlines = Mock(return_value=['foo\n', 'bar\n'])
         with self.ctx_popen, self.ctx_check_call, self.ctx_io_open:
             self.assertRaises(
@@ -130,7 +130,7 @@ class KBuilderTest(unittest.TestCase):
             )
 
     def test_mktgz_ioerror(self):
-        """Check if IOError is raised when tarball path does not exist"""
+        """Check if IOError is raised when tarball path does not exist."""
         self.m_io_open.readlines = Mock(
             return_value=['foo\n', self.success_str]
         )
@@ -138,17 +138,14 @@ class KBuilderTest(unittest.TestCase):
             self.assertRaises(IOError, self.kbuilder_mktgz_silent)
 
     def test_mktgz_make_fail(self):
-        """
-        Check if subprocess.CalledProcessError is raised when make command
-        fails to spawn.
-        """
+        """Ensure exception is raised when make command fails to spawn."""
         self.m_popen.returncode = 1
         with self.ctx_popen:
             self.assertRaises(subprocess.CalledProcessError,
                               self.kbuilder_mktgz_silent)
 
     def test_mktgz_success(self):
-        """Check if mktgz can finish successfully"""
+        """Check if mktgz can finish successfully."""
         self.m_io_open.readlines = Mock(
             return_value=['foo\n', self.success_str, 'bar']
         )
@@ -161,12 +158,12 @@ class KBuilderTest(unittest.TestCase):
                              full_path)
 
     def kbuilder_mktgz_silent(self, *args, **kwargs):
-        """Run self.kbuilder.mktgz with disabled output"""
+        """Run self.kbuilder.mktgz with disabled output."""
         with mock.patch('sys.stdout'):
             return self.kbuilder.mktgz(*args, **kwargs)
 
     def test_extra_make_args(self):
-        """Ensure KernelBuilder handles extra_make_args properly"""
+        """Ensure KernelBuilder handles extra_make_args properly."""
         extra_make_args_example = '-j10'
         kbuilder = kernelbuilder.KernelBuilder(
             self.tmpdir,
