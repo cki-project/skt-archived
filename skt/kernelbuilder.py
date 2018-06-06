@@ -77,7 +77,15 @@ class KernelBuilder(object):
 
     def prepare_kernel_config(self):
         """Prepare the kernel config for the compile."""
-        shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
+        if self.cfgtype == 'rh-configs':
+            # Build Red Hat configs and copy the correct one into place
+            self.make_redhat_config()
+        else:
+            # Copy the existing config file into place
+            shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
+            args = self.make_argv_base + [self.cfgtype]
+            logging.info("prepare config: %s", args)
+            subprocess.check_call(args)
 
         # NOTE(mhayden): Building kernels with debuginfo can increase the
         # final kernel tarball size by 3-4x and can increase build time
@@ -87,14 +95,10 @@ class KernelBuilder(object):
         if not self.enable_debuginfo:
             self.adjust_config_option('disable', 'debug_info')
 
-        args = self.make_argv_base + [self.cfgtype]
-        logging.info("prepare config: %s", args)
-        subprocess.check_call(args)
         self._ready = 1
 
     def make_redhat_config(self):
         """Prepare the Red Hat kernel config files."""
-        # These configs build into /redhat/configs
         args = self.make_argv_base + ['rh-configs']
         logging.info("building Red Hat configs: %s", args)
         subprocess.check_call(args)
