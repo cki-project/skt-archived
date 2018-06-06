@@ -196,6 +196,22 @@ class KBuilderTest(unittest.TestCase):
             with self.assertRaises(Exception):
                 self.kbuilder.getrelease()
 
+    @mock.patch("skt.kernelbuilder.KernelBuilder.prepare_kernel_config")
+    def test_getrelease_ready(self, mock_prepare):
+        """Ensure get_release() skips prepare when _ready=1."""
+        kernel_version = '4.17.0-rc6+\n'
+        mock_popen = self.ctx_popen
+        self.m_popen.communicate = Mock(return_value=(kernel_version, None))
+        self.kbuilder._ready = 1  # pylint: disable=protected-access
+
+        with mock_popen, mock_prepare:
+            result = self.kbuilder.getrelease()
+            self.assertEqual(kernel_version.strip(), result)
+
+            # The prepare_kernel_config() method should not have been called
+            # since self._ready was set to 1.
+            mock_prepare.assert_not_called()
+
     @mock.patch("skt.kernelbuilder.KernelBuilder.adjust_config_option")
     @mock.patch('shutil.copyfile')
     @mock.patch("glob.glob")
