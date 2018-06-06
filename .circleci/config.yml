@@ -5,14 +5,6 @@ defaults: &defaults
     - run:
         name: Install skt using pip
         command: pip install .
-    # Run pylint without R0801 that checks for duplicate content in multiple
-    # files. See https://github.com/PyCQA/pylint/issues/214 for details.
-    - run:
-        name: Run Python linters and tests
-        command: |
-          flake8 --show-source .
-          pylint -d R0801 tests
-          python -m unittest discover tests
     # TODO(mhayden): Add --depth support to skt and then let skt to the clone
     # rather than using the git command below.
     - run:
