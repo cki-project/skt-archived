@@ -84,6 +84,13 @@ class KBuilderTest(unittest.TestCase):
                 mock.call(expected_args)
             )
 
+    def test_get_build_arch(self):
+        """Ensure get_build_arch() returns the ARCH env variable."""
+        os.environ['ARCH'] = 's390x'
+        result = self.kbuilder.get_build_arch()
+
+        self.assertEqual('s390x', result)
+
     def test_adjust_config_option_bogus(self):
         """Ensure adjust_config_option() rejects bogus actions."""
         with self.assertRaises(LookupError) as excmsg:
