@@ -70,7 +70,8 @@ class KernelBuilder(object):
         logging.info("cleaning up tree: %s", args)
         subprocess.check_call(args)
 
-    def prepare(self):
+    def prepare_kernel_config(self):
+        """Prepare the kernel config for the compile."""
         shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
 
         # NOTE(mhayden): Building kernels with debuginfo can increase the
@@ -92,7 +93,7 @@ class KernelBuilder(object):
     def getrelease(self):
         krelease = None
         if not self._ready:
-            self.prepare()
+            self.prepare_kernel_config()
 
         args = self.make_argv_base + ["kernelrelease"]
         mk = subprocess.Popen(args, stdout=subprocess.PIPE)
@@ -126,7 +127,7 @@ class KernelBuilder(object):
         """
         fpath = None
         stdout_list = []
-        self.prepare()
+        self.prepare_kernel_config()
 
         # Set up the arguments and options for the kernel build
         targz_pkg_argv = [

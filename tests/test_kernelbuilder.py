@@ -168,10 +168,9 @@ class KBuilderTest(unittest.TestCase):
         )
         self.assertEqual(kbuilder.extra_make_args, [extra_make_args_example])
 
-    def test_getrelease(self):
-        """Ensure get_release() handles a valid kernel version string"""
-        mock_prepare = mock.patch("skt.kernelbuilder.KernelBuilder.prepare")
-
+    @mock.patch("skt.kernelbuilder.KernelBuilder.prepare_kernel_config")
+    def test_getrelease(self, mock_prepare):
+        """Ensure get_release() handles a valid kernel version string."""
         kernel_version = '4.17.0-rc6+\n'
         mock_popen = self.ctx_popen
         self.m_popen.communicate = Mock(return_value=(kernel_version, None))
@@ -180,10 +179,9 @@ class KBuilderTest(unittest.TestCase):
             result = self.kbuilder.getrelease()
             self.assertEqual(kernel_version.strip(), result)
 
-    def test_getrelease_regex_fail(self):
-        """Ensure get_release() fails if the regex doesn't match"""
-        mock_prepare = mock.patch("skt.kernelbuilder.KernelBuilder.prepare")
-
+    @mock.patch("skt.kernelbuilder.KernelBuilder.prepare_kernel_config")
+    def test_getrelease_regex_fail(self, mock_prepare):
+        """Ensure get_release() fails if the regex doesn't match."""
         mock_popen = self.ctx_popen
         self.m_popen.communicate = Mock(return_value=('this_is_silly', None))
 
