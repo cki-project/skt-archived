@@ -17,6 +17,7 @@ import io
 import logging
 import multiprocessing
 import os
+import platform
 import re
 import shlex
 import shutil
@@ -36,6 +37,7 @@ class KernelBuilder(object):
         self.buildlog = "%s/build.log" % self.source_dir
         self.make_argv_base = ["make", "-C", self.source_dir]
         self.enable_debuginfo = enable_debuginfo
+        self.build_arch = self.get_build_arch()
 
         # Split the extra make arguments provided by the user
         if extra_make_args:
@@ -107,9 +109,11 @@ class KernelBuilder(object):
         subprocess.check_call(args)
 
         # Copy the correct kernel config into place
-        # TODO Add multi-arch support later.
         escaped_source_dir = self.glob_escape(self.source_dir)
-        config = "{}/configs/kernel*x86_64.config".format(escaped_source_dir)
+        config = "{}/configs/kernel*{}.config".format(
+            escaped_source_dir,
+            self.build_arch
+        )
         config_filename = glob.glob(config)
 
         logging.info("copying Red Hat config: %s", config_filename[0])
@@ -123,6 +127,14 @@ class KernelBuilder(object):
         args = self.make_argv_base + ['tinyconfig']
         logging.info("building tinyconfig: %s", args)
         subprocess.check_call(args)
+
+    def get_build_arch(self):
+        """Determine the build architecture for the kernel build."""
+        # Detect cross-compiling via the ARCH= environment variable
+        if 'ARCH' in os.environ:
+            return os.environ['ARCH']
+
+        return platform.machine()
 
     def get_cfgpath(self):
         return "%s/.config" % self.source_dir
