@@ -219,6 +219,20 @@ debug symbols included.
 Provide additional arguments and options to `make` by using
 `--makeopts`.
 
+#### Kernel configuration file options
+
+Three kernel configuration file options are supported by `skt`:
+
+* Provide a kernel configuration file directly: `--config CONFIG_FILE_PATH`
+* Use a minimal configuration for a very small kernel: `--cfgtype tinyconfig`
+* Build kernel configuration files for Red Hat kernels: `--cfgtype rh-configs`
+
+When `rh-configs` is used, `skt` checks to see if the `ARCH` environment
+variable is set. If it is set, `skt` will select the appropriate kernel
+configuration file that matches the value of the `ARCH` variable. If it is
+not set, `skt` will check the native architecture of the current machine and
+use that architecture to select the correct kernel configuration file.
+
 ### Publish
 
 To "publish" the resulting build using the simple "cp" (copy) publisher run:
