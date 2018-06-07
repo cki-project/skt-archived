@@ -503,7 +503,8 @@ def setup_parser():
         "--merge-ref",
         nargs="+",
         help="Merge ref format: 'url [ref]'",
-        action="append"
+        action="append",
+        default=[]
     )
     parser_merge.add_argument(
         "--fetch-depth",
@@ -733,9 +734,6 @@ def load_config(args):
     elif cfg.get('reporter'):
         cfg['reporter'] = [cfg.get('reporter')[0],
                            ast.literal_eval(cfg.get('reporter')[1])]
-
-    if not cfg.get('merge_ref'):
-        cfg['merge_ref'] = []
 
     for section in config.sections():
         if section.startswith("merge-"):
