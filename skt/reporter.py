@@ -309,13 +309,14 @@ class Reporter(object):
                       'repository at' % self.mergedata['base'][1][:12],
                       '  %s' % self.mergedata['base'][0]]
 
-        if not self.cfg.get("mergelog"):
-            cfgname = "config.gz"
-            result.append('\nThe kernel was built with the attached '
-                          'configuration (%s).' % cfgname)
-            self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
-
         return result
+
+    def get_kernel_config(self, suffix=None):
+        cfgname = "config.gz" if not suffix else "config_{}.gz".format(suffix)
+
+        self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
+        return ['\nThe kernel was built with the attached configuration '
+                '(%s).' % cfgname]
 
     def getjobids(self):
         jobids = []
@@ -447,10 +448,12 @@ class Reporter(object):
 
         if self.cfg.get("mergelog"):
             msg += self.getmergefailure()
-        elif self.cfg.get("buildlog"):
-            msg += self.getbuildfailure()
         else:
-            msg += self.getjobresults()
+            self.get_kernel_config()
+            if self.cfg.get("buildlog"):
+                msg += self.getbuildfailure()
+            else:
+                msg += self.getjobresults()
 
         msg += ['\nPlease reply to this email if you find an issue with our '
                 'testing process,',
