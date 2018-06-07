@@ -19,14 +19,14 @@ import os
 import yaml
 
 
-def destroy(cfg):
+def destroy(state):
     """
     Destroy the state file.
 
     Args:
-        cfg: A dictionary of skt configuration
+        state: A dictionary of skt state
     """
-    state_file = cfg.get('state')
+    state_file = state.get('state_file')
 
     if os.path.isfile(state_file):
         try:
@@ -36,17 +36,19 @@ def destroy(cfg):
             raise exception
 
 
-def read(cfg):
+def read(state_file):
     """
     Read the state file from the disk.
 
     Args:
-        cfg: A dictionary of skt configuration
+        state_file: A path to the state file
+
+    Returns:
+        In-memory copy of state
     """
     # Return an empty state dictionary if the state file does not exist
     current_state = {}
 
-    state_file = cfg.get('state')
     logging.debug("Reading state from: %s", state_file)
 
     if os.path.isfile(state_file):
@@ -57,26 +59,33 @@ def read(cfg):
             logging.error("Failed to read state file: %s", exception)
             raise exception
 
+    current_state['state_file'] = state_file
     return current_state
 
 
-def update(cfg, state_updates):
+def update(state, state_updates):
     """
     Update the state file on disk with new state data.
 
     Args:
-        cfg:           A dictionary of skt configuration.
+        state:         A dictionary of skt state
         state_updates: A dictionary of items to update.
+
+    Returns:
+        Updated in-memory copy of state
     """
-    current_state = read(cfg)
+    state_file = state.get('state_file')
+    current_state = read(state_file)
 
     # Merge the current state and the updates.
     new_state = current_state.copy()
     new_state.update(state_updates)
 
+    # do not save the state_file path
+    del new_state['state_file']
+
     # Save the new state to the state file
     logging.debug("Saving state: %s", state_updates)
-    state_file = cfg.get('state')
 
     try:
         with open(state_file, 'w') as fileh:
@@ -85,3 +94,7 @@ def update(cfg, state_updates):
     except IOError as exception:
         logging.error("Failed to update state file: %s", exception)
         raise exception
+
+    # update in memory copy
+    new_state['state_file'] = state_file
+    return new_state

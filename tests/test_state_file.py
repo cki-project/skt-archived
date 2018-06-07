@@ -38,73 +38,81 @@ class TestStateFile(unittest.TestCase):
         tempstate = tempfile.NamedTemporaryFile(delete=False)
         tempstate.write(self.tempyaml)
         tempstate.close()
-        cfg = {'state': tempstate.name}
-        return cfg
+        return tempstate.name
 
     def test_destroy_state_file(self):
         """Ensure destroy() deletes the state file."""
-        cfg = self.prep_temporary_state_file()
+        state_name = self.prep_temporary_state_file()
+        state = state_file.read(state_name)
 
-        state_file.destroy(cfg)
-        self.assertFalse(os.path.isfile(cfg['state']))
+        state_file.destroy(state)
+        self.assertFalse(os.path.isfile(state_name))
 
     @mock.patch('os.unlink', side_effect=exception_maker)
     def test_destroy_state_file_failure(self, mockobj):
         """Ensure destroy() fails when state file cannot be deleted."""
         # pylint: disable=W0613
-        cfg = self.prep_temporary_state_file()
+        state_name = self.prep_temporary_state_file()
+        state = state_file.read(state_name)
 
         with self.assertRaises(IOError):
-            state_file.destroy(cfg)
+            state_file.destroy(state)
 
     def test_read_state_file(self):
         """Ensure read() reads the state file."""
-        cfg = self.prep_temporary_state_file()
+        state_name = self.prep_temporary_state_file()
+        expected_yaml = {
+            'state_file': state_name,
+            'foo': 'bar',
+        }
 
-        test_yaml = state_file.read(cfg)
-        self.assertDictEqual(test_yaml, {'foo': 'bar'})
+        test_yaml = state_file.read(state_name)
+        self.assertDictEqual(test_yaml, expected_yaml)
 
-        os.unlink(cfg['state'])
+        os.unlink(state_name)
 
     @mock.patch('yaml.load', side_effect=exception_maker)
     def test_read_state_file_failure(self, mockobj):
         """Ensure read() fails when state file is unreadable."""
         # pylint: disable=W0613
-        cfg = self.prep_temporary_state_file()
+        state_name = self.prep_temporary_state_file()
 
         with self.assertRaises(IOError):
-            state_file.read(cfg)
+            state_file.read(state_name)
 
-        os.unlink(cfg['state'])
+        os.unlink(state_name)
 
     def test_update_state_file(self):
         """Ensure update() updates the state file."""
-        cfg = self.prep_temporary_state_file()
+        state_name = self.prep_temporary_state_file()
+        state_data = state_file.read(state_name)
 
         # Write some new state
         new_state = {'foo2': 'bar2'}
-        state_file.update(cfg, new_state)
+        state_data = state_file.update(state_data, new_state)
 
         # Read in the state file to verify the new state was written
-        state_data = state_file.read(cfg)
+        state_data = state_file.read(state_name)
 
         expected_dict = {
+            'state_file': state_name,
             'foo': 'bar',
             'foo2': 'bar2',
         }
         self.assertDictEqual(state_data, expected_dict)
 
-        os.unlink(cfg['state'])
+        os.unlink(state_name)
 
     @mock.patch('yaml.dump', side_effect=exception_maker)
     def test_update_state_file_failure(self, mockobj):
         """Ensure update() fails when the state file cannot be updated."""
         # pylint: disable=W0613
-        cfg = self.prep_temporary_state_file()
+        state_name = self.prep_temporary_state_file()
+        state = state_file.read(state_name)
 
         # Write some new state
         new_state = {'foo2': 'bar2'}
         with self.assertRaises(IOError):
-            state_file.update(cfg, new_state)
+            state = state_file.update(state, new_state)
 
-        os.unlink(cfg['state'])
+        os.unlink(state_name)
