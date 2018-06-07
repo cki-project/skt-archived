@@ -35,8 +35,10 @@ import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder
 from skt.kerneltree import KernelTree
+import skt.state_file as state_file
 
 DEFAULTRC = "~/.sktrc"
+DEFAULT_STATE_FILE = 'skt-state.yml'
 LOGGER = logging.getLogger()
 retcode = 0
 
@@ -458,17 +460,12 @@ def setup_parser():
         help="Path to rc file",
         default=DEFAULTRC
     )
-    # FIXME Storing state in config file can break the whole system in case
-    #       state saving aborts. It's better to save state separately.
-    #       It also breaks separation of concerns, as in principle skt doesn't
-    #       need to modify its own configuration otherwise.
     parser.add_argument(
         "--state",
         help=(
-            "Save/read state from 'state' section of rc file"
+            "Path to the state file (holds information throughout testing)"
         ),
-        action="store_true",
-        default=False
+        default=DEFAULT_STATE_FILE
     )
 
     subparsers = parser.add_subparsers()
@@ -779,6 +776,15 @@ def main():
 
     setup_logging(args.verbose)
     cfg = load_config(args)
+
+    state = state_file.read(args.state)
+
+    # If state file does not exist, create it using config file as defaults
+    if not os.path.isfile(args.state):
+        state_file.update(state, cfg)
+
+    # let command line args overwrite options in saved state file
+    state_file.update(state, args)
 
     args.func(cfg)
     if cfg.get('junit'):
