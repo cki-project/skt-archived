@@ -100,14 +100,14 @@ def junit(func):
     Return:
         The created function.
     """
-    def wrapper(cfg):
+    def wrapper(state):
         global retcode
-        if cfg.get('junit'):
+        if state.get('junit'):
             tstart = time.time()
             tc = junit_xml.TestCase(func.__name__, classname="skt")
 
             try:
-                func(cfg)
+                func(state)
             except Exception:
                 logging.error("Exception caught: %s", traceback.format_exc())
                 tc.add_failure_info(traceback.format_exc())
@@ -117,42 +117,42 @@ def junit(func):
             if retcode != 0 and not tc.is_failure():
                 tc.add_failure_info("Step finished with retcode: %d" % retcode)
 
-            tc.stdout = json.dumps(cfg, default=str)
+            tc.stdout = json.dumps(state, default=str)
             tc.elapsed_sec = time.time() - tstart
-            cfg['_testcases'].append(tc)
+            state['_testcases'].append(tc)
         else:
-            func(cfg)
+            func(state)
     return wrapper
 
 
 @junit
-def cmd_merge(cfg):
+def cmd_merge(state):
     """
     Fetch a kernel repository, checkout particular references, and optionally
     apply patches from patchwork instances.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        state:    A dictionary of skt state.
     """
     global retcode
     utypes = []
     ktree = KernelTree(
-        cfg.get('baserepo'),
-        ref=cfg.get('ref'),
-        wdir=cfg.get('workdir'),
-        fetch_depth=cfg.get('fetch_depth')
+        state.get('baserepo'),
+        ref=state.get('ref'),
+        wdir=state.get('workdir'),
+        fetch_depth=state.get('fetch_depth')
     )
     bhead = ktree.checkout()
     commitdate = ktree.get_commit_date(bhead)
-    save_state(cfg, {'baserepo': cfg.get('baserepo'),
-                     'basehead': bhead,
-                     'commitdate': commitdate})
+    save_state(state, {'baserepo': state.get('baserepo'),
+                       'basehead': bhead,
+                       'commitdate': commitdate})
 
     try:
         idx = 0
-        for mb in cfg.get('merge_ref'):
-            save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
-                             'mergehead_%02d' % idx: bhead})
+        for mb in state.get('merge_ref'):
+            save_state(state, {'mergerepo_%02d' % idx: mb[0],
+                               'mergehead_%02d' % idx: bhead})
             (retcode, _) = ktree.merge_git_ref(*mb)
 
             utypes.append("[git]")
@@ -160,23 +160,26 @@ def cmd_merge(cfg):
             if retcode:
                 return
 
-        if cfg.get('patchlist'):
+        if state.get('patchlist'):
             utypes.append("[local patch]")
             idx = 0
-            for patch in cfg.get('patchlist'):
-                save_state(cfg, {'localpatch_%02d' % idx: patch})
+            for patch in state.get('patchlist'):
+
+                # Save state data about this local patch
+                state_file.update(state, {'localpatch_%02d' % idx: patch})
+
                 ktree.merge_patch_file(os.path.abspath(patch))
                 idx += 1
 
-        if cfg.get('pw'):
+        if state.get('pw'):
             utypes.append("[patchwork]")
             idx = 0
-            for patch in cfg.get('pw'):
-                save_state(cfg, {'patchwork_%02d' % idx: patch})
+            for patch in state.get('pw'):
+                save_state(state, {'patchwork_%02d' % idx: patch})
                 ktree.merge_patchwork_patch(patch)
                 idx += 1
     except Exception as e:
-        save_state(cfg, {'mergelog': ktree.mergelog})
+        save_state(state, {'mergelog': ktree.mergelog})
         raise e
 
     uid = "[baseline]"
@@ -187,69 +190,69 @@ def cmd_merge(cfg):
     buildinfo = ktree.dumpinfo()
     buildhead = ktree.get_commit_hash()
 
-    save_state(cfg, {'workdir': kpath,
-                     'buildinfo': buildinfo,
-                     'buildhead': buildhead,
-                     'uid': uid})
+    save_state(state, {'workdir': kpath,
+                       'buildinfo': buildinfo,
+                       'buildhead': buildhead,
+                       'uid': uid})
 
 
 @junit
-def cmd_build(cfg):
+def cmd_build(state):
     """
     Build the kernel with specified configuration and put it into a tarball.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        state:    A dictionary of skt state.
     """
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
 
     builder = KernelBuilder(
-        source_dir=cfg.get('workdir'),
-        basecfg=cfg.get('baseconfig'),
-        cfgtype=cfg.get('cfgtype'),
-        extra_make_args=cfg.get('makeopts'),
-        enable_debuginfo=cfg.get('enable_debuginfo')
+        source_dir=state.get('workdir'),
+        basecfg=state.get('baseconfig'),
+        cfgtype=state.get('cfgtype'),
+        extra_make_args=state.get('makeopts'),
+        enable_debuginfo=state.get('enable_debuginfo')
     )
 
     # Clean the kernel source with 'make mrproper' if requested.
-    if cfg.get('wipe'):
+    if state.get('wipe'):
         builder.clean_kernel_source()
 
     try:
         tgz = builder.mktgz()
     except Exception as e:
-        save_state(cfg, {'buildlog': builder.buildlog})
+        save_state(state, {'buildlog': builder.buildlog})
         raise e
 
-    if cfg.get('buildhead'):
-        ttgz = "%s.tar.gz" % cfg.get('buildhead')
+    if state.get('buildhead'):
+        ttgz = "%s.tar.gz" % state.get('buildhead')
     else:
         ttgz = addtstamp(tgz, tstamp)
     os.rename(tgz, ttgz)
     logging.info("tarball path: %s", ttgz)
 
     tbuildinfo = None
-    if cfg.get('buildinfo'):
-        if cfg.get('buildhead'):
-            tbuildinfo = "%s.csv" % cfg.get('buildhead')
+    if state.get('buildinfo'):
+        if state.get('buildhead'):
+            tbuildinfo = "%s.csv" % state.get('buildhead')
         else:
-            tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
-        os.rename(cfg.get('buildinfo'), tbuildinfo)
+            tbuildinfo = addtstamp(state.get('buildinfo'), tstamp)
+        os.rename(state.get('buildinfo'), tbuildinfo)
 
     tconfig = "%s.config" % tbuildinfo
     shutil.copyfile(builder.get_cfgpath(), tconfig)
 
     krelease = builder.getrelease()
 
-    save_state(cfg, {'tarpkg': ttgz,
-                     'buildinfo': tbuildinfo,
-                     'buildconf': tconfig,
-                     'krelease': krelease})
+    save_state(state, {'tarpkg': ttgz,
+                       'buildinfo': tbuildinfo,
+                       'buildconf': tconfig,
+                       'krelease': krelease})
 
 
 @junit
-def cmd_publish(cfg):
+def cmd_publish(state):
     """
     Publish (copy) the kernel tarball, configuration, and build information to
     the specified location, generating their resulting URLs, using the
@@ -257,93 +260,94 @@ def cmd_publish(cfg):
     moment.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        state:    A dictionary of skt state.
     """
-    publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
+    publisher = skt.publisher.getpublisher(*state.get('publisher'))
 
-    if not cfg.get('tarpkg'):
+    if not state.get('tarpkg'):
         raise Exception("skt publish is missing \"--tarpkg <path>\" option")
 
     infourl = None
     cfgurl = None
 
-    url = publisher.publish(cfg.get('tarpkg'))
+    url = publisher.publish(state.get('tarpkg'))
     logging.info("published url: %s", url)
 
-    if cfg.get('buildinfo'):
-        infourl = publisher.publish(cfg.get('buildinfo'))
+    if state.get('buildinfo'):
+        infourl = publisher.publish(state.get('buildinfo'))
 
-    if cfg.get('buildconf'):
-        cfgurl = publisher.publish(cfg.get('buildconf'))
+    if state.get('buildconf'):
+        cfgurl = publisher.publish(state.get('buildconf'))
 
-    save_state(cfg, {'buildurl': url,
-                     'cfgurl': cfgurl,
-                     'infourl': infourl})
+    save_state(state, {'buildurl': url,
+                       'cfgurl': cfgurl,
+                       'infourl': infourl})
 
 
 @junit
-def cmd_run(cfg):
+def cmd_run(state):
     """
     Run tests on a built kernel using the specified "runner". Only "Beaker"
     runner is currently supported.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        state:    A dictionary of skt state.
     """
     global retcode
-    runner = skt.runner.getrunner(*cfg.get('runner'))
-    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                         cfg.get('wait'), uid=cfg.get('uid'))
+    runner = skt.runner.getrunner(*state.get('runner'))
+    retcode = runner.run(state.get('buildurl'), state.get('krelease'),
+                         state.get('wait'), uid=state.get('uid'))
 
     idx = 0
     for job in runner.jobs:
-        if cfg.get('wait') and cfg.get('junit'):
-            runner.dumpjunitresults(job, cfg.get('junit'))
-        save_state(cfg, {'jobid_%s' % (idx): job})
+        if state.get('wait') and state.get('junit'):
+            runner.dumpjunitresults(job, state.get('junit'))
+        save_state(state, {'jobid_%s' % (idx): job})
         idx += 1
 
-    cfg['jobs'] = runner.jobs
+    state['jobs'] = runner.jobs
 
-    if retcode and cfg.get('basehead') and cfg.get('publisher') \
-            and cfg.get('basehead') != cfg.get('buildhead'):
+    if retcode and state.get('basehead') and state.get('publisher') \
+            and state.get('basehead') != state.get('buildhead'):
         # TODO: there is a chance that baseline 'krelease' is different
-        baserunner = skt.runner.getrunner(*cfg.get('runner'))
-        publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
-        baseurl = publisher.geturl("%s.tar.gz" % cfg.get('basehead'))
+        baserunner = skt.runner.getrunner(*state.get('runner'))
+        publisher = skt.publisher.getpublisher(*state.get('publisher'))
+        baseurl = publisher.geturl("%s.tar.gz" % state.get('basehead'))
         basehost = runner.get_mfhost()
-        baseres = baserunner.run(baseurl, cfg.get('krelease'), cfg.get('wait'),
+        baseres = baserunner.run(baseurl, state.get('krelease'),
+                                 state.get('wait'),
                                  host=basehost, uid="baseline check",
                                  reschedule=False)
-        save_state(cfg, {'baseretcode': baseres})
+        save_state(state, {'baseretcode': baseres})
 
         # If baseline also fails - assume pass
         if baseres:
             retcode = 0
 
-    save_state(cfg, {'retcode': retcode})
+    save_state(state, {'retcode': retcode})
 
 
-def cmd_report(cfg):
+def cmd_report(state):
     """
     Report build and/or test results using the specified "reporter". Currently
     results can be reported by e-mail or printed to stdout.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        state:    A dictionary of skt state.
     """
-    if not cfg.get("reporter"):
+    if not state.get("reporter"):
         return
 
     # FIXME This is violation of composition. This basically passes the whole
     # configuration object to reporter, so it can access anything. Pass the
     # needed data explicitly instead, or deal with it outside reporter, if
     # that is unsuitable.
-    cfg['reporter'][1].update({'cfg': cfg})
-    reporter = skt.reporter.getreporter(*cfg.get('reporter'))
+    state['reporter'][1].update({'state': state})
+    reporter = skt.reporter.getreporter(*state.get('reporter'))
     reporter.report()
 
 
-def cmd_cleanup(cfg):
+def cmd_cleanup(state):
     """
     Remove the build information file, kernel tarball. Remove state information
     from the configuration file, if saving state was enabled with the global
@@ -351,45 +355,45 @@ def cmd_cleanup(cfg):
     --wipe option was specified.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        state:    A dictionary of skt state.
     """
-    config = cfg.get('_parser')
+    config = state.get('_parser')
     if config.has_section('state'):
         config.remove_section('state')
-        with open(cfg.get('rc'), 'w') as fileh:
+        with open(state.get('rc'), 'w') as fileh:
             config.write(fileh)
 
-    if cfg.get('buildinfo'):
+    if state.get('buildinfo'):
         try:
-            os.unlink(cfg.get('buildinfo'))
+            os.unlink(state.get('buildinfo'))
         except OSError:
             pass
 
-    if cfg.get('tarpkg'):
+    if state.get('tarpkg'):
         try:
-            os.unlink(cfg.get('tarpkg'))
+            os.unlink(state.get('tarpkg'))
         except OSError:
             pass
 
-    if cfg.get('wipe') and cfg.get('workdir'):
-        shutil.rmtree(cfg.get('workdir'))
+    if state.get('wipe') and state.get('workdir'):
+        shutil.rmtree(state.get('workdir'))
 
 
-def cmd_all(cfg):
+def cmd_all(state):
     """
     Run the following commands in order: merge, build, publish, run, report (if
     --wait option was specified), and cleanup.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        state:    A dictionary of skt state.
     """
-    cmd_merge(cfg)
-    cmd_build(cfg)
-    cmd_publish(cfg)
-    cmd_run(cfg)
-    if cfg.get('wait'):
-        cmd_report(cfg)
-    cmd_cleanup(cfg)
+    cmd_merge(state)
+    cmd_build(state)
+    cmd_publish(state)
+    cmd_run(state)
+    if state.get('wait'):
+        cmd_report(state)
+    cmd_cleanup(state)
 
 
 def addtstamp(path, tstamp):
@@ -786,10 +790,11 @@ def main():
     # let command line args overwrite options in saved state file
     state_file.update(state, args)
 
-    args.func(cfg)
-    if cfg.get('junit'):
-        ts = junit_xml.TestSuite("skt", cfg.get('_testcases'))
-        with open("%s/%s.xml" % (cfg.get('junit'), args._name), 'w') as fileh:
+    args.func(state)
+    if state.get('junit'):
+        ts = junit_xml.TestSuite("skt", state.get('_testcases'))
+        junit = state.get('junit')
+        with open("%s/%s.xml" % (junit, args._name), 'w') as fileh:
             junit_xml.TestSuite.to_file(fileh, [ts])
 
     sys.exit(retcode)
