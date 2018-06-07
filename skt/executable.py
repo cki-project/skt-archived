@@ -16,7 +16,6 @@
 
 import ConfigParser
 import argparse
-import ast
 import datetime
 import json
 import logging
@@ -46,34 +45,6 @@ retcode = 0
 def full_path(path):
     """Get an absolute path to a file"""
     return os.path.abspath(os.path.expanduser(path))
-
-
-def save_state(cfg, state):
-    """
-    Merge state to cfg, and then save cfg.
-
-    Args:
-        cfg:    A dictionary of skt configuration.
-        state:  A dictionary of skt current state.
-    """
-
-    for (key, val) in state.iteritems():
-        cfg[key] = val
-
-    if not cfg.get('state'):
-        return
-
-    config = cfg.get('_parser')
-    if not config.has_section("state"):
-        config.add_section("state")
-
-    for (key, val) in state.iteritems():
-        if val is not None:
-            logging.debug("state: %s -> %s", key, val)
-            config.set('state', key, val)
-
-    with open(cfg.get('rc'), 'w') as fileh:
-        config.write(fileh)
 
 
 def junit(func):
@@ -392,12 +363,6 @@ def cmd_cleanup(state):
     Args:
         state:    A dictionary of skt state.
     """
-    config = state.get('_parser')
-    if config.has_section('state'):
-        config.remove_section('state')
-        with open(state.get('rc'), 'w') as fileh:
-            config.write(fileh)
-
     if state.get('buildinfo'):
         try:
             os.unlink(state.get('buildinfo'))
@@ -705,104 +670,42 @@ def load_config(args):
     Returns:
         Loaded configuration dictionary.
     """
+    cfg = {}
+
     # NOTE(mhayden): The shell should do any tilde expansions on the path
     # before the rc path is provided to Python.
     config = ConfigParser.ConfigParser()
-    config.read(os.path.abspath(args.rc))
-
-    cfg = vars(args)
-    cfg['_parser'] = config
-    cfg['_testcases'] = []
-
-    # Read 'state' section first so that it is not overwritten by 'config'
-    # section values.
-    if cfg.get('state') and config.has_section('state'):
-        for (name, value) in config.items('state'):
-            if not cfg.get(name):
-                if name.startswith("jobid_"):
-                    if "jobs" not in cfg:
-                        cfg["jobs"] = set()
-                    cfg["jobs"].add(value)
-                elif name.startswith("mergerepo_"):
-                    if "mergerepos" not in cfg:
-                        cfg["mergerepos"] = list()
-                    cfg["mergerepos"].append(value)
-                elif name.startswith("mergehead_"):
-                    if "mergeheads" not in cfg:
-                        cfg["mergeheads"] = list()
-                    cfg["mergeheads"].append(value)
-                elif name.startswith("localpatch_"):
-                    if "localpatches" not in cfg:
-                        cfg["localpatches"] = list()
-                    cfg["localpatches"].append(value)
-                elif name.startswith("patchwork_"):
-                    if "patchworks" not in cfg:
-                        cfg["patchworks"] = list()
-                    cfg["patchworks"].append(value)
-                cfg[name] = value
+    config.read(os.path.expanduser(args.rc))
 
     if config.has_section('config'):
         for (name, value) in config.items('config'):
             if not cfg.get(name):
                 cfg[name] = value
 
-    if config.has_section('publisher') and not cfg.get('publisher'):
+    if config.has_section('publisher'):
         cfg['publisher'] = [config.get('publisher', 'type'),
                             config.get('publisher', 'destination'),
                             config.get('publisher', 'baseurl')]
 
-    if config.has_section('runner') and not cfg.get('runner'):
+    if config.has_section('runner'):
         rcfg = {}
         for (key, val) in config.items('runner'):
             if key != 'type':
                 rcfg[key] = val
         cfg['runner'] = [config.get('runner', 'type'), rcfg]
-    elif cfg.get('runner'):
-        cfg['runner'] = [cfg.get('runner')[0],
-                         ast.literal_eval(cfg.get('runner')[1])]
 
-    if config.has_section('reporter') and not cfg.get('reporter'):
+    if config.has_section('reporter'):
         rcfg = {}
         for (key, val) in config.items('reporter'):
             if key != 'type':
                 rcfg[key] = val
         cfg['reporter'] = [config.get('reporter', 'type'), rcfg]
-    elif cfg.get('reporter'):
-        cfg['reporter'] = [cfg.get('reporter')[0],
-                           ast.literal_eval(cfg.get('reporter')[1])]
-
-    for section in config.sections():
-        if section.startswith("merge-"):
-            mdesc = [config.get(section, 'url')]
-            if config.has_option(section, 'ref'):
-                mdesc.append(config.get(section, 'ref'))
-            cfg['merge_ref'].append(mdesc)
 
     # Get an absolute path for the work directory
     if cfg.get('workdir'):
         cfg['workdir'] = full_path(cfg.get('workdir'))
     else:
         cfg['workdir'] = tempfile.mkdtemp()
-
-    # Get an absolute path for the kernel configuration file
-    if cfg.get('basecfg'):
-        cfg['basecfg'] = full_path(cfg.get('basecfg'))
-
-    # Get an absolute path for the configuration file
-    if cfg.get('rc'):
-        cfg['rc'] = full_path(cfg.get('rc'))
-
-    # Get an absolute path for the buildinfo
-    if cfg.get('buildinfo'):
-        cfg['buildinfo'] = full_path(cfg.get('buildinfo'))
-
-    # Get an absolute path for the buildconf
-    if cfg.get('buildconf'):
-        cfg['buildconf'] = full_path(cfg.get('buildconf'))
-
-    # Get an absolute path for the tarpkg
-    if cfg.get('tarpkg'):
-        cfg['tarpkg'] = full_path(cfg.get('tarpkg'))
 
     return cfg
 
