@@ -144,16 +144,25 @@ def cmd_merge(state):
     )
     bhead = ktree.checkout()
     commitdate = ktree.get_commit_date(bhead)
-    save_state(state, {'baserepo': state.get('baserepo'),
-                       'basehead': bhead,
-                       'commitdate': commitdate})
+
+    # Save state data about the merge before applying any patches
+    state_update = {
+        'baserepo': state.get('baserepo'),
+        'basehead': bhead,
+        'commitdate': commitdate
+    }
+    state = state_file.update(state, state_update)
 
     try:
         idx = 0
         for mb in state.get('merge_ref'):
-            save_state(state, {'mergerepo_%02d' % idx: mb[0],
-                               'mergehead_%02d' % idx: bhead})
-            (retcode, _) = ktree.merge_git_ref(*mb)
+
+            # Save state data about the ref we are merging
+            state_update = {
+                'mergerepo_%02d' % idx: mb[0],
+                'mergehead_%02d' % idx: bhead
+            }
+            state = state_file.update(state, state_update)
 
             utypes.append("[git]")
             idx += 1
@@ -166,7 +175,8 @@ def cmd_merge(state):
             for patch in state.get('patchlist'):
 
                 # Save state data about this local patch
-                state_file.update(state, {'localpatch_%02d' % idx: patch})
+                state = state_file.update(state,
+                                          {'localpatch_%02d' % idx: patch})
 
                 ktree.merge_patch_file(os.path.abspath(patch))
                 idx += 1
@@ -175,11 +185,16 @@ def cmd_merge(state):
             utypes.append("[patchwork]")
             idx = 0
             for patch in state.get('pw'):
-                save_state(state, {'patchwork_%02d' % idx: patch})
+
+                # Save state data about this patchwork patch
+                state = state_file.update(state,
+                                          {'patchwork_%02d' % idx: patch})
+
                 ktree.merge_patchwork_patch(patch)
                 idx += 1
     except Exception as e:
-        save_state(state, {'mergelog': ktree.mergelog})
+        # Save state data about any exceptions that occurred during the merge
+        state = state_file.update(state, {'mergelog': ktree.mergelog})
         raise e
 
     uid = "[baseline]"
@@ -190,10 +205,15 @@ def cmd_merge(state):
     buildinfo = ktree.dumpinfo()
     buildhead = ktree.get_commit_hash()
 
-    save_state(state, {'workdir': kpath,
-                       'buildinfo': buildinfo,
-                       'buildhead': buildhead,
-                       'uid': uid})
+    # Now that the merging is complete, save state data about the results of
+    # the merge.
+    state_update = {
+        'workdir': kpath,
+        'buildinfo': buildinfo,
+        'buildhead': buildhead,
+        'uid': uid
+    }
+    state = state_file.update(state, state_update)
 
 
 @junit
@@ -222,7 +242,8 @@ def cmd_build(state):
     try:
         tgz = builder.mktgz()
     except Exception as e:
-        save_state(state, {'buildlog': builder.buildlog})
+        # Save state data about any exceptions during the kernel build
+        state = state_file.update(state, {'buildlog': builder.buildlog})
         raise e
 
     if state.get('buildhead'):
@@ -245,10 +266,14 @@ def cmd_build(state):
 
     krelease = builder.getrelease()
 
-    save_state(state, {'tarpkg': ttgz,
-                       'buildinfo': tbuildinfo,
-                       'buildconf': tconfig,
-                       'krelease': krelease})
+    # Save state data about the completed build
+    state_update = {
+        'tarpkg': ttgz,
+        'buildinfo': tbuildinfo,
+        'buildconf': tconfig,
+        'krelease': krelease
+    }
+    state = state_file.update(state, state_update)
 
 
 @junit
@@ -279,9 +304,13 @@ def cmd_publish(state):
     if state.get('buildconf'):
         cfgurl = publisher.publish(state.get('buildconf'))
 
-    save_state(state, {'buildurl': url,
-                       'cfgurl': cfgurl,
-                       'infourl': infourl})
+    # Save state data for the publishing of the kernel build
+    state_update = {
+        'buildurl': url,
+        'cfgurl': cfgurl,
+        'infourl': infourl
+    }
+    state = state_file.update(state, state_update)
 
 
 @junit
@@ -302,7 +331,10 @@ def cmd_run(state):
     for job in runner.jobs:
         if state.get('wait') and state.get('junit'):
             runner.dumpjunitresults(job, state.get('junit'))
-        save_state(state, {'jobid_%s' % (idx): job})
+
+        # Save the Beaker jobid to the state file
+        state = state_file.update(state, {'jobid_%s' % (idx): job})
+
         idx += 1
 
     state['jobs'] = runner.jobs
@@ -318,13 +350,16 @@ def cmd_run(state):
                                  state.get('wait'),
                                  host=basehost, uid="baseline check",
                                  reschedule=False)
-        save_state(state, {'baseretcode': baseres})
+
+        # Save the result of the beaker job call to the state file
+        state = state_file.update(state, {'baseretcode': baseres})
 
         # If baseline also fails - assume pass
         if baseres:
             retcode = 0
 
-    save_state(state, {'retcode': retcode})
+    # Save the return code of the call to beaker to start a job
+    state = state_file.update(state, {'retcode': retcode})
 
 
 def cmd_report(state):
@@ -779,16 +814,17 @@ def main():
     args = parser.parse_args()
 
     setup_logging(args.verbose)
-    cfg = load_config(args)
 
     state = state_file.read(args.state)
 
     # If state file does not exist, create it using config file as defaults
     if not os.path.isfile(args.state):
-        state_file.update(state, cfg)
+        # Load skt's config from the rc file
+        cfg = load_config(args)
+        state = state_file.update(state, cfg)
 
     # let command line args overwrite options in saved state file
-    state_file.update(state, args)
+    state = state_file.update(state, vars(args))
 
     args.func(state)
     if state.get('junit'):

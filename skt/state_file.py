@@ -83,6 +83,8 @@ def update(state, state_updates):
 
     # do not save the state_file path
     del new_state['state_file']
+    if 'func' in new_state:
+        del new_state['func']
 
     # Save the new state to the state file
     logging.debug("Saving state: %s", state_updates)
