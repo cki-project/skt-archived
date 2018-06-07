@@ -458,8 +458,15 @@ class Reporter(object):
                 '\nSincerely,',
                 '  Kernel CI Team']
 
-        if self.attach and self.attach[0][0] == "config":
-            self.attach.append(self.attach.pop(0))
+        # Move configuration attachments to the end because some mail clients
+        # (eg. mutt) inline them and they are huge
+        # It's not safe to iterate over changing list so let's use a helper
+        config_attachments = [attachment for attachment in self.attach
+                              if 'config' in attachment[0]]
+        self.attach = [
+            attachment for attachment in self.attach
+            if attachment not in config_attachments
+        ] + config_attachments
 
         return '\n'.join(msg)
 
@@ -496,7 +503,7 @@ class StdioReporter(Reporter):
         print(self.getreport())
 
         for (name, att) in self.attach:
-            if name.endswith(('.log', '.txt', 'config')):
+            if name.endswith(('.log', '.txt')):
                 print("\n---------------\n", name, sep='')
                 print(att)
 
@@ -544,7 +551,7 @@ class MailReporter(Reporter):
 
         for (name, att) in self.attach:
             # TODO Store content type and charset when adding attachments
-            if name.endswith(('.log', '.txt', 'config')):
+            if name.endswith(('.log', '.txt')):
                 tmp = MIMEText(att, _charset='utf-8')
                 tmp.add_header("content-disposition", "attachment",
                                filename=name)
