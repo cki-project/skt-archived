@@ -343,8 +343,8 @@ class Reporter(object):
 
         return result
 
-    def getbuildfailure(self):
-        attname = "build.log.gz"
+    def getbuildfailure(self, suffix=None):
+        attname = "build.log.gz" if not suffix else "build_%s.log.gz" % suffix
         result = ['However, the build failed. We are attaching the build '
                   'output for',
                   'more information (%s).' % attname]
