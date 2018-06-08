@@ -428,7 +428,7 @@ class BeakerRunner(Runner):
 
         return jobid
 
-    def run(self, url, release, wait=False, host=None, uid="",
+    def run(self, url, release, wait=False, host=None, uid="", arch="x86_64",
             reschedule=True):
         ret = 0
         self.failures = {}
@@ -448,6 +448,7 @@ class BeakerRunner(Runner):
         jobid = self.jobsubmit(self.getxml({'KVER': release,
                                             'KPKG_URL': url,
                                             'UID': uid,
+                                            'ARCH': arch,
                                             'HOSTNAME': hostname,
                                             'HOSTNAMETAG': hostnametag}))
 

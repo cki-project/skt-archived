@@ -68,6 +68,15 @@ class TestRunner(unittest.TestCase):
         expected_xml = self.test_xml.replace("##KVER##", "kernel-4.16")
         self.assertEqual(result, expected_xml)
 
+    def test_getxml_multi_replace(self):
+        """
+        Ensure BeakerRunner.getxml() returns xml with multi-instance
+        replacements.
+        """
+        result = self.myrunner.getxml({'ARCH': 's390x'})
+        expected_xml = self.test_xml.replace("##ARCH##", "s390x")
+        self.assertEqual(result, expected_xml)
+
     @mock.patch('subprocess.Popen')
     def test_getresultstree(self, mock_popen):
         """Ensure getresultstree() works"""
