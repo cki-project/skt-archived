@@ -1,4 +1,42 @@
-<xml>
-  <test>This is test xml!</test>
-  <test_replace>##TEST##</test_replace>
-</xml>
+<job>
+  <whiteboard>skt ##KVER## ##UID## ##HOSTNAME##[noavc] [noselinux]</whiteboard>
+  <recipeSet>
+    <recipe ks_meta="harness='restraint-rhts beakerlib-redhat'" kernel_options="selinux=0" whiteboard="##KVER##">
+      <distroRequires>
+        <and>
+          <distro_family op="=" value="Fedora26"/>
+          <distro_tag op="=" value="RELEASED"/>
+          <distro_variant op="=" value="Server"/>
+          <distro_arch op="=" value="##ARCH##"/>
+        </and>
+      </distroRequires>
+      <hostRequires>
+        <and>
+          <arch op="=" value="##ARCH##"/>
+          ##HOSTNAMETAG##
+        </and>
+      </hostRequires>
+      <repos/>
+      <partitions/>
+      <ks_appends/>
+      <task name="/distribution/install" role="STANDALONE">
+        <params/>
+      </task>
+      <task name="/distribution/command" role="None">
+        <params>
+          <param name="CMDS_TO_RUN" value="rm /usr/share/restraint/plugins/report_result.d/10_avc_check"/>
+        </params>
+      </task>
+        <task name="/test/misc/machineinfo">
+        <fetch url="https://github.com/RH-FMK/tests-beaker.git?master#test/misc/machineinfo"/>
+      </task>
+      <task name="/distribution/kpkginstall" role="STANDALONE">
+        <fetch url="https://github.com/RH-FMK/tests-beaker.git?master#distribution/kpkginstall"/>
+        <params>
+          <param name="KPKG_URL" value="##KPKG_URL##"/>
+          <param name="KVER" value="##KVER##"/>
+        </params>
+      </task>
+    </recipe>
+  </recipeSet>
+</job>

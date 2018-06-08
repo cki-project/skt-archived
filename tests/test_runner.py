@@ -64,8 +64,8 @@ class TestRunner(unittest.TestCase):
 
     def test_getxml_replace(self):
         """Ensure BeakerRunner.getxml() returns xml with replacements"""
-        result = self.myrunner.getxml({'TEST': 'replaced text'})
-        expected_xml = self.test_xml.replace("##TEST##", "replaced text")
+        result = self.myrunner.getxml({'KVER': 'kernel-4.16'})
+        expected_xml = self.test_xml.replace("##KVER##", "kernel-4.16")
         self.assertEqual(result, expected_xml)
 
     @mock.patch('subprocess.Popen')
