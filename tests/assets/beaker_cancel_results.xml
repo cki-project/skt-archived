@@ -1,4 +1,7 @@
 <xml result='Fail' status='Cancelled'>
+  <whiteboard>
+    skt 4.17.0-rc1+ 1234567890.tar.gz [noavc] [noselinux]
+  </whiteboard>
   <recipeSet>
     <recipe>
       <logs>
