@@ -596,6 +596,12 @@ def setup_parser():
         nargs=2,
         type=str,
         help="Reporter config in 'type \"{'key' : 'val', ...}\"' format")
+    parser_report.add_argument(
+        '--states',
+        nargs='+',
+        type=str,
+        help='List of state file paths to build the report from'
+    )
     parser_report.set_defaults(func=cmd_report)
     parser_report.set_defaults(_name="report")
 
@@ -772,6 +778,10 @@ def load_config(args):
     # Get an absolute path for the tarpkg
     if cfg.get('tarpkg'):
         cfg['tarpkg'] = full_path(cfg.get('tarpkg'))
+
+    # Get absolute paths to state files for multireport
+    for idx, statefile_path in enumerate(cfg.get('states', [])):
+        cfg['states'][idx] = full_path(statefile_path)
 
     return cfg
 

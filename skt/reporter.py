@@ -12,6 +12,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 from __future__ import print_function
+import ConfigParser
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -26,6 +27,13 @@ import requests
 
 import skt
 import skt.runner
+
+
+MULTI_PASS = 0
+MULTI_MERGE = 1
+MULTI_BUILD = 2
+MULTI_TEST = 3
+MULTI_RETCODE = -1
 
 
 def gzipdata(data):
@@ -212,6 +220,19 @@ class Reporter(object):
         self.attach = list()
         # TODO Describe
         self.mergedata = None
+        # Use explicit flag to determine if a single report for multiple test
+        # runs should be generated
+        self.multireport = True if cfg.get('states') else False
+        # Save list of state files because self.cfg will be overwritten. This
+        # can be changed to access a specific parameter after the FIXME with
+        # passing only explicit parameters is implemented. Only test run and
+        # runner info is used during reporting so we are good to go.
+        self.statefiles = cfg.get('states', [])
+        # Notion of failure for subject creation with multireporting. The
+        # earliest problem in the pipeline is reported.
+        self.multireport_failed = MULTI_PASS
+        # Aggregate value for retcode
+        self.multiretcode = MULTI_PASS
 
     def infourldata(self, mergedata):
         response = requests.get(self.cfg.get("infourl"))
@@ -402,6 +423,9 @@ class Reporter(object):
                 result.append("Result: %s" % res)
 
                 if res != "Pass":
+                    if self.multireport and not self.multireport_failed:
+                        self.multireport_failed = MULTI_TEST
+
                     logging.info("Failure detected in recipe %s, attaching "
                                  "console log", recipe)
                     ctraces = clog.gettraces()
@@ -473,6 +497,121 @@ class Reporter(object):
 
         return '\n'.join(msg)
 
+    def load_state_cfg(self, statefile):
+        """
+        Load state info from statefile and reassign to self.cfg.
+
+        Raises: Exception if required 'runner' section is missing
+        """
+        self.cfg = {}
+        state_to_report = ConfigParser.ConfigParser()
+        state_to_report.read(statefile)
+
+        # FIXME This can be simplified or removed after configuration and
+        # state split
+        for (name, value) in state_to_report.items('state'):
+            if not self.cfg.get(name):
+                if name.startswith('jobid_'):
+                    if 'jobs' not in self.cfg:
+                        self.cfg['jobs'] = set()
+                    self.cfg['jobs'].add(value)
+                elif name.startswith('mergerepo_'):
+                    if 'mergerepos' not in self.cfg:
+                        self.cfg['mergerepos'] = list()
+                    self.cfg['mergerepos'].append(value)
+                elif name.startswith('mergehead_'):
+                    if 'mergeheads' not in self.cfg:
+                        self.cfg['mergeheads'] = list()
+                    self.cfg['mergeheads'].append(value)
+                elif name.startswith('localpatch_'):
+                    if 'localpatches' not in self.cfg:
+                        self.cfg['localpatches'] = list()
+                    self.cfg['localpatches'].append(value)
+                elif name.startswith('patchwork_'):
+                    if 'patchworks' not in self.cfg:
+                        self.cfg['patchworks'] = list()
+                    self.cfg['patchworks'].append(value)
+                self.cfg[name] = value
+
+        # Get runner info
+        if not state_to_report.has_section('runner'):
+            raise Exception(
+                'Statefile %s is missing "runner" section!' % statefile
+            )
+        runner_config = {}
+        for (key, val) in state_to_report.items('runner'):
+            if key != 'type':
+                runner_config[key] = val
+            self.cfg['runner'] = [state_to_report.get('runner', 'type'),
+                                  runner_config]
+
+    def get_multireport(self):
+        msg = ['Hello,\n',
+               'We appreciate your contributions to the Linux kernel and '
+               'would like to help',
+               'test them. Below are the results of automatic tests we ran']
+
+        for idx, statefile in enumerate(self.statefiles):
+            self.load_state_cfg(statefile)
+            self.update_mergedata()
+
+            # The patches applied should be same for all runs but we need to
+            # include the information only once
+            if not idx:
+                if self.mergedata['localpatch'] or self.mergedata['patchwork']:
+                    msg[-1] += ' on a patchset'
+                    msg += ['you\'re involved with, with hope it will help '
+                            'you find possible issues sooner.']
+                else:
+                    # There is no patchset the person was involved with
+                    msg[-1] += ', with hope it'
+                    msg += ['will help you find possible issues sooner.']
+
+                msg += ['\n'] + self.getmergeinfo() + ['']
+
+                # We use the same tree for all runs so any merge failures are
+                # same as well.
+                if self.cfg.get('mergelog'):
+                    self.multireport_failed = MULTI_MERGE
+                    msg += self.getmergefailure()
+
+            marker = self.cfg.get('arch', str(idx + 1))
+            msg += ['\n##### These are the results for %s' %
+                    (marker + ' architecture' if self.cfg.get('arch')
+                     else 'test set %s' % marker)]
+            if not self.cfg.get('mergelog'):
+                msg += self.get_kernel_config(marker)
+
+                if self.cfg.get('buildlog'):
+                    if not self.multireport_failed:
+                        self.multireport_failed = MULTI_BUILD
+                    msg += self.getbuildfailure(marker)
+                else:
+                    msg += self.getjobresults()
+
+            msg.append('\n')
+
+            if self.cfg.get('retcode') != '0':
+                self.multiretcode = MULTI_RETCODE
+
+        msg += ['Please reply to this email if you find an issue with our '
+                'testing process,',
+                'or wish to not receive these reports anymore.',
+                '\nSincerely,',
+                '  Kernel CI Team']
+
+        # Move configuration attachments to the end because some mail clients
+        # (eg. mutt) inline them and they are huge
+        # It's not safe to iterate over changing list so let's use a helper
+        config_attachments = [attachment for attachment in self.attach
+                              if 'config' in attachment[0]]
+        self.attach = [
+            attachment for attachment in self.attach
+            if attachment not in config_attachments
+        ] + config_attachments
+
+        return '\n'.join(msg)
+
     def getsubject(self):
         if not self.cfg.get('mergelog') and \
            not self.cfg.get('buildlog') and \
@@ -493,6 +632,25 @@ class Reporter(object):
 
         return subject
 
+    def get_multisubject(self):
+        if self.multireport_failed == MULTI_PASS and not self.multiretcode:
+            subject = 'PASS: '
+        else:
+            subject = 'FAIL: '
+
+        if self.multireport_failed == MULTI_MERGE:
+            subject += "Patch application failed"
+        elif self.multireport_failed == MULTI_BUILD:
+            subject += "Build failed"
+        else:
+            subject += "Report"
+
+        # Kernel release should be same for all kernels built
+        if self.cfg.get("krelease"):
+            subject += " for kernel %s" % self.cfg.get("krelease")
+
+        return subject
+
     # TODO Define abstract "report" method.
 
 
@@ -501,9 +659,16 @@ class StdioReporter(Reporter):
     TYPE = 'stdio'
 
     def report(self):
-        self.update_mergedata()
-        print("Subject:", self.getsubject())
-        print(self.getreport())
+        if self.multireport:
+            # We need to run the reporting function first to get the aggregated
+            # data to build subject from
+            report = self.get_multireport()
+            print(self.get_multisubject())
+            print(report)
+        else:
+            self.update_mergedata()
+            print("Subject:", self.getsubject())
+            print(self.getreport())
 
         for (name, att) in self.attach:
             if name.endswith(('.log', '.txt')):
@@ -544,13 +709,23 @@ class MailReporter(Reporter):
     def report(self):
         self.update_mergedata()
         msg = MIMEMultipart()
-        msg['Subject'] = self.subject if self.subject else self.getsubject()
+        msg['Subject'] = self.subject
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
         if self.mailinreplyto:
             msg['In-Reply-To'] = self.mailinreplyto
         msg['X-SKT-JIDS'] = ' '.join(self.getjobids())
-        msg.attach(MIMEText(self.getreport()))
+        if self.multireport:
+            # We need to run the reporting function first to get aggregates to
+            # build subject from
+            msg.attach(MIMEText(self.get_multireport()))
+            if not msg['Subject']:
+                msg['Subject'] = self.get_multisubject()
+        else:
+            self.update_mergedata()
+            if not msg['Subject']:
+                msg['Subject'] = self.getsubject()
+            msg.attach(MIMEText(self.getreport()))
 
         for (name, att) in self.attach:
             # TODO Store content type and charset when adding attachments
