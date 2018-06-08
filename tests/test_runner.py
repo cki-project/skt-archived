@@ -34,6 +34,7 @@ DEFAULT_ARGS = {
 
 class TestRunner(unittest.TestCase):
     """Test cases for runner module"""
+    # (Too many public methods) pylint: disable=too-many-public-methods
 
     def setUp(self):
         """Set up test fixtures"""
@@ -244,3 +245,46 @@ class TestRunner(unittest.TestCase):
 
         result = self.myrunner.recipe_to_job(xml_parsed, samehost=True)
         self.assertEqual(result.tag, 'job')
+
+    @mock.patch('skt.runner.BeakerRunner.jobsubmit')
+    def test_run(self, mock_jobsubmit):
+        """Ensure BeakerRunner.run works"""
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = False
+
+        mock_jobsubmit.return_value = "J:0001"
+
+        result = self.myrunner.run(url, release, wait)
+        self.assertEqual(result, 0)
+
+    @mock.patch('skt.runner.BeakerRunner.jobsubmit')
+    def test_run_host(self, mock_jobsubmit):
+        """Ensure BeakerRunner.run works"""
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = False
+        host = "somemachine.com"
+
+        mock_jobsubmit.return_value = "J:0001"
+
+        result = self.myrunner.run(url, release, wait, host)
+        self.assertEqual(result, 0)
+
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.runner.BeakerRunner.jobsubmit')
+    def test_run_wait(self, mock_jobsubmit, mock_getresultstree):
+        """Ensure BeakerRunner.run works"""
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = True
+
+        beaker_xml = misc.get_asset_content('beaker_pass_results.xml')
+        mock_getresultstree.return_value = etree.fromstring(beaker_xml)
+        mock_jobsubmit.return_value = "J:0001"
+
+        # no need to wait 60 seconds
+        # though beaker_pass_results.xml only needs one iteration
+        self.myrunner.watchdelay = 0.1
+        result = self.myrunner.run(url, release, wait)
+        self.assertEqual(result, 0)
