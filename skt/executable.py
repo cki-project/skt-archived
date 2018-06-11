@@ -207,7 +207,8 @@ def cmd_build(cfg):
         basecfg=cfg.get('baseconfig'),
         cfgtype=cfg.get('cfgtype'),
         extra_make_args=cfg.get('makeopts'),
-        enable_debuginfo=cfg.get('enable_debuginfo')
+        enable_debuginfo=cfg.get('enable_debuginfo'),
+        rhconfig_glob=cfg.get('rhconfig_glob')
     )
 
     # Clean the kernel source with 'make mrproper' if requested.
@@ -541,6 +542,14 @@ def setup_parser():
         "--makeopts",
         type=str,
         help="Additional options to pass to make"
+    )
+    parser_build.add_argument(
+        "--rhconfig-glob",
+        type=str,
+        help=(
+            "Glob pattern to use when choosing the correct kernel config "
+            "file after running `make rh-configs`"
+        )
     )
 
     # These arguments apply to the 'publish' skt command

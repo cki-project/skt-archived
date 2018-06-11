@@ -29,7 +29,8 @@ from threading import Timer
 
 class KernelBuilder(object):
     def __init__(self, source_dir, basecfg, cfgtype=None,
-                 extra_make_args=None, enable_debuginfo=False):
+                 extra_make_args=None, enable_debuginfo=False,
+                 rhconfig_glob=None):
         self.source_dir = source_dir
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
@@ -38,6 +39,7 @@ class KernelBuilder(object):
         self.make_argv_base = ["make", "-C", self.source_dir]
         self.enable_debuginfo = enable_debuginfo
         self.build_arch = self.get_build_arch()
+        self.rhconfig_glob = rhconfig_glob
 
         # Split the extra make arguments provided by the user
         if extra_make_args:
@@ -112,7 +114,7 @@ class KernelBuilder(object):
         escaped_source_dir = self.glob_escape(self.source_dir)
         config = "{}/configs/kernel*{}.config".format(
             escaped_source_dir,
-            self.build_arch
+            self.rhconfig_glob
         )
         config_filename = glob.glob(config)
 
