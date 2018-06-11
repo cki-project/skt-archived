@@ -119,14 +119,25 @@ class KernelTreeTest(unittest.TestCase):
         result = self.kerneltree.getpath()
         self.assertEqual(result, self.tmpdir)
 
-    def test_get_commit_date(self):
+    @mock.patch('subprocess.Popen')
+    def test_get_commit_date(self, mock_popen):
         """Ensure that get_commit_date() returns an integer date."""
         # Mock up an integer response that would normally come from the
         # 'git show' command
-        self.m_popen_good.communicate = Mock(return_value=('100', None))
+        mock_popen.return_value.communicate = Mock(return_value=('100', None))
 
-        with self.popen_good:
-            result = self.kerneltree.get_commit_date(ref='master')
+        # Test it with a ref
+        result = self.kerneltree.get_commit_date(ref='master')
+        call_args = mock_popen.call_args_list[0][0]
+        self.assertIn('master', call_args[0])
+        mock_popen.reset_mock()
+
+        self.assertEqual(result, 100)
+
+        # Test it without a ref
+        result = self.kerneltree.get_commit_date()
+        call_args = mock_popen.call_args_list[0][0]
+        self.assertNotIn('master', call_args[0])
 
         self.assertEqual(result, 100)
 
