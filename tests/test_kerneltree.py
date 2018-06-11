@@ -87,10 +87,16 @@ class KernelTreeTest(unittest.TestCase):
 
         mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.git_cmd')
 
+        # Test with a fetch depth
         with self.popen_good, mock_git_cmd:
             result = self.kerneltree.checkout()
+            self.assertEqual("stdout", result)
 
-        self.assertEqual("stdout", result)
+        # Test without a fetch depth
+        self.kerneltree.fetch_depth = None
+        with self.popen_good, mock_git_cmd:
+            result = self.kerneltree.checkout()
+            self.assertEqual("stdout", result)
 
     def test_dumpinfo(self):
         """Ensure dumpinfo() can dump data in a CSV format."""
