@@ -13,6 +13,7 @@
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for state_file functions."""
 import os
+import shutil
 import tempfile
 import unittest
 
@@ -31,80 +32,75 @@ class TestStateFile(unittest.TestCase):
 
     def setUp(self):
         """Text fixtures."""
-        self.tempyaml = "---\nfoo: bar"
+        self.tmpdir = tempfile.mkdtemp()
+        self.tempstate = "{}/state.yml".format(self.tmpdir)
+        with open(self.tempstate, 'w') as fileh:
+            fileh.write("---\noption: value")
+        self.cfg = {'state': self.tempstate}
 
-    def prep_temporary_state_file(self):
-        """Prepare a temporary state file."""
-        tempstate = tempfile.NamedTemporaryFile(delete=False)
-        tempstate.write(self.tempyaml)
-        tempstate.close()
-        cfg = {'state': tempstate.name}
-        return cfg
+    def tearDown(self):
+        """Teardown steps when testing is complete."""
+        # Some tests remove the work directory, so we should check for it
+        # before deleting it.
+        if os.path.isdir(self.tmpdir):
+            shutil.rmtree(self.tmpdir)
 
     def test_destroy_state_file(self):
         """Ensure destroy() deletes the state file."""
-        cfg = self.prep_temporary_state_file()
+        state_file.destroy(self.cfg)
+        self.assertFalse(os.path.isfile(self.cfg['state']))
 
-        state_file.destroy(cfg)
-        self.assertFalse(os.path.isfile(cfg['state']))
+    def test_destroy_state_file_missing(self):
+        """Ensure destroy() checks to see if the state file exists."""
+        os.unlink(self.tempstate)
+        state_file.destroy(self.cfg)
+        self.assertFalse(os.path.isfile(self.cfg['state']))
 
     @mock.patch('os.unlink', side_effect=exception_maker)
     def test_destroy_state_file_failure(self, mockobj):
         """Ensure destroy() fails when state file cannot be deleted."""
         # pylint: disable=W0613
-        cfg = self.prep_temporary_state_file()
-
         with self.assertRaises(IOError):
-            state_file.destroy(cfg)
+            state_file.destroy(self.cfg)
 
     def test_read_state_file(self):
         """Ensure read() reads the state file."""
-        cfg = self.prep_temporary_state_file()
+        test_yaml = state_file.read(self.cfg)
+        self.assertDictEqual(test_yaml, {'option': 'value'})
 
-        test_yaml = state_file.read(cfg)
-        self.assertDictEqual(test_yaml, {'foo': 'bar'})
-
-        os.unlink(cfg['state'])
+    def test_read_state_file_missing(self):
+        """Ensure read() checks to see if the state file exists.."""
+        os.unlink(self.tempstate)
+        test_yaml = state_file.read(self.cfg)
+        self.assertDictEqual(test_yaml, {})
 
     @mock.patch('yaml.load', side_effect=exception_maker)
     def test_read_state_file_failure(self, mockobj):
         """Ensure read() fails when state file is unreadable."""
         # pylint: disable=W0613
-        cfg = self.prep_temporary_state_file()
-
         with self.assertRaises(IOError):
-            state_file.read(cfg)
-
-        os.unlink(cfg['state'])
+            state_file.read(self.cfg)
 
     def test_update_state_file(self):
         """Ensure update() updates the state file."""
-        cfg = self.prep_temporary_state_file()
-
         # Write some new state
         new_state = {'foo2': 'bar2'}
-        state_file.update(cfg, new_state)
+        state_file.update(self.cfg, new_state)
 
         # Read in the state file to verify the new state was written
-        state_data = state_file.read(cfg)
+        state_data = state_file.read(self.cfg)
 
         expected_dict = {
-            'foo': 'bar',
+            'option': 'value',
             'foo2': 'bar2',
         }
         self.assertDictEqual(state_data, expected_dict)
-
-        os.unlink(cfg['state'])
 
     @mock.patch('yaml.dump', side_effect=exception_maker)
     def test_update_state_file_failure(self, mockobj):
         """Ensure update() fails when the state file cannot be updated."""
         # pylint: disable=W0613
-        cfg = self.prep_temporary_state_file()
-
         # Write some new state
         new_state = {'foo2': 'bar2'}
         with self.assertRaises(IOError):
-            state_file.update(cfg, new_state)
-
-        os.unlink(cfg['state'])
+            state_file.update(self.cfg, new_state)
