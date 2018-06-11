@@ -189,20 +189,24 @@ class KernelTreeTest(unittest.TestCase):
 
         self.assertTupleEqual((0, 'abcdef'), result)
 
-    def test_merge_git_ref_failure(self):
+    @mock.patch('skt.kerneltree.KernelTree.getrname')
+    @mock.patch('skt.kerneltree.KernelTree.get_commit_hash')
+    @mock.patch('skt.kerneltree.KernelTree.git_cmd')
+    def test_merge_git_ref_failure(self, mock_git_cmd, mock_get_commit_hash,
+                                   mock_get_rname):
         """Ensure merge_git_ref() fails properly when remote add fails."""
-        mock_git_cmd = mock.patch(
-            'skt.kerneltree.KernelTree.git_cmd',
-            side_effect=make_process_exception
-        )
-        mock_get_commit_hash = mock.patch(
-            'skt.kerneltree.KernelTree.get_commit_hash',
-            return_value="abcdef"
-        )
+        mock_get_rname.return_value = "origin"
+        mock_git_cmd.side_effect = [
+            subprocess.CalledProcessError(1, 'That failed', "output"),
+            True,
+            subprocess.CalledProcessError(1, 'That failed', "output"),
+            True
+        ]
+        mock_get_commit_hash.return_value = "abcdef"
 
-        with mock_git_cmd, mock_get_commit_hash:
-            with self.assertRaises(subprocess.CalledProcessError):
-                self.kerneltree.merge_git_ref('http://example.com')
+        result = self.kerneltree.merge_git_ref('http://example.com')
+
+        self.assertTupleEqual((1, None), result)
 
     def test_merge_pw_patch(self):
         """Ensure merge_patchwork_patch() handles patches properly."""
