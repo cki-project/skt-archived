@@ -227,11 +227,10 @@ Three kernel configuration file options are supported by `skt`:
 * Use a minimal configuration for a very small kernel: `--cfgtype tinyconfig`
 * Build kernel configuration files for Red Hat kernels: `--cfgtype rh-configs`
 
-When `rh-configs` is used, `skt` checks to see if the `ARCH` environment
-variable is set. If it is set, `skt` will select the appropriate kernel
-configuration file that matches the value of the `ARCH` variable. If it is
-not set, `skt` will check the native architecture of the current machine and
-use that architecture to select the correct kernel configuration file.
+Users must specify a filename glob using `--rhconfig-glob` with
+`--cfgtype rh-configs`. This allows `skt` to choose the correct kernel
+configuration file. As an example, `--rhconfig-glob x86_64` works for `x86_64`
+builds and `--rhconfig-glob ppc64le` works for POWER (little endian) systems.
 
 ### Publish
 
