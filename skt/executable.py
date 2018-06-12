@@ -240,13 +240,13 @@ def cmd_build(cfg):
     shutil.copyfile(builder.get_cfgpath(), tconfig)
 
     krelease = builder.getrelease()
-    karch = builder.build_arch
+    kernel_arch = builder.build_arch
 
     save_state(cfg, {'tarpkg': ttgz,
                      'buildinfo': tbuildinfo,
                      'buildconf': tconfig,
                      'krelease': krelease,
-                     'karch': karch})
+                     'kernel_arch': kernel_arch})
 
 
 @junit
@@ -295,7 +295,7 @@ def cmd_run(cfg):
     runner = skt.runner.getrunner(*cfg.get('runner'))
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                          cfg.get('wait'), uid=cfg.get('uid'),
-                         arch=cfg.get("karch"))
+                         arch=cfg.get("kernel_arch"))
 
     idx = 0
     for job in runner.jobs:
