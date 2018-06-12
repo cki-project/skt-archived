@@ -27,10 +27,37 @@ import time
 from threading import Timer
 
 
+def verify_target(target):
+    """
+    Verify the given target is something we support.
+
+    Args:
+        target:    A build target archtecture
+
+    Returns:
+        The value of the ARCH env and the config file variant as a tuple
+    """
+    if not target:
+        target = platform.machine()
+
+    if re.match('x86_64', target):
+        return ('x86_64', target)
+    elif re.match('s390x', target):
+        return ('s390', target)
+    elif re.match('ppc64', target):
+        return ('powerpc', target)
+    elif re.match('ppc64le', target):
+        return ('powerpc', target)
+    elif re.match('aarch64', target):
+        return ('arm64', target)
+
+    return (None, None)
+
+
 class KernelBuilder(object):
     def __init__(self, source_dir, basecfg, cfgtype=None,
                  extra_make_args=None, enable_debuginfo=False,
-                 rh_configs_glob=None):
+                 target=None):
         self.source_dir = source_dir
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
@@ -38,8 +65,15 @@ class KernelBuilder(object):
         self.buildlog = "%s/build.log" % self.source_dir
         self.make_argv_base = ["make", "-C", self.source_dir]
         self.enable_debuginfo = enable_debuginfo
-        self.build_arch = self.get_build_arch()
-        self.rh_configs_glob = rh_configs_glob
+        self.target = target
+
+        (build_arch, config_arch) = verify_target(target)
+        if build_arch is None:
+            raise Exception("Unsupported target: %s" % target)
+
+        self.build_arch = build_arch
+        self.config_arch = config_arch
+        self.set_build_arch(build_arch)
 
         # Split the extra make arguments provided by the user
         if extra_make_args:
@@ -112,7 +146,10 @@ class KernelBuilder(object):
 
         # Copy the correct kernel config into place
         escaped_source_dir = self.glob_escape(self.source_dir)
-        config = "{}/{}".format(escaped_source_dir, self.rh_configs_glob)
+        config = "{}/configs/kernel*{}.config".format(
+            escaped_source_dir,
+            self.config_arch
+        )
         config_filename = glob.glob(config)
 
         # We should exit with an error if there are no matches
@@ -143,6 +180,10 @@ class KernelBuilder(object):
             return os.environ['ARCH']
 
         return platform.machine()
+
+    def set_build_arch(self, build_arch):
+        """Set the requested build architecture for the kernel build."""
+        os.environ['ARCH'] = build_arch
 
     def get_cfgpath(self):
         return "%s/.config" % self.source_dir
