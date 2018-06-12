@@ -805,7 +805,7 @@ def check_args(parser, args):
     """
     # Users must specify a glob to match generated kernel config files when
     # building configs with `make rh-configs`
-    if (args.func == 'cmd_build' and args.cfgtype == 'rh-configs'
+    if (args._name == 'build' and args.cfgtype == 'rh-configs'
        and not args.rh_configs_glob):
         parser.error("--cfgtype rh-configs requires --rh-configs-glob to set")
 
