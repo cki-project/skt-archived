@@ -789,7 +789,8 @@ def load_config(args):
         cfg['tarpkg'] = full_path(cfg.get('tarpkg'))
 
     # Get absolute paths to state files for multireport
-    for idx, statefile_path in enumerate(cfg.get('states', [])):
+    # Handle "states" being None if none are specified
+    for idx, statefile_path in enumerate(cfg.get('states') or []):
         cfg['states'][idx] = full_path(statefile_path)
 
     return cfg
