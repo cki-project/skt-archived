@@ -793,6 +793,12 @@ def load_config(args):
     for idx, statefile_path in enumerate(cfg.get('states') or []):
         cfg['states'][idx] = full_path(statefile_path)
 
+    if cfg.get('junit'):
+        try:
+            os.mkdir(full_path(cfg.get('junit')))
+        except OSError:
+            pass
+
     return cfg
 
 
