@@ -208,7 +208,7 @@ def cmd_build(cfg):
         cfgtype=cfg.get('cfgtype'),
         extra_make_args=cfg.get('makeopts'),
         enable_debuginfo=cfg.get('enable_debuginfo'),
-        rhconfig_glob=cfg.get('rhconfig_glob')
+        rh_configs_glob=cfg.get('rh_configs_glob')
     )
 
     # Clean the kernel source with 'make mrproper' if requested.
@@ -544,11 +544,11 @@ def setup_parser():
         help="Additional options to pass to make"
     )
     parser_build.add_argument(
-        "--rhconfig-glob",
+        "--rh-configs-glob",
         type=str,
         help=(
             "Glob pattern to use when choosing the correct kernel config "
-            "file after running `make rh-configs`"
+            "(required if '--cfgtype rh-configs' is used)"
         )
     )
 

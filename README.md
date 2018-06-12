@@ -227,10 +227,11 @@ Three kernel configuration file options are supported by `skt`:
 * Use a minimal configuration for a very small kernel: `--cfgtype tinyconfig`
 * Build kernel configuration files for Red Hat kernels: `--cfgtype rh-configs`
 
-Users must specify a filename glob using `--rhconfig-glob` with
+Users must specify a filename glob using `--rh-configs-glob` with
 `--cfgtype rh-configs`. This allows `skt` to choose the correct kernel
-configuration file. As an example, `--rhconfig-glob x86_64` works for `x86_64`
-builds and `--rhconfig-glob ppc64le` works for POWER (little endian) systems.
+configuration file. As an example, `--rh-configs-glob x86_64` works for
+`x86_64` builds and `--rh-configs-glob ppc64le` works for POWER (little
+endian) systems.
 
 ### Publish
 
