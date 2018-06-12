@@ -56,12 +56,15 @@ class TestStateFile(unittest.TestCase):
         state_file.destroy(self.cfg)
         self.assertFalse(os.path.isfile(self.cfg['state']))
 
+    @mock.patch('logging.error')
     @mock.patch('os.unlink', side_effect=exception_maker)
-    def test_destroy_state_file_failure(self, mockobj):
+    def test_destroy_state_file_failure(self, mock_unlink, mock_logging):
         """Ensure destroy() fails when state file cannot be deleted."""
         # pylint: disable=W0613
         with self.assertRaises(IOError):
             state_file.destroy(self.cfg)
+
+        mock_logging.assert_called_once()
 
     def test_read_state_file(self):
         """Ensure read() reads the state file."""
@@ -74,12 +77,15 @@ class TestStateFile(unittest.TestCase):
         test_yaml = state_file.read(self.cfg)
         self.assertDictEqual(test_yaml, {})
 
+    @mock.patch('logging.error')
     @mock.patch('yaml.load', side_effect=exception_maker)
-    def test_read_state_file_failure(self, mockobj):
+    def test_read_state_file_failure(self, mock_yaml, mock_logging):
         """Ensure read() fails when state file is unreadable."""
         # pylint: disable=W0613
         with self.assertRaises(IOError):
             state_file.read(self.cfg)
+
+        mock_logging.assert_called_once()
 
     def test_update_state_file(self):
         """Ensure update() updates the state file."""
@@ -96,11 +102,14 @@ class TestStateFile(unittest.TestCase):
         }
         self.assertDictEqual(state_data, expected_dict)
 
+    @mock.patch('logging.error')
     @mock.patch('yaml.dump', side_effect=exception_maker)
-    def test_update_state_file_failure(self, mockobj):
+    def test_update_state_file_failure(self, mock_yaml, mock_logging):
         """Ensure update() fails when the state file cannot be updated."""
         # pylint: disable=W0613
         # Write some new state
         new_state = {'foo2': 'bar2'}
         with self.assertRaises(IOError):
             state_file.update(self.cfg, new_state)
+
+        mock_logging.assert_called_once()
