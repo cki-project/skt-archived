@@ -162,17 +162,20 @@ class KernelTreeTest(unittest.TestCase):
 
         self.assertEqual(result, 'http://example.com/')
 
-    def test_getrname(self):
-        """Ensure getrname() handles remote names from get_remote_url()."""
-        # If get_remote_url keeps returning the same value, then getrname()
-        # will keep adding underscores forever and this test would never pass.
+    def test_get_remote_name(self):
+        """
+        Ensure get_remote_name() handles remote names from get_remote_url().
+        """
+        # If get_remote_url keeps returning the same value, then
+        # get_remote_name() will keep adding underscores forever and this test
+        # would never pass.
         mocked_get_remote_url = mock.patch(
             'skt.kerneltree.KernelTree.get_remote_url',
             side_effect=['http://example.com/', "http://example2.com"]
         )
 
         with mocked_get_remote_url:
-            result = self.kerneltree.getrname("http://example.com/")
+            result = self.kerneltree.get_remote_name("http://example.com/")
 
         self.assertEqual('example.com_', result)
 
@@ -189,13 +192,13 @@ class KernelTreeTest(unittest.TestCase):
 
         self.assertTupleEqual((0, 'abcdef'), result)
 
-    @mock.patch('skt.kerneltree.KernelTree.getrname')
+    @mock.patch('skt.kerneltree.KernelTree.get_remote_name')
     @mock.patch('skt.kerneltree.KernelTree.get_commit_hash')
     @mock.patch('skt.kerneltree.KernelTree.git_cmd')
     def test_merge_git_ref_failure(self, mock_git_cmd, mock_get_commit_hash,
-                                   mock_get_rname):
+                                   mock_get_remote_name):
         """Ensure merge_git_ref() fails properly when remote add fails."""
-        mock_get_rname.return_value = "origin"
+        mock_get_remote_name.return_value = "origin"
         mock_git_cmd.side_effect = [
             subprocess.CalledProcessError(1, 'That failed', "output"),
             True,

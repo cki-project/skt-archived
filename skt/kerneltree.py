@@ -214,34 +214,35 @@ class KernelTree(object):
 
         return rurl
 
-    def getrname(self, uri):
-        rname = (uri.split('/')[-1].replace('.git', '')
-                 if not uri.endswith('/')
-                 else uri.split('/')[-2].replace('.git', ''))
-        while self.get_remote_url(rname) == uri:
+    def get_remote_name(self, uri):
+        remote_name = (uri.split('/')[-1].replace('.git', '')
+                       if not uri.endswith('/')
+                       else uri.split('/')[-2].replace('.git', ''))
+        while self.get_remote_url(remote_name) == uri:
             logging.warning(
                 "remote '%s' already exists with a different uri, adding '_'",
-                rname
+                remote_name
             )
-            rname += '_'
+            remote_name += '_'
 
-        return rname
+        return remote_name
 
     def merge_git_ref(self, uri, ref="master"):
-        rname = self.getrname(uri)
+        remote_name = self.get_remote_name(uri)
         head = None
 
         try:
-            self.git_cmd("remote", "add", rname, uri, stderr=subprocess.PIPE)
+            self.git_cmd("remote", "add", remote_name, uri,
+                         stderr=subprocess.PIPE)
         except subprocess.CalledProcessError:
             pass
 
-        dstref = "refs/remotes/%s/%s" % (rname, ref.split('/')[-1])
+        dstref = "refs/remotes/%s/%s" % (remote_name, ref.split('/')[-1])
         logging.info("fetching %s", dstref)
-        self.git_cmd("fetch", "-n", rname,
+        self.git_cmd("fetch", "-n", remote_name,
                      "+%s:%s" % (ref, dstref))
 
-        logging.info("merging %s: %s", rname, ref)
+        logging.info("merging %s: %s", remote_name, ref)
         try:
             grargs = {'stdout': subprocess.PIPE} if \
                 logging.getLogger().level > logging.DEBUG else {}
@@ -249,10 +250,10 @@ class KernelTree(object):
             self.git_cmd("merge", "--no-edit", dstref, **grargs)
             head = self.get_commit_hash(dstref)
             self.info.append(("git", uri, head))
-            logging.info("%s %s: %s", rname, ref, head)
+            logging.info("%s %s: %s", remote_name, ref, head)
         except subprocess.CalledProcessError:
             logging.warning("failed to merge '%s' from %s, skipping", ref,
-                            rname)
+                            remote_name)
             self.git_cmd("reset", "--hard")
             return (1, None)
 
