@@ -112,10 +112,7 @@ class KernelBuilder(object):
 
         # Copy the correct kernel config into place
         escaped_source_dir = self.glob_escape(self.source_dir)
-        config = "{}/configs/kernel*{}.config".format(
-            escaped_source_dir,
-            self.rh_configs_glob
-        )
+        config = "{}/{}".format(escaped_source_dir, self.rh_configs_glob)
         config_filename = glob.glob(config)
 
         # We should exit with an error if there are no matches
