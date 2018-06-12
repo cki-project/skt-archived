@@ -179,6 +179,15 @@ class KernelTreeTest(unittest.TestCase):
 
         self.assertEqual('example.com_', result)
 
+    @mock.patch('logging.debug')
+    @mock.patch('subprocess.check_output')
+    def test_git_cmd(self, mock_check_output, mock_logging):
+        """Ensure git_cmd() works."""
+        mock_check_output.return_value = "Test return value"
+        output = self.kerneltree.git_cmd("status")
+        self.assertEqual("Test return value", output)
+        mock_logging.assert_called_once()
+
     def test_merge_git_ref(self):
         """Ensure merge_git_ref() returns a proper tuple."""
         mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.git_cmd')
