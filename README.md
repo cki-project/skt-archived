@@ -229,9 +229,16 @@ Three kernel configuration file options are supported by `skt`:
 
 Users must specify a filename glob using `--rh-configs-glob` with
 `--cfgtype rh-configs`. This allows `skt` to choose the correct kernel
-configuration file. As an example, `--rh-configs-glob x86_64` works for
-`x86_64` builds and `--rh-configs-glob ppc64le` works for POWER (little
-endian) systems.
+configuration file. The path should be relative to the path of the kernel
+source.
+
+The following example works for `x86_64`:
+
+    --rh-configs-glob "redhat/configs/kernel-*-x86_64.config"
+
+The following example works for POWER systems (little endian):
+
+    --rh-configs-glob "redhat/configs/kernel-*-ppc64le.config"
 
 ### Publish
 
