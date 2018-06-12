@@ -118,6 +118,15 @@ class KernelBuilder(object):
         )
         config_filename = glob.glob(config)
 
+        # We should exit with an error if there are no matches
+        if not config_filename:
+            logging.error(
+                "The glob string provided with --rh-configs-glob did not "
+                "match any of the kernel configuration files built with "
+                "`make rh-configs`."
+            )
+            sys.exit(1)
+
         logging.info("copying Red Hat config: %s", config_filename[0])
         shutil.copyfile(
             config_filename[0],
