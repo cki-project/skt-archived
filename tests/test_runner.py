@@ -204,8 +204,9 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner.getresults("J:00001")
         self.assertEqual(result, 0)
 
+    @mock.patch('logging.warning')
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    def test_getresults_failure(self, mock_getresultstree):
+    def test_getresults_failure(self, mock_getresultstree, mock_logging):
         """Ensure getresults() handles a job failure"""
         # Mock up a beaker XML reply
         beaker_xml = misc.get_asset_content('beaker_fail_results.xml')
@@ -231,6 +232,7 @@ class TestRunner(unittest.TestCase):
         }
         result = self.myrunner.getresults("J:00001")
         self.assertEqual(result, 1)
+        mock_logging.assert_called()
 
     def test_recipe_to_job(self):
         """Ensure recipe_to_job() works"""
