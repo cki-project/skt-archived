@@ -290,3 +290,17 @@ class KernelTreeTest(unittest.TestCase):
         """Ensure merge_patch_file() fails when a patch is missing."""
         with self.assertRaises(Exception):
             self.kerneltree.merge_patch_file('patch_does_not_exist')
+
+    @mock.patch('skt.kerneltree.KernelTree.git_cmd')
+    def test_setup_repository_add(self, mock_git_cmd):
+        """Ensure setup_repository() adds the origin URL."""
+        mock_git_cmd.side_effect = [True, "remote1\nremote2\remote3\n", True]
+        self.kerneltree.setup_repository()
+        self.assertIn('add', mock_git_cmd.call_args_list[2][0])
+
+    @mock.patch('skt.kerneltree.KernelTree.git_cmd')
+    def test_setup_repository_set(self, mock_git_cmd):
+        """Ensure setup_repository() sets the origin URL when it exists."""
+        mock_git_cmd.side_effect = [True, "remote1\nremote2\norigin\n", True]
+        self.kerneltree.setup_repository()
+        self.assertIn('set-url', mock_git_cmd.call_args_list[2][0])
