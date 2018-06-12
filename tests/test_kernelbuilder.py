@@ -229,6 +229,21 @@ class KBuilderTest(unittest.TestCase):
         mock_shutil.assert_called_once()
         mock_adjust_cfg.assert_not_called()
 
+    @mock.patch('logging.error')
+    @mock.patch('logging.info')
+    @mock.patch("glob.glob")
+    @mock.patch("subprocess.check_call")
+    def test_redhat_config_glob_failure(self, mock_check_call, mock_glob,
+                                        mock_info, mock_err):
+        """Ensure that skt exits when no Red Hat config files match."""
+        mock_check_call.return_value = ''
+        mock_glob.return_value = []
+        with self.assertRaises(SystemExit):
+            self.kbuilder.make_redhat_config()
+
+        mock_info.assert_called_once()
+        mock_err.assert_called_once()
+
     @mock.patch("skt.kernelbuilder.KernelBuilder.adjust_config_option")
     @mock.patch("subprocess.check_call")
     def test_prep_config_tinyconfig(self, mock_check_call, mock_adjust_cfg):
