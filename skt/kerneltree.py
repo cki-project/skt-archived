@@ -51,6 +51,7 @@ class KernelTree(object):
         self.ref = ref if ref is not None else "master"
         self.info = []
         self.mergelog = "%s/merge.log" % self.wdir
+        self.fetch_depth = fetch_depth
 
         try:
             os.mkdir(self.wdir)
@@ -61,8 +62,6 @@ class KernelTree(object):
             os.unlink(self.mergelog)
         except OSError:
             pass
-
-        self.fetch_depth = fetch_depth
 
         # Initialize the repository
         self.setup_repository()
