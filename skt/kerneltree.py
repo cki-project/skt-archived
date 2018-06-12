@@ -62,14 +62,10 @@ class KernelTree(object):
         except OSError:
             pass
 
-        self.git_cmd("init")
-
-        try:
-            self.git_cmd("remote", "set-url", "origin", self.uri)
-        except subprocess.CalledProcessError:
-            self.git_cmd("remote", "add", "origin", self.uri)
-
         self.fetch_depth = fetch_depth
+
+        # Initialize the repository
+        self.setup_repository()
 
         logging.info("base repo url: %s", self.uri)
         logging.info("base ref: %s", self.ref)
@@ -92,6 +88,20 @@ class KernelTree(object):
 
     def getpath(self):
         return self.wdir
+
+    def setup_repository(self):
+        """Initialize the repo and set the origin."""
+        self.git_cmd("init")
+
+        # Does the repo have an origin set?
+        if 'origin' in self.git_cmd("remote").split('\n'):
+            # Ensure the origin is set to the correct URL
+            logging.debug("Setting URL for remote 'origin': %s" % self.uri)
+            self.git_cmd("remote", "set-url", "origin", self.uri)
+        else:
+            # Add the origin remote
+            logging.debug("Adding missing remote 'origin': %s" % self.uri)
+            self.git_cmd("remote", "add", "origin", self.uri)
 
     def dumpinfo(self, fname='buildinfo.csv'):
         """
