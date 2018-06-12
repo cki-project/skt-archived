@@ -575,9 +575,9 @@ class Reporter(object):
                     self.multireport_failed = MULTI_MERGE
                     msg += self.getmergefailure()
 
-            marker = self.cfg.get('arch', str(idx + 1))
+            marker = self.cfg.get('kernel_arch', str(idx + 1))
             msg += ['\n##### These are the results for %s' %
-                    (marker + ' architecture' if self.cfg.get('arch')
+                    (marker + ' architecture' if self.cfg.get('kernel_arch')
                      else 'test set %s' % marker)]
             if not self.cfg.get('mergelog'):
                 msg += self.get_kernel_config(marker)
