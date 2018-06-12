@@ -225,7 +225,7 @@ def cmd_build(cfg):
         ttgz = "%s.tar.gz" % cfg.get('buildhead')
     else:
         ttgz = addtstamp(tgz, tstamp)
-    os.rename(tgz, ttgz)
+    shutil.move(tgz, ttgz)
     logging.info("tarball path: %s", ttgz)
 
     tbuildinfo = None
@@ -234,7 +234,7 @@ def cmd_build(cfg):
             tbuildinfo = "%s.csv" % cfg.get('buildhead')
         else:
             tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
-        os.rename(cfg.get('buildinfo'), tbuildinfo)
+        shutil.move(cfg.get('buildinfo'), tbuildinfo)
 
     tconfig = "%s.config" % tbuildinfo
     shutil.copyfile(builder.get_cfgpath(), tconfig)
