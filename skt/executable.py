@@ -619,7 +619,7 @@ def setup_parser():
     )
     parser_report.add_argument(
         "--mail-to",
-        nargs="+",
+        action='append',
         type=str,
         help="Report recipient's email address"
     )
@@ -634,8 +634,8 @@ def setup_parser():
         help="Subject of the report email"
     )
     parser_report.add_argument(
-        "--mail-headers",
-        nargs='+',
+        "--mail-header",
+        action='append',
         type=str,
         help=(
             "Extra headers for the report email - example: "
@@ -643,10 +643,10 @@ def setup_parser():
         )
     )
     parser_report.add_argument(
-        '--states',
-        nargs='+',
+        '--result',
+        action='append',
         type=str,
-        help='List of state file paths to build the report from'
+        help='Path to a state file to include in the report'
     )
     parser_report.set_defaults(func=cmd_report)
     parser_report.set_defaults(_name="report")
@@ -787,7 +787,7 @@ def load_config(args):
             'mail_to': cfg.get('mail_to'),
             'mail_from': cfg.get('mail_from'),
             'mail_subject': cfg.get('mail_subject'),
-            'mail_headers': cfg.get('mail_headers')
+            'mail_header': cfg.get('mail_header')
         }
     elif config.has_section('reporter'):
         # Use the reporter configuration from the configuration file
@@ -830,9 +830,9 @@ def load_config(args):
         cfg['tarpkg'] = full_path(cfg.get('tarpkg'))
 
     # Get absolute paths to state files for multireport
-    # Handle "states" being None if none are specified
-    for idx, statefile_path in enumerate(cfg.get('states') or []):
-        cfg['states'][idx] = full_path(statefile_path)
+    # Handle "result" being None if none are specified
+    for idx, statefile_path in enumerate(cfg.get('result') or []):
+        cfg['result'][idx] = full_path(statefile_path)
 
     if cfg.get('junit'):
         try:
