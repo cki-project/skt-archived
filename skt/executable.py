@@ -141,6 +141,20 @@ def cmd_merge(cfg):
         wdir=cfg.get('workdir'),
         fetch_depth=cfg.get('fetch_depth')
     )
+
+    # setup stub code for quick testing
+    test = cfg.get('test')
+    if test is not None:
+        if test == 0:
+            save_state(cfg, {'baserepo': cfg.get('baserepo'),
+                             'mergelog': ''})
+        else:
+            with open(ktree.mergelog, "w") as fileh:
+                fileh.write('stub')
+            save_state(cfg, {'mergelog': ktree.mergelog})
+
+        return
+
     bhead = ktree.checkout()
     commitdate = ktree.get_commit_date(bhead)
     save_state(cfg, {'baserepo': cfg.get('baserepo'),
@@ -212,6 +226,16 @@ def cmd_build(cfg):
         rh_configs_glob=cfg.get('rh_configs_glob')
     )
 
+    # setup stub code for quick testing
+    test = cfg.get('test')
+    if test is not None:
+        if test == 0:
+            save_state(cfg, {'buildhead': cfg.get('buildhead')})
+        else:
+            save_state(cfg, {'buildlog': 'stub'})
+
+        return
+
     # Clean the kernel source with 'make mrproper' if requested.
     if cfg.get('wipe'):
         builder.clean_kernel_source()
@@ -269,6 +293,13 @@ def cmd_publish(cfg):
     infourl = None
     cfgurl = None
 
+    # setup stub code for quick testing
+    test = cfg.get('test')
+    if test is not None:
+        save_state(cfg, {'buildurl': 'some.url.com'})
+
+        return
+
     url = publisher.publish(cfg.get('tarpkg'))
     logging.info("published url: %s", url)
 
@@ -293,6 +324,13 @@ def cmd_run(cfg):
         cfg:    A dictionary of skt configuration.
     """
     global retcode
+
+    # setup stub code for quick testing
+    test = cfg.get('test')
+    if test is not None:
+        save_state(cfg, {'retcode': test})
+        return
+
     runner = skt.runner.getrunner(*cfg.get('runner'))
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                          cfg.get('wait'), uid=cfg.get('uid'),
@@ -346,6 +384,11 @@ def cmd_report(cfg):
         sys.exit(
             "Unable to find specified reporter type: {}".format(class_name)
         )
+
+    # setup stub code for quick testing
+    test = cfg.get('test')
+    if test is not None:
+        return
 
     # FIXME We are passing the entire cfg object to the reporter class but
     # we should be passing the specific options that are needed.
@@ -482,6 +525,11 @@ def setup_parser():
         ),
         action="store_true",
         default=False
+    )
+    parser.add_argument(
+        "--test",
+        type=int,
+        help="Stub the test using the passed in return code"
     )
 
     subparsers = parser.add_subparsers()
