@@ -222,12 +222,12 @@ class Reporter(object):
         self.mergedata = None
         # Use explicit flag to determine if a single report for multiple test
         # runs should be generated
-        self.multireport = True if cfg.get('states') else False
+        self.multireport = True if cfg.get('result') else False
         # Save list of state files because self.cfg will be overwritten. This
         # can be changed to access a specific parameter after the FIXME with
         # passing only explicit parameters is implemented. Only test run and
         # runner info is used during reporting so we are good to go.
-        self.statefiles = cfg.get('states', [])
+        self.statefiles = cfg.get('result', [])
         # Notion of failure for subject creation with multireporting. The
         # earliest problem in the pipeline is reported.
         self.multireport_failed = MULTI_PASS
@@ -686,7 +686,7 @@ class MailReporter(Reporter):
         self.mailfrom = cfg['reporter']['mail_from']
         self.mailto = [to.strip() for to in cfg['reporter']['mail_to']]
         self.headers = [headers.strip() for headers in
-                        cfg['reporter']['mail_headers']]
+                        cfg['reporter']['mail_header']]
         self.subject = cfg['reporter']['mail_subject']
         super(MailReporter, self).__init__(cfg)
 
