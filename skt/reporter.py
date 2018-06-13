@@ -707,7 +707,6 @@ class MailReporter(Reporter):
         super(MailReporter, self).__init__(cfg)
 
     def report(self):
-        self.update_mergedata()
         msg = MIMEMultipart()
         msg['Subject'] = self.subject
         msg['To'] = ', '.join(self.mailto)
