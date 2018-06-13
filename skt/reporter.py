@@ -690,6 +690,8 @@ class MailReporter(Reporter):
         self.headers = [headers.strip() for headers in
                         cfg['reporter']['mail_header']]
         self.subject = cfg['reporter']['mail_subject']
+        self.smtp_url = cfg.get('smtp_url') or 'localhost'
+
         super(MailReporter, self).__init__(cfg)
 
     def report(self):
@@ -734,6 +736,6 @@ class MailReporter(Reporter):
 
             msg.attach(tmp)
 
-        s = smtplib.SMTP('localhost')
+        s = smtplib.SMTP(self.smtp_url)
         s.sendmail(self.mailfrom, self.mailto, msg.as_string())
         s.quit()

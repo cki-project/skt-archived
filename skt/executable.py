@@ -649,6 +649,11 @@ def setup_parser():
         type=str,
         help='Path to a state file to include in the report'
     )
+    parser_report.add_argument(
+        "--smtp-url",
+        type=str,
+        help='Use smtp url instead of localhost to send mail',
+    )
     parser_report.set_defaults(func=cmd_report)
     parser_report.set_defaults(_name="report")
 
