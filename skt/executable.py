@@ -630,12 +630,14 @@ def setup_parser():
     )
     parser_report.add_argument(
         "--mail-subject",
+        default='',
         type=str,
         help="Subject of the report email"
     )
     parser_report.add_argument(
         "--mail-header",
         action='append',
+        default=[],
         type=str,
         help=(
             "Extra headers for the report email - example: "
