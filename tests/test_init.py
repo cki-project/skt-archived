@@ -15,9 +15,12 @@ Test cases for __init__.py.
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 from __future__ import division
+from email.errors import HeaderParseError
 import unittest
 
-from requests.exceptions import RequestException
+import mock
+import requests
+import responses
 
 import skt
 
@@ -25,11 +28,43 @@ import skt
 class TestIndependent(unittest.TestCase):
     """Test cases for independent functions in __init__.py"""
 
-    def test_invalid_patch_url(self):
-        """Ensure get_patch_mbox() throws exception if the URL is invalid"""
-        self.assertRaises(RequestException,
-                          skt.get_patch_mbox,
-                          'this-is-invalid')
+    @responses.activate
+    def test_get_patch_mbox(self):
+        """Ensure get_patch_mbox() succeeds with a good request."""
+        responses.add(
+            responses.GET,
+            'http://patchwork.example.com/patch/1/mbox',
+            json={'result': 'good'},
+            status=200
+        )
+
+        resp = skt.get_patch_mbox('http://patchwork.example.com/patch/1')
+        self.assertEqual('{"result": "good"}', resp)
+
+    @responses.activate
+    def test_get_patch_mbox_fail(self):
+        """Ensure get_patch_mbox() handles an exception from requests."""
+        responses.add(
+            responses.GET,
+            'http://patchwork.example.com/patch/1/mbox',
+            body=requests.exceptions.RequestException('Fail'),
+        )
+
+        with self.assertRaises(requests.exceptions.RequestException):
+            skt.get_patch_mbox('http://patchwork.example.com/patch/1')
+
+    @responses.activate
+    def test_get_patch_mbox_bad_status(self):
+        """Ensure get_patch_mbox() handles a bad status code."""
+        responses.add(
+            responses.GET,
+            'http://patchwork.example.com/patch/1/mbox',
+            json={'error': 'failure'},
+            status=500
+        )
+
+        with self.assertRaises(Exception):
+            skt.get_patch_mbox('http://patchwork.example.com/patch/1')
 
     def test_nonexistent_patch_subject(self):
         """Ensure get_patch_name() handles nonexistent 'Subject' in mbox"""
@@ -46,6 +81,16 @@ class TestIndependent(unittest.TestCase):
         mbox_body = ('From Test Thu May 2 17:49:51 2018\n'
                      'Subject: =?utf-8?q?=5BTEST=5D?=')
         self.assertEqual('[TEST]', skt.get_patch_name(mbox_body))
+
+    @mock.patch('email.header.decode_header')
+    @mock.patch('email.parser.Parser.parsestr')
+    def test_header_parse_failure(self, mock_parsestr, mock_decode_header):
+        """Ensure get_patch_name() handles a parsing failure."""
+        mock_parsestr.return_value = {'Subject': "Testing"}
+        mock_decode_header.side_effect = HeaderParseError('Fail')
+        result = skt.get_patch_name('')
+
+        self.assertEqual('<SUBJECT ENCODING INVALID>', result)
 
     def test_multipart_encoded_subject(self):
         """
