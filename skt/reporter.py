@@ -680,40 +680,32 @@ class MailReporter(Reporter):
     """A reporter sending results by e-mail"""
     TYPE = 'mail'
 
-    def __init__(self, cfg, mailfrom, mailto, mailinreplyto=None,
-                 subject=None):
-        """
-        Initialize an e-mail reporter
-
-        Args:
-            cfg:            The skt configuration and state.
-            mailfrom:       A string containing the From: address for e-mails.
-            mailto:         A string containing comma-separated e-mail
-                            addresses to send the result messages to.
-            mailinreplyto:  A string containing the value of the "In-Reply-To"
-                            header to add to the message. No header is added
-                            if evaluates to False.
-            subject:        Subject to use, for example subject of the message
-                            to reply to. Default subject describing test
-                            results is used if not present.
-        """
-        # The From: address string
-        self.mailfrom = mailfrom
-        # A list of addresses to send reports to
-        self.mailto = [to.strip() for to in mailto.split(",")]
-        # The value of "In-Reply-To" header
-        self.mailinreplyto = mailinreplyto
-        self.subject = subject
+    def __init__(self, cfg):
+        """Initialize an e-mail reporter."""
+        # Get all of the required fields to send an email
+        self.mailfrom = cfg['reporter']['mail_from']
+        self.mailto = [to.strip() for to in cfg['reporter']['mail_to']]
+        self.headers = [headers.strip() for headers in
+                        cfg['reporter']['mail_headers']]
+        self.subject = cfg['reporter']['mail_subject']
         super(MailReporter, self).__init__(cfg)
 
     def report(self):
         msg = MIMEMultipart()
+
+        # Add the most basic parts of the email message
         msg['Subject'] = self.subject
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
-        if self.mailinreplyto:
-            msg['In-Reply-To'] = self.mailinreplyto
+
+        # Add any extra headers
+        for header_line in self.headers:
+            header, value = header_line.split(":", 1)
+            msg[header] = value
+
+        # Add the SKT job IDs so we can correlate emails to jobs
         msg['X-SKT-JIDS'] = ' '.join(self.getjobids())
+
         if self.multireport:
             # We need to run the reporting function first to get aggregates to
             # build subject from
@@ -742,23 +734,3 @@ class MailReporter(Reporter):
         s = smtplib.SMTP('localhost')
         s.sendmail(self.mailfrom, self.mailto, msg.as_string())
         s.quit()
-
-
-def getreporter(rtype, rarg):
-    """
-    Create an instance of a "reporter" subclass with specified arguments.
-
-    Args:
-        rtype:  The value of the class "TYPE" member to match.
-        rarg:   A dictionary with the instance creation arguments.
-
-    Returns:
-        The created class instance.
-
-    Raises:
-        ValueError if the rtype match wasn't found.
-    """
-    for cls in Reporter.__subclasses__():
-        if cls.TYPE == rtype:
-            return cls(**rarg)
-    raise ValueError("Unknown reporter type: %s" % rtype)

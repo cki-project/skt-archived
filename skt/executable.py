@@ -18,6 +18,7 @@ import ConfigParser
 import argparse
 import ast
 import datetime
+import importlib
 import json
 import logging
 import os
@@ -336,12 +337,20 @@ def cmd_report(cfg):
     if not cfg.get("reporter"):
         return
 
-    # FIXME This is violation of composition. This basically passes the whole
-    # configuration object to reporter, so it can access anything. Pass the
-    # needed data explicitly instead, or deal with it outside reporter, if
-    # that is unsuitable.
-    cfg['reporter'][1].update({'cfg': cfg})
-    reporter = skt.reporter.getreporter(*cfg.get('reporter'))
+    # Attempt to import the reporter provided by the user
+    try:
+        module = importlib.import_module('skt.reporter')
+        class_name = "{}Reporter".format(cfg['reporter']['type'].title())
+        reporter_class = getattr(module, class_name)
+    except AttributeError:
+        sys.exit(
+            "Unable to find specified reporter type: {}".format(class_name)
+        )
+
+    # FIXME We are passing the entire cfg object to the reporter class but
+    # we should be passing the specific options that are needed.
+    # Create a report
+    reporter = reporter_class(cfg)
     reporter.report()
 
 
@@ -602,9 +611,37 @@ def setup_parser():
     parser_report = subparsers.add_parser("report", add_help=False)
     parser_report.add_argument(
         "--reporter",
-        nargs=2,
+        dest="type",
         type=str,
-        help="Reporter config in 'type \"{'key' : 'val', ...}\"' format")
+        choices=('stdio', 'mail'),
+        default='stdio',
+        help="Reporter to use"
+    )
+    parser_report.add_argument(
+        "--mail-to",
+        nargs="+",
+        type=str,
+        help="Report recipient's email address"
+    )
+    parser_report.add_argument(
+        "--mail-from",
+        type=str,
+        help="Report sender's email address"
+    )
+    parser_report.add_argument(
+        "--mail-subject",
+        type=str,
+        help="Subject of the report email"
+    )
+    parser_report.add_argument(
+        "--mail-headers",
+        nargs='+',
+        type=str,
+        help=(
+            "Extra headers for the report email - example: "
+            "\"In-Reply-To: <messageid@example.com>\""
+        )
+    )
     parser_report.add_argument(
         '--states',
         nargs='+',
@@ -742,15 +779,19 @@ def load_config(args):
         cfg['runner'] = [cfg.get('runner')[0],
                          ast.literal_eval(cfg.get('runner')[1])]
 
-    if config.has_section('reporter') and not cfg.get('reporter'):
-        rcfg = {}
-        for (key, val) in config.items('reporter'):
-            if key != 'type':
-                rcfg[key] = val
-        cfg['reporter'] = [config.get('reporter', 'type'), rcfg]
-    elif cfg.get('reporter'):
-        cfg['reporter'] = [cfg.get('reporter')[0],
-                           ast.literal_eval(cfg.get('reporter')[1])]
+    # Check if the reporter type is set on the command line
+    if cfg.get('_name') == 'report' and cfg.get('type'):
+        # Use the reporter configuration from the command line
+        cfg['reporter'] = {
+            'type': cfg.get('type'),
+            'mail_to': cfg.get('mail_to'),
+            'mail_from': cfg.get('mail_from'),
+            'mail_subject': cfg.get('mail_subject'),
+            'mail_headers': cfg.get('mail_headers')
+        }
+    elif config.has_section('reporter'):
+        # Use the reporter configuration from the configuration file
+        cfg['reporter'] = config.items('reporter')
 
     if not cfg.get('merge_ref'):
         cfg['merge_ref'] = []
@@ -814,6 +855,23 @@ def check_args(parser, args):
     if (args._name == 'build' and args.cfgtype == 'rh-configs'
        and not args.rh_configs_glob):
         parser.error("--cfgtype rh-configs requires --rh-configs-glob to set")
+
+    # Check required arguments for 'report'
+    if args._name == 'report':
+
+        # MailReporter requires recipient and sender email addresses
+        if (args.type == 'mail' and (not args.mail_to or not args.mail_from)):
+            parser.error(
+                "--reporter mail requires --mail-to and --mail-from to be set"
+            )
+
+        # No mail-related options should be provided for StdioReporter
+        if (args.type == 'stdio'
+           and [x for x in dir(args) if x.startswith('mail')]):
+            parser.error(
+                'the stdio reporter was selected but arguments for the mail'
+                'reporter were provided'
+            )
 
 
 def main():
