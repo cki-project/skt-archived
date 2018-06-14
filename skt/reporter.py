@@ -476,7 +476,7 @@ class Reporter(object):
             self.get_kernel_config()
             if self.cfg.get("buildlog"):
                 msg += self.getbuildfailure()
-            else:
+            elif self.cfg.get('runner'):
                 msg += self.getjobresults()
 
         msg += ['\nPlease reply to this email if you find an issue with our '
@@ -534,16 +534,16 @@ class Reporter(object):
                 self.cfg[name] = value
 
         # Get runner info
-        if not state_to_report.has_section('runner'):
-            raise Exception(
-                'Statefile %s is missing "runner" section!' % statefile
-            )
-        runner_config = {}
-        for (key, val) in state_to_report.items('runner'):
-            if key != 'type':
-                runner_config[key] = val
-            self.cfg['runner'] = [state_to_report.get('runner', 'type'),
-                                  runner_config]
+        if state_to_report.has_section('runner'):
+            runner_config = {}
+            for (key, val) in state_to_report.items('runner'):
+                if key != 'type':
+                    runner_config[key] = val
+                self.cfg['runner'] = [state_to_report.get('runner', 'type'),
+                                      runner_config]
+        else:
+            logging.debug('No runner info found in state file, test runs will'
+                          ' not be reported')
 
     def get_multireport(self):
         msg = ['Hello,\n',
@@ -586,7 +586,7 @@ class Reporter(object):
                     if not self.multireport_failed:
                         self.multireport_failed = MULTI_BUILD
                     msg += self.getbuildfailure(marker)
-                else:
+                elif self.cfg.get('runner'):
                     msg += self.getjobresults()
 
             msg.append('\n')
