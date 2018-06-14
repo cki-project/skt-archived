@@ -694,7 +694,8 @@ class MailReporter(Reporter):
         msg = MIMEMultipart()
 
         # Add the most basic parts of the email message
-        msg['Subject'] = self.subject
+        if self.subject:
+            msg['Subject'] = self.subject
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
 
