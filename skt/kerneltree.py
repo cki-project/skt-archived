@@ -188,7 +188,7 @@ class KernelTree(object):
         dstref = "refs/remotes/origin/%s" % (self.ref.split('/')[-1])
         logging.info("fetching base repo")
         git_fetch_args = [
-            "fetch", "-n", "origin",
+            "fetch", "origin",
             "+%s:%s" % (self.ref, dstref)
         ]
         # If the user provided extra arguments for the git fetch step, append
@@ -255,7 +255,7 @@ class KernelTree(object):
 
         dstref = "refs/remotes/%s/%s" % (remote_name, ref.split('/')[-1])
         logging.info("fetching %s", dstref)
-        self.git_cmd("fetch", "-n", remote_name,
+        self.git_cmd("fetch", remote_name,
                      "+%s:%s" % (ref, dstref))
 
         logging.info("merging %s: %s", remote_name, ref)
