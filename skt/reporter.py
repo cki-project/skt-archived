@@ -286,13 +286,15 @@ class Reporter(object):
         else:
             mergedata = self.stateconfigdata(mergedata)
 
-        if self.cfg.get("cfgurl"):
-            response = requests.get(self.cfg.get("cfgurl"))
-            if response:
-                mergedata['config'] = response.text
-        else:
-            with open("%s/.config" % self.cfg.get("workdir"), "r") as fileh:
-                mergedata['config'] = fileh.read()
+        if not self.cfg.get('mergelog'):
+            if self.cfg.get("cfgurl"):
+                response = requests.get(self.cfg.get("cfgurl"))
+                if response:
+                    mergedata['config'] = response.text
+            else:
+                with open("%s/.config" % self.cfg.get("workdir"),
+                          "r") as fileh:
+                    mergedata['config'] = fileh.read()
 
         self.mergedata = mergedata
 
