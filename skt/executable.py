@@ -630,7 +630,6 @@ def setup_parser():
     )
     parser_report.add_argument(
         "--mail-subject",
-        default='',
         type=str,
         help="Subject of the report email"
     )
