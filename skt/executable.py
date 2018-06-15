@@ -873,7 +873,8 @@ def check_args(parser, args):
 
         # No mail-related options should be provided for StdioReporter
         if (args.type == 'stdio'
-           and [x for x in dir(args) if x.startswith('mail')]):
+                and any([getattr(args, x)
+                         for x in dir(args) if x.startswith('mail')])):
             parser.error(
                 'the stdio reporter was selected but arguments for the mail'
                 'reporter were provided'
