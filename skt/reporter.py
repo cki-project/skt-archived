@@ -548,10 +548,11 @@ class Reporter(object):
                           ' not be reported')
 
     def get_multireport(self):
-        msg = ['Hello,\n',
-               'We appreciate your contributions to the Linux kernel and '
-               'would like to help',
-               'test them. Below are the results of automatic tests we ran']
+        intro = ['Hello,\n',
+                 'We appreciate your contributions to the Linux kernel and '
+                 'would like to help',
+                 'test them. Below are the results of automatic tests we ran']
+        results = []
 
         for idx, statefile in enumerate(self.statefiles):
             self.load_state_cfg(statefile)
@@ -561,46 +562,47 @@ class Reporter(object):
             # include the information only once
             if not idx:
                 if self.mergedata['localpatch'] or self.mergedata['patchwork']:
-                    msg[-1] += ' on a patchset'
-                    msg += ['you\'re involved with, with hope it will help '
-                            'you find possible issues sooner.']
+                    intro[-1] += ' on a patchset'
+                    intro += ['you\'re involved with, with hope it will help '
+                              'you find possible issues sooner.']
                 else:
                     # There is no patchset the person was involved with
-                    msg[-1] += ', with hope it'
-                    msg += ['will help you find possible issues sooner.']
+                    intro[-1] += ', with hope it'
+                    intro += ['will help you find possible issues sooner.']
 
-                msg += ['\n'] + self.getmergeinfo() + ['']
+                results += ['\n'] + self.getmergeinfo() + ['']
 
                 # We use the same tree for all runs so any merge failures are
                 # same as well.
                 if self.cfg.get('mergelog'):
                     self.multireport_failed = MULTI_MERGE
-                    msg += self.getmergefailure()
+                    results += self.getmergefailure()
 
             marker = self.cfg.get('kernel_arch', str(idx + 1))
-            msg += ['\n##### These are the results for %s' %
-                    (marker + ' architecture' if self.cfg.get('kernel_arch')
-                     else 'test set %s' % marker)]
+            results += ['\n##### These are the results for %s' %
+                        (marker + ' architecture'
+                         if self.cfg.get('kernel_arch')
+                         else 'test set %s' % marker)]
             if not self.cfg.get('mergelog'):
-                msg += self.get_kernel_config(marker)
+                results += self.get_kernel_config(marker)
 
                 if self.cfg.get('buildlog'):
                     if not self.multireport_failed:
                         self.multireport_failed = MULTI_BUILD
-                    msg += self.getbuildfailure(marker)
+                    results += self.getbuildfailure(marker)
                 elif self.cfg.get('runner'):
-                    msg += self.getjobresults()
+                    results += self.getjobresults()
 
-            msg.append('\n')
+            results.append('\n')
 
             if self.cfg.get('retcode') != '0':
                 self.multiretcode = MULTI_RETCODE
 
-        msg += ['Please reply to this email if you find an issue with our '
-                'testing process,',
-                'or wish to not receive these reports anymore.',
-                '\nSincerely,',
-                '  Kernel CI Team']
+        results += ['Please reply to this email if you find an issue with our '
+                    'testing process,',
+                    'or wish to not receive these reports anymore.',
+                    '\nSincerely,',
+                    '  Kernel CI Team']
 
         # Move configuration attachments to the end because some mail clients
         # (eg. mutt) inline them and they are huge
@@ -612,7 +614,7 @@ class Reporter(object):
             if attachment not in config_attachments
         ] + config_attachments
 
-        return '\n'.join(msg)
+        return '\n'.join(intro + self.get_multireport_summary() + results)
 
     def getsubject(self):
         if not self.cfg.get('mergelog') and \
@@ -652,6 +654,26 @@ class Reporter(object):
             subject += " for kernel %s" % self.cfg.get("krelease")
 
         return subject
+
+    def get_multireport_summary(self):
+        """
+        Get a summary (pass / fail) of the multireport.
+
+        Returns: A list of lines (strings) representing the summary.
+        """
+        summary = ['\nTEST SUMMARY:']
+
+        if self.multireport_failed == MULTI_PASS and not self.multiretcode:
+            summary += ['  All builds and tests PASSED.']
+        elif self.multireport_failed == MULTI_MERGE:
+            summary += ['  Patch application FAILED!']
+        elif self.multireport_failed == MULTI_BUILD:
+            summary += ['  One or more builds FAILED!']
+        elif self.multireport_failed == MULTI_TEST or self.multiretcode:
+            summary += ['  Testing FAILED!']
+
+        summary += ['\nMore datailed data follows.', '------------']
+        return summary
 
     # TODO Define abstract "report" method.
 
