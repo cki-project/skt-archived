@@ -286,6 +286,7 @@ class KernelTree(object):
 
         logging.info("Applying %s", uri)
 
+        # Run in workdir to workaround "git am" ignoring --work-tree
         gam = subprocess.Popen(
             ["git", "am", "-"],
             cwd=self.wdir,
@@ -316,6 +317,8 @@ class KernelTree(object):
     def merge_patch_file(self, path):
         if not os.path.exists(path):
             raise Exception("Patch %s not found" % path)
+
+        # Run in workdir to workaround "git am" ignoring --work-tree
         args = ["git", "am", path]
         try:
             subprocess.check_output(args,
