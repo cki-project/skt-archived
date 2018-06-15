@@ -76,6 +76,8 @@ class KernelTree(object):
             "git",
             "--work-tree", self.wdir,
             "--git-dir", self.gdir,
+            "-c", "user.name=skt",
+            "-c", "user.email=skt",
         ]
         cmd_args = list(base_argv) + list(args)
 
