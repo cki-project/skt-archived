@@ -72,7 +72,11 @@ class KernelTree(object):
 
     def git_cmd(self, *args, **kwargs):
         """Run git commands."""
-        base_argv = ["git", "--work-tree", self.wdir, "--git-dir", self.gdir]
+        base_argv = [
+            "git",
+            "--work-tree", self.wdir,
+            "--git-dir", self.gdir,
+        ]
         cmd_args = list(base_argv) + list(args)
 
         logging.debug("executing: %s", " ".join(cmd_args))
