@@ -395,7 +395,7 @@ class Reporter(object):
         result = ['\n\nWe ran the following tests:']
 
         # TODO: Get info from sktrc when we have it there
-        for test in ['Boot test']:
+        for test in ['Boot test', 'LTP lite']:
             result.append("  - %s" % test)
 
         result += ['\nwhich produced the results below:']
