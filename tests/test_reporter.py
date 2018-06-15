@@ -1,6 +1,3 @@
-"""
-Test cases for reporter module.
-"""
 # Copyright (c) 2018 Red Hat, Inc. All rights reserved. This copyrighted
 # material is made available to anyone wishing to use, modify, copy, or
 # redistribute it subject to the terms and conditions of the GNU General Public
@@ -14,6 +11,7 @@ Test cases for reporter module.
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+"""Test cases for reporter module."""
 import StringIO
 import gzip
 import os
@@ -33,13 +31,15 @@ from tests import misc
 
 
 class TestConsoleLog(unittest.TestCase):
-    """Test cases for reporter.ConsoleLog class"""
+    """Test cases for reporter.ConsoleLog class."""
+
     @staticmethod
     @contextmanager
     def request_get_mocked(filename):
-        """Mock request.get to allow feeding ConsoleLog with known inputs. When
-        request.get is called, it "fetches" the content of the asset passed as
-        parameter.
+        """Mock request.get to allow feeding ConsoleLog with known inputs.
+
+        When request.get is called, it "fetches" the content of the asset
+        passed as parameter.
 
         Args:
             filename: Asset's filename.
@@ -47,7 +47,7 @@ class TestConsoleLog(unittest.TestCase):
         get_mocked = mock.Mock()
 
         def remove_nt_marker(line):
-            """Filter function for removing the 'nt ' markers on assets"""
+            """Filter function for removing the 'nt ' markers on assets."""
             return not re.match(r'^nt ', line)
         get_mocked.text = filter(remove_nt_marker,
                                  misc.get_asset_content(filename))
@@ -56,13 +56,15 @@ class TestConsoleLog(unittest.TestCase):
 
     @staticmethod
     def get_expected_traces(filename):
-        """Return expected traces from an asset. Each line started with 'nt '
-        is discarded.
+        """Return expected traces from an asset.
+
+        Each line started with 'nt ' is discarded.
 
         Args:
             filename: Asset's filename.
         Returns:
             A list where every member is a trace.
+
         """
         expected_traces = []
         tmp_trace = []
@@ -96,16 +98,14 @@ class TestConsoleLog(unittest.TestCase):
         self.assertEqual(data_test, consolelog.data[0])
 
     def test_kernel_version_unmatch(self):
-        """Check it doesn't catch any trace when kernel version doesn't
-        match.
-        """
+        """Ensure gettraces() doesn't catch trace when kver doesn't match."""
         with self.request_get_mocked('x86_one_trace.txt'):
             consolelog = reporter.ConsoleLog('4-4', 'someurl')
             traces = consolelog.gettraces()
         self.assertListEqual(traces, [])
 
     def test_match_one_trace(self):
-        """Check one trace can be extracted from a console log"""
+        """Check one trace can be extracted from a console log."""
         with self.request_get_mocked('x86_one_trace.txt'):
             consolelog = reporter.ConsoleLog('4-5-fake', 'someurl')
             traces = consolelog.gettraces()
@@ -114,7 +114,7 @@ class TestConsoleLog(unittest.TestCase):
         self.assertEqual(expected_trace, traces[0])
 
     def test_match_three_traces(self):
-        """Check three traces can be extracted from a console log"""
+        """Check three traces can be extracted from a console log."""
         with self.request_get_mocked('x86_three_traces.txt'):
             consolelog = reporter.ConsoleLog('4.16-fake', 'someurl')
             traces = consolelog.gettraces()
