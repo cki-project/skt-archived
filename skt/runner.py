@@ -14,6 +14,7 @@
 
 import logging
 import os
+import platform
 import re
 import subprocess
 import time
@@ -428,8 +429,8 @@ class BeakerRunner(Runner):
 
         return jobid
 
-    def run(self, url, release, wait=False, host=None, uid="", arch="x86_64",
-            reschedule=True):
+    def run(self, url, release, wait=False, host=None, uid="",
+            arch=platform.machine(), reschedule=True):
         ret = 0
         self.failures = {}
         self.recipes = set()
