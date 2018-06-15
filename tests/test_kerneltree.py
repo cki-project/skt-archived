@@ -282,13 +282,12 @@ class KernelTreeTest(unittest.TestCase):
             'subprocess.check_output',
             side_effect=make_process_exception
         )
-        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.git_cmd')
 
         patch_file = "{}/test_patch.patch".format(self.tmpdir)
         with open(patch_file, 'w') as fileh:
             fileh.write('dummy patch data')
 
-        with mock_check_output, mock_git_cmd:
+        with mock_check_output:
             with self.assertRaises(Exception):
                 self.kerneltree.merge_patch_file(patch_file)
 
