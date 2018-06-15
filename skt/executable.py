@@ -654,6 +654,12 @@ def setup_parser():
         type=str,
         help='Use smtp url instead of localhost to send mail',
     )
+    parser_report.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Instead of sending email, print out contents for review"
+    )
     parser_report.set_defaults(func=cmd_report)
     parser_report.set_defaults(_name="report")
 

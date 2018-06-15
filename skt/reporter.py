@@ -716,6 +716,9 @@ class MailReporter(Reporter):
         self.subject = cfg['reporter']['mail_subject']
         self.smtp_url = cfg.get('smtp_url') or 'localhost'
 
+        # Do not send email, just print out for debugging
+        self.dry_run = cfg.get('dry_run')
+
         super(MailReporter, self).__init__(cfg)
 
     def report(self):
@@ -748,6 +751,8 @@ class MailReporter(Reporter):
             msg.attach(MIMEText(self.getreport()))
 
         for (name, att) in self.attach:
+            if self.dry_run:
+                continue
             # TODO Store content type and charset when adding attachments
             if name.endswith(('.log', '.txt')):
                 tmp = MIMEText(att, _charset='utf-8')
@@ -760,6 +765,9 @@ class MailReporter(Reporter):
 
             msg.attach(tmp)
 
-        s = smtplib.SMTP(self.smtp_url)
-        s.sendmail(self.mailfrom, self.mailto, msg.as_string())
-        s.quit()
+        if not self.dry_run:
+            s = smtplib.SMTP(self.smtp_url)
+            s.sendmail(self.mailfrom, self.mailto, msg.as_string())
+            s.quit()
+        else:
+            print(msg)
