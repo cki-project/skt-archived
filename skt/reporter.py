@@ -630,6 +630,21 @@ class Reporter(object):
 
         return '\n'.join(intro + self.get_multireport_summary() + results)
 
+    def get_status(self):
+        if self.multireport:
+            if self.multireport_failed == MULTI_PASS and \
+               not self.multiretcode:
+                return 'PASS'
+            else:
+                return 'FAIL'
+        else:
+            if not self.cfg.get('mergelog') and \
+               not self.cfg.get('buildlog') and \
+               self.cfg.get('retcode') == '0':
+                return 'PASS'
+            else:
+                return 'FAIL'
+
     def getsubject(self):
         if not self.cfg.get('mergelog') and \
            not self.cfg.get('buildlog') and \
@@ -735,7 +750,12 @@ class MailReporter(Reporter):
 
         # Add the most basic parts of the email message
         if self.subject:
-            msg['Subject'] = self.subject
+            # Strip all leading Re: s
+            subject = re.sub("^\s*(Re:\s*)*",
+                             "Re: [" + self.get_status() + "] ",
+                             self.subject,
+                             flags=re.IGNORECASE)
+            msg['Subject'] = subject
         msg['To'] = ', '.join(self.mailto)
         msg['From'] = self.mailfrom
 
