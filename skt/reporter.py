@@ -592,6 +592,8 @@ class Reporter(object):
                     results += self.getbuildfailure(marker)
                 elif self.cfg.get('runner'):
                     results += self.getjobresults()
+            else:
+                results += ['', 'Patch application failure!']
 
             results.append('\n')
 
