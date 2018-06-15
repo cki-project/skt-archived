@@ -300,7 +300,12 @@ class KernelTree(object):
         retcode = gam.wait()
 
         if retcode != 0:
-            self.git_cmd("am", "--abort", cwd=self.wdir)
+            try:
+                self.git_cmd("am", "--abort", cwd=self.wdir)
+            except subprocess.CalledProcessError as exc:
+                logging.debug("%s failed with status %d and "
+                              "following output:\n%s",
+                              exc.cmd, exc.returncode, exc.output)
 
             with open(self.mergelog, "w") as fileh:
                 fileh.write(stdout)
@@ -325,7 +330,12 @@ class KernelTree(object):
                                     cwd=self.wdir,
                                     env=dict(os.environ, **{'LC_ALL': 'C'}))
         except subprocess.CalledProcessError as exc:
-            self.git_cmd("am", "--abort", cwd=self.wdir)
+            try:
+                self.git_cmd("am", "--abort", cwd=self.wdir)
+            except subprocess.CalledProcessError as exc:
+                logging.debug("%s failed with status %d and "
+                              "following output:\n%s",
+                              exc.cmd, exc.returncode, exc.output)
 
             with open(self.mergelog, "w") as fileh:
                 fileh.write(exc.output)
