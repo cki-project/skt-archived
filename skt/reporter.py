@@ -233,6 +233,9 @@ class Reporter(object):
         self.multireport_failed = MULTI_PASS
         # Aggregate value for retcode
         self.multiretcode = MULTI_PASS
+        # We need to save the job IDs when iterating over state files when
+        # multireporting
+        self.multi_job_ids = []
 
     def infourldata(self, mergedata):
         response = requests.get(self.cfg.get("infourl"))
@@ -558,6 +561,10 @@ class Reporter(object):
             self.load_state_cfg(statefile)
             self.update_mergedata()
 
+            if self.cfg.get("jobs"):
+                for jobid in sorted(self.cfg.get("jobs")):
+                    self.multi_job_ids.append(jobid)
+
             # The patches applied should be same for all runs but we need to
             # include the information only once
             if not idx:
@@ -732,20 +739,21 @@ class MailReporter(Reporter):
             header, value = header_line.split(":", 1)
             msg[header] = value
 
-        # Add the SKT job IDs so we can correlate emails to jobs
-        msg['X-SKT-JIDS'] = ' '.join(self.getjobids())
-
         if self.multireport:
             # We need to run the reporting function first to get aggregates to
             # build subject from
             msg.attach(MIMEText(self.get_multireport()))
             if not msg['Subject']:
                 msg['Subject'] = self.get_multisubject()
+            # Add the SKT job IDs so we can correlate emails to jobs
+            msg['X-SKT-JIDS'] = ' '.join(self.multi_job_ids)
         else:
             self.update_mergedata()
             if not msg['Subject']:
                 msg['Subject'] = self.getsubject()
             msg.attach(MIMEText(self.getreport()))
+            # Add the SKT job IDs so we can correlate emails to jobs
+            msg['X-SKT-JIDS'] = ' '.join(self.getjobids())
 
         for (name, att) in self.attach:
             # TODO Store content type and charset when adding attachments
