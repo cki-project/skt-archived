@@ -2,6 +2,13 @@
 
 ## June 2018
 
+* Arguments for runner are now explicitly defined and JSON strings are no
+  longer required. Users can specifiy the following arguments:
+
+  * `--runner`: type of runner to use (`beaker` supported) *(required)*
+  * `--beaker-job-template`: path to Beaker job template XML file *(required)*
+  * `--beaker-job-owner`: user to delegate a Beaker job to
+
 * Arguments for `skt merge` should now be used multiple times instead of
   supplying multiple values for each option. This affects the following
   arguments:
