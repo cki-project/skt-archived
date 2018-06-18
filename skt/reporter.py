@@ -461,7 +461,10 @@ class Reporter(object):
 
         result += ['\nwhich produced the results below:']
 
-        runner = skt.runner.getrunner(*self.cfg.get("runner"))
+        runner = skt.runner.getrunner(
+            self.cfg['runner']['type'],
+            self.cfg['runner']
+        )
         job_list = sorted(list(self.cfg.get("jobs", [])))
         vresults = runner.getverboseresults(job_list)
 

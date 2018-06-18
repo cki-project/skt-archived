@@ -16,7 +16,6 @@
 
 import ConfigParser
 import argparse
-import ast
 import datetime
 import importlib
 import json
@@ -296,7 +295,11 @@ def cmd_run(cfg):
         cfg:    A dictionary of skt configuration.
     """
     global retcode
-    runner = skt.runner.getrunner(*cfg.get('runner'))
+    runner = skt.runner.getrunner(
+        cfg['runner']['type'],
+        cfg['runner']
+    )
+
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                          cfg.get('wait'), uid=cfg.get('uid'),
                          arch=cfg.get("kernel_arch"))
@@ -313,7 +316,10 @@ def cmd_run(cfg):
     if retcode and cfg.get('basehead') and cfg.get('publisher') \
             and cfg.get('basehead') != cfg.get('buildhead'):
         # TODO: there is a chance that baseline 'krelease' is different
-        baserunner = skt.runner.getrunner(*cfg.get('runner'))
+        baserunner = skt.runner.getrunner(
+            cfg['runner']['type'],
+            cfg['runner']
+        )
         publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
         baseurl = publisher.geturl("%s.tar.gz" % cfg.get('basehead'))
         basehost = runner.get_mfhost()
@@ -593,9 +599,23 @@ def setup_parser():
     parser_run.add_argument(
         "-r",
         "--runner",
-        nargs=2,
         type=str,
-        help="Runner config in 'type \"{'key' : 'val', ...}\"' format"
+        choices=['beaker'],
+        required=True,
+        dest="type",
+        help="Runner type"
+    )
+    parser_run.add_argument(
+        "--beaker-job-template",
+        dest='jobtemplate',
+        type=str,
+        help="Path to a Beaker job template XML file"
+    )
+    parser_run.add_argument(
+        "--beaker-job-owner",
+        dest='jobowner',
+        type=str,
+        help="Delegate Beaker job to specified user"
     )
     parser_run.add_argument(
         "--buildurl",
@@ -782,15 +802,19 @@ def load_config(args):
                             config.get('publisher', 'destination'),
                             config.get('publisher', 'baseurl')]
 
-    if config.has_section('runner') and not cfg.get('runner'):
-        rcfg = {}
-        for (key, val) in config.items('runner'):
-            if key != 'type':
-                rcfg[key] = val
-        cfg['runner'] = [config.get('runner', 'type'), rcfg]
-    elif cfg.get('runner'):
-        cfg['runner'] = [cfg.get('runner')[0],
-                         ast.literal_eval(cfg.get('runner')[1])]
+    cfg['runner'] = {}
+    # Check if the runner type is set on the command line
+    if cfg.get('_name') == 'run' and cfg.get('type'):
+        # Use the runner configuration from the command line
+        cfg['runner']['type'] = cfg.get('type')
+        cfg['runner']['jobtemplate'] = cfg.get('jobtemplate')
+        cfg['runner']['jobowner'] = cfg.get('jobowner')
+
+    # If the config file has a 'runner' section, we should find any values
+    # set there that were not set on the command line.
+    if cfg.get('_name') == 'run' and config.has_section('runner'):
+        for option, value in config.items('runner'):
+            cfg['runner'][option] = value
 
     # Check if the reporter type is set on the command line
     if cfg.get('_name') == 'report' and cfg.get('type'):
@@ -885,6 +909,16 @@ def check_args(parser, args):
             parser.error(
                 'the stdio reporter was selected but arguments for the mail'
                 'reporter were provided'
+            )
+
+    # Check required arguments for 'run'
+    if args._name == 'run':
+
+        if not args.jobtemplate:
+            parser.error(
+                "A job template XML file is required to run jobs in Beaker. "
+                "Use the --beaker-job-template argument to specify the path "
+                "to a valid file."
             )
 
 
