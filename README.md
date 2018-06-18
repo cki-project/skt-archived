@@ -323,7 +323,7 @@ Provided you have both Beaker access and a suitable job XML template, you can
 run the tests with the built kernel as such:
 
     skt --rc <SKTRC> --state --workdir <WORKDIR> -vv run \
-        --runner beaker '{"jobtemplate": "<JOBTEMPLATE>"}' \
+        --runner beaker --job-template-file <JOBTEMPLATE> \
         --wait
 
 Here, `<JOBTEMPLATE>` would be the name of the file with the Beaker job XML
@@ -334,7 +334,7 @@ result.
 E.g. to run the tests from a job XML template named `beakerjob.xml`, execute:
 
     skt --rc skt-rc --state --workdir skt-workdir -vv run \
-        --runner beaker '{"jobtemplate": "beakerjob.xml"}' \
+        --runner beaker --job-template-file beakerjob.xml \
         --wait
 
 ### Report
