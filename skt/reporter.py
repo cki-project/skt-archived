@@ -332,28 +332,26 @@ class Reporter(object):
         return mergedata
 
     def _update_mergedata(self):
+        """Get information about the patch(es) being merged.
+
+        Returns:
+            A dictionary of information about the merge, including the
+            patch(es) being merged, and which git ref they are applied to.
+
+        """
         mergedata = {
             'base': None,
             'merge_git': [],
             'localpatch': [],
             'patchwork': [],
-            'config': None
         }
 
         if self.cfg.get("infourl"):
+            # Retrieve remotely stored config/state data
             mergedata = self.__infourldata(mergedata)
         else:
+            # Use the local state file to read config/state data
             mergedata = self.__stateconfigdata(mergedata)
-
-        if not self.cfg.get('mergelog'):
-            if self.cfg.get("cfgurl"):
-                response = requests.get(self.cfg.get("cfgurl"))
-                if response:
-                    mergedata['config'] = response.text
-            else:
-                with open("%s/.config" % self.cfg.get("workdir"),
-                          "r") as fileh:
-                    mergedata['config'] = fileh.read()
 
         self.mergedata = mergedata
 
@@ -393,12 +391,43 @@ class Reporter(object):
 
         return result
 
-    def __get_kernel_config(self, suffix=None):
-        cfgname = "config.gz" if not suffix else "config_{}.gz".format(suffix)
+    def __attach_kernel_config(self, suffix=None):
+        """Add the kernel config to the list of attachments.
 
-        self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
-        return ['\nThe kernel was built with the attached configuration '
-                '(%s).' % cfgname]
+        Args:
+            suffix: An optional filename suffix to add to the config file
+                    name. This is helpful for reporting config files for
+                    different kernel architectures.
+
+        Returns:
+            Returns a list of message lines describing the configuration file
+            that is attached. If no config file is found, an empty list is
+            returned.
+
+        """
+        attachment_filename = "config.gz"
+
+        if suffix:
+            attachment_filename = "config_{}.gz".format(suffix)
+
+        # Read the kernel config file, if present. The config file may not be
+        # present if we have completed a merge but we have not yet started the
+        # kernel compile.
+        config_filename = "{}/.config".format('workdir')
+        try:
+            if os.path.isfile(config_filename):
+                with open(config_filename, 'r') as fileh:
+                    config = fileh.read()
+
+            # Add the attachment as a gzip-compressed file
+            self.attach.appeipynd((attachment_filename, gzipdata(config)))
+
+            # Return lines to append to the report
+            return ['\nThe kernel was built with the attached configuration '
+                    '(%s).' % attachment_filename]
+
+        except IOError:
+            return []
 
     def _getjobids(self):
         jobids = []
@@ -542,7 +571,7 @@ class Reporter(object):
         if self.cfg.get("mergelog"):
             msg += self.__getmergefailure()
         else:
-            self.__get_kernel_config()
+            self.__attach_kernel_config()
             if self.cfg.get("buildlog"):
                 msg += self.__getbuildfailure()
             elif self.cfg.get('runner'):
@@ -609,7 +638,7 @@ class Reporter(object):
                              if self.cfg.get('kernel_arch')
                              else 'test set %s' % marker)]
 
-                results += self.__get_kernel_config(marker)
+                results += self.__attach_kernel_config(marker)
 
                 if self.cfg.get('buildlog'):
                     if not self.multireport_failed:
