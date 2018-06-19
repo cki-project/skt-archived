@@ -70,8 +70,19 @@ class KernelTree(object):
         logging.info("base ref: %s", self.ref)
         logging.info("work dir: %s", self.wdir)
 
-    def git_cmd(self, *args, **kwargs):
-        """Run git commands."""
+    def git_cmd_call(self, func, *args, **kwargs):
+        """
+        Call a subprocess-module-compatible function with arguments required
+        to run a git command.
+
+        Args:
+            func:       The subprocess-module-compatible function to call.
+            *args:      Git command arguments.
+            **kwargs:   Keyword arguments to the function to call.
+
+        Returns:
+            The function return value.
+        """
         base_argv = [
             "git",
             "--work-tree", self.wdir,
@@ -82,14 +93,25 @@ class KernelTree(object):
         cmd_args = list(base_argv) + list(args)
 
         logging.debug("executing: %s", " ".join(cmd_args))
-        output = subprocess.check_output(
+        return func(
             cmd_args,
             env=dict(os.environ, **{'LC_ALL': 'C'}),
             stderr=subprocess.STDOUT,
             **kwargs
         )
 
-        return output
+    def git_cmd(self, *args, **kwargs):
+        """
+        Run a git command and return its output.
+
+        Args:
+            *args:      Git command arguments.
+            **kwargs:   Extra keyword arguments to subprocess.check_output.
+
+        Returns:
+            Git command output.
+        """
+        return self.git_cmd_call(subprocess.check_output, *args, **kwargs)
 
     def getpath(self):
         return self.wdir
