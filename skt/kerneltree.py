@@ -113,6 +113,27 @@ class KernelTree(object):
         """
         return self.git_cmd_call(subprocess.check_output, *args, **kwargs)
 
+    def git_cmd_pipe(self, input, *args, **kwargs):
+        """
+        Feed input to a git command and return its output.
+
+        Args:
+            input:      Input to feed to the git command.
+            *args:      Git command arguments.
+            **kwargs:   Extra keyword arguments to subprocess.Popen.
+
+        Returns:
+            Git command exit status and output.
+        """
+        process = self.git_cmd_call(subprocess.Popen,
+                                    *args,
+                                    stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE,
+                                    **kwargs)
+        (output, _) = process.communicate(input)
+        status = process.wait()
+        return status, output
+
     def getpath(self):
         return self.wdir
 
@@ -309,13 +330,9 @@ class KernelTree(object):
         logging.info("Applying %s", uri)
 
         # Run in workdir to workaround "git am" ignoring --work-tree
-        process = self.git_cmd_call(subprocess.Popen,
-                                    "am", "-",
-                                    cwd=self.wdir,
-                                    stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE)
-        (output, _) = process.communicate(patch_content)
-        status = process.wait()
+        status, output = self.git_cmd_pipe(patch_content,
+                                           "am", "-",
+                                           cwd=self.wdir)
         if status != 0:
             try:
                 self.git_cmd("am", "--abort", cwd=self.wdir)
