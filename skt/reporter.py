@@ -681,7 +681,7 @@ class Reporter(object):
         elif self.multireport_failed == MULTI_TEST or self.multiretcode:
             summary += ['  Testing FAILED!']
 
-        summary += ['\nMore datailed data follows.', '------------']
+        summary += ['\nMore detailed data follows.', '------------']
         return summary
 
     # TODO Define abstract "report" method.
