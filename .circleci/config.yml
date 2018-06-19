@@ -19,12 +19,24 @@ defaults: &defaults
             -b git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git \
             --ref v4.16 \
             --fetch-depth 1
+          cat sktrc
+        working_directory: /tmp/skt_test
+    - run:
+        name: Test report on merge completion
+        command: |
+          skt -vv --state -d workdir --rc sktrc report --reporter stdio
         working_directory: /tmp/skt_test
     - run:
         name: Test `skt build`
         command: |
             skt -vv --state -d workdir --rc sktrc build -c config \
                 --cfgtype tinyconfig
+            cat sktrc
+        working_directory: /tmp/skt_test
+    - run:
+        name: Test report on build completion
+        command: |
+          skt -vv --state -d workdir --rc sktrc report --reporter stdio
         working_directory: /tmp/skt_test
     - store_artifacts:
         path: /tmp/skt_test/workdir/*.log
