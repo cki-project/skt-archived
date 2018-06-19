@@ -33,7 +33,6 @@ MULTI_PASS = 0
 MULTI_MERGE = 1
 MULTI_BUILD = 2
 MULTI_TEST = 3
-MULTI_RETCODE = -1
 
 
 def gzipdata(data):
@@ -231,8 +230,6 @@ class Reporter(object):
         # Notion of failure for subject creation with multireporting. The
         # earliest problem in the pipeline is reported.
         self.multireport_failed = MULTI_PASS
-        # Aggregate value for retcode
-        self.multiretcode = MULTI_PASS
         # We need to save the job IDs when iterating over state files when
         # multireporting
         self.multi_job_ids = []
@@ -428,9 +425,6 @@ class Reporter(object):
                 result.append("Result: %s" % res)
 
                 if res != "Pass":
-                    if self.multireport and not self.multireport_failed:
-                        self.multireport_failed = MULTI_TEST
-
                     logging.info("Failure detected in recipe %s, attaching "
                                  "console log", recipe)
                     ctraces = clog.gettraces()
@@ -605,7 +599,7 @@ class Reporter(object):
             results.append('\n')
 
             if self.cfg.get('retcode') != '0':
-                self.multiretcode = MULTI_RETCODE
+                self.multireport_failed = MULTI_TEST
 
         results += ['Please reply to this email if you find an issue with our '
                     'testing process,',
@@ -646,7 +640,7 @@ class Reporter(object):
         return subject
 
     def get_multisubject(self):
-        if self.multireport_failed == MULTI_PASS and not self.multiretcode:
+        if self.multireport_failed == MULTI_PASS:
             subject = 'PASS: '
         else:
             subject = 'FAIL: '
@@ -672,13 +666,13 @@ class Reporter(object):
         """
         summary = ['\nTEST SUMMARY:']
 
-        if self.multireport_failed == MULTI_PASS and not self.multiretcode:
+        if self.multireport_failed == MULTI_PASS:
             summary += ['  All builds and tests PASSED.']
         elif self.multireport_failed == MULTI_MERGE:
             summary += ['  Patch application FAILED!']
         elif self.multireport_failed == MULTI_BUILD:
             summary += ['  One or more builds FAILED!']
-        elif self.multireport_failed == MULTI_TEST or self.multiretcode:
+        elif self.multireport_failed == MULTI_TEST:
             summary += ['  Testing FAILED!']
 
         summary += ['\nMore detailed data follows.', '------------']
