@@ -309,9 +309,14 @@ class KernelTree(object):
         logging.info("Applying %s", uri)
 
         # Run in workdir to workaround "git am" ignoring --work-tree
-        try:
-            self.git_cmd("am", "-", cwd=self.wdir)
-        except subprocess.CalledProcessError as exc:
+        process = self.git_cmd_call(subprocess.Popen,
+                                    "am", "-",
+                                    cwd=self.wdir,
+                                    stdin=subprocess.PIPE,
+                                    stdout=subprocess.PIPE)
+        (output, _) = process.communicate(patch_content)
+        status = process.wait()
+        if status != 0:
             try:
                 self.git_cmd("am", "--abort", cwd=self.wdir)
             except subprocess.CalledProcessError as exc:
@@ -320,7 +325,7 @@ class KernelTree(object):
                               exc.cmd, exc.returncode, exc.output)
 
             with open(self.mergelog, "w") as fileh:
-                fileh.write(exc.output)
+                fileh.write(output)
 
             raise Exception("Failed to apply patch %s" %
                             os.path.basename(os.path.normpath(uri)))
