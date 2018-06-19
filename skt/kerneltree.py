@@ -111,7 +111,11 @@ class KernelTree(object):
         Returns:
             Git command output.
         """
-        return self.git_cmd_call(subprocess.check_output, *args, **kwargs)
+        try:
+            return self.git_cmd_call(subprocess.check_output, *args, **kwargs)
+        except subprocess.CalledProcessError as exc:
+            logging.debug(exc.output)
+            raise(exc)
 
     def git_cmd_pipe(self, input, *args, **kwargs):
         """
