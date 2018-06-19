@@ -184,7 +184,7 @@ def cmd_merge(cfg):
 
     kpath = ktree.getpath()
     buildinfo = ktree.dumpinfo()
-    buildhead = ktree.get_commit_hash()
+    buildhead = ktree.git_cmd('show', '--format=%H', '-s')
 
     save_state(cfg, {'workdir': kpath,
                      'buildinfo': buildinfo,
