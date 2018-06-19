@@ -14,16 +14,25 @@ Test cases for reporter module.
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+import StringIO
+import os
 import re
+import shutil
+import tempfile
 import unittest
+import xml.etree.ElementTree as etree
 
 from contextlib import contextmanager
+
+import responses
 
 import mock
 
 from skt import reporter
 
 from tests import misc
+
+SCRIPT_PATH = os.path.dirname(__file__)
 
 
 class TestConsoleLog(unittest.TestCase):
@@ -99,3 +108,383 @@ class TestConsoleLog(unittest.TestCase):
             msg = ("Trace_{} doesn't match.\n"
                    "{!r} != {!r}").format(idx, trace, expected_traces[idx])
             self.assertEqual(trace, expected_traces[idx], msg=msg)
+
+
+class TestStdioReporter(unittest.TestCase):
+    """Test the StdioReporter class."""
+
+    # pylint: disable=too-many-instance-attributes
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.tmpdir = tempfile.mkdtemp()
+        self.tempconfig = "{}/.config".format(self.tmpdir)
+        with open(self.tempconfig, 'w') as fileh:
+            fileh.write('Config file text from a file')
+
+        self.mergelog = "{}/mergelog".format(self.tmpdir)
+        with open(self.mergelog, 'w') as fileh:
+            for counter in range(0, 10):
+                fileh.write(
+                    'Merge log failure sample text line {}\n'.format(counter)
+                )
+
+        self.buildlog = "{}/buildlog".format(self.tmpdir)
+        with open(self.buildlog, 'w') as fileh:
+            for counter in range(0, 10):
+                fileh.write(
+                    'Build log failure sample text line {}\n'.format(counter)
+                )
+
+        self.mbox_side_effect = [
+            'http://patchwork.example.com/patch/1/mbox',
+            'http://patchwork.example.com/patch/2/mbox',
+            'http://patchwork.example.com/patch/1/mbox',
+            'http://patchwork.example.com/patch/2/mbox',
+            'http://patchwork.example.com/patch/1/mbox',
+            'http://patchwork.example.com/patch/2/mbox',
+            'http://patchwork.example.com/patch/1/mbox',
+            'http://patchwork.example.com/patch/2/mbox',
+        ]
+        self.name_side_effect = [
+            '[1/2] I fixed a great thing',
+            '[2/2] I fixed this other thing too',
+            '[1/2] I fixed a great thing',
+            '[2/2] I fixed this other thing too',
+            '[1/2] I fixed a great thing',
+            '[2/2] I fixed this other thing too',
+            '[1/2] I fixed a great thing',
+            '[2/2] I fixed this other thing too',
+        ]
+
+        beaker_pass_xml = (
+            "{}/assets/beaker_job_pass_results_full.xml".format(SCRIPT_PATH)
+        )
+        with open(beaker_pass_xml, 'r') as fileh:
+            self.beaker_pass_results = fileh.read()
+
+        beaker_fail_xml = (
+            "{}/assets/beaker_job_fail_results_full.xml".format(SCRIPT_PATH)
+        )
+        with open(beaker_fail_xml, 'r') as fileh:
+            self.beaker_fail_results = fileh.read()
+
+    def tearDown(self):
+        """Tear down text fixtures."""
+        if os.path.isdir(self.tmpdir):
+            shutil.rmtree(self.tmpdir)
+
+    @responses.activate
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.get_patch_name')
+    @mock.patch('skt.get_patch_mbox')
+    def test_jinja2_report(self, mock_mbox, mock_name, mock_grt):
+        """Ensure the jinja2 report works."""
+        mock_mbox.side_effect = self.mbox_side_effect
+        mock_name.side_effect = self.name_side_effect
+        mock_grt.return_value = etree.fromstring(self.beaker_pass_results)
+
+        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(
+            responses.GET,
+            "{}/logs/console.log".format(url_base),
+            body="Example console log"
+        )
+
+        responses.add(
+            responses.GET,
+            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            body="Example machine info"
+        )
+
+        cfg = {
+            'workdir': self.tmpdir,
+            'baserepo': 'git://git.example.com/kernel.git',
+            'basehead': '1234abcdef',
+            'mergerepos': ['other_repo_name'],
+            'mergeheads': ['fedcba4321'],
+            'localpatches': ['/tmp/patch.txt', '/tmp/patch2.txt'],
+            'patchworks': [
+                'http://patchwork.example.com/patch/1',
+                'http://patchwork.example.com/patch/2'
+            ],
+            'jobs': ['J:2547021', 'J:2547022'],
+            'runner': (
+                'beaker', {
+                    'jobtemplate': 'foo',
+                    'jobowner': 'mhayden'
+                }
+            )
+        }
+        testprint = StringIO.StringIO()
+        rptclass = reporter.StdioReporter(cfg)
+        rptclass.report(printer=testprint)
+        report = testprint.getvalue().strip()
+
+        self.assertIn(cfg['basehead'], report)
+        self.assertIn(cfg['baserepo'], report)
+        self.assertIn('Result: Pass', report)
+        self.assertIn('Example machine info', report)
+        # Triple newlines look bad since some lines get double spaced and
+        # others don't.
+        self.assertNotIn("\n\n\n", report)
+
+    @responses.activate
+    @mock.patch('skt.reporter.Reporter.load_state_cfg')
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.get_patch_name')
+    @mock.patch('skt.get_patch_mbox')
+    def test_jinja2_multireport_success(self, mock_mbox, mock_name, mock_grt,
+                                        mock_load_state_cfg):
+        """Ensure the jinja2 report works."""
+        mock_mbox.side_effect = list(self.mbox_side_effect)
+        mock_name.side_effect = list(self.name_side_effect)
+        mock_grt.return_value = etree.fromstring(self.beaker_pass_results)
+
+        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(
+            responses.GET,
+            "{}/logs/console.log".format(url_base),
+            body="Linux version 3.10.0"
+        )
+
+        responses.add(
+            responses.GET,
+            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            body="Example machine info"
+        )
+
+        mock_state_cfg1 = {
+            'workdir': self.tmpdir,
+            'baserepo': 'git://git.example.com/kernel.git',
+            'basehead': '1234abcdef',
+            'mergerepos': ['other_repo_name'],
+            'mergeheads': ['fedcba4321'],
+            'localpatches': ['/tmp/patch.txt', '/tmp/patch2.txt'],
+            'patchworks': [
+                'http://patchwork.example.com/patch/1',
+                'http://patchwork.example.com/patch/2'
+            ],
+            'jobs': ['J:2547021'],
+            'kernel_arch': 'x86_64',
+            'krelease': '3.10.0',
+            'runner': (
+                'beaker', {
+                    'jobtemplate': 'foo',
+                    'jobowner': 'mhayden'
+                }
+            )
+        }
+        mock_state_cfg2 = {
+            'workdir': self.tmpdir,
+            'baserepo': 'git://git.example.com/kernel.git',
+            'basehead': '1234abcdef',
+            'mergerepos': ['other_repo_name'],
+            'mergeheads': ['fedcba4321'],
+            'localpatches': ['/tmp/patch.txt', '/tmp/patch2.txt'],
+            'patchworks': [
+                'http://patchwork.example.com/patch/1',
+                'http://patchwork.example.com/patch/2'
+            ],
+            'jobs': ['J:2547022'],
+            'kernel_arch': 's390x',
+            'krelease': '3.10.0',
+            'runner': (
+                'beaker', {
+                    'jobtemplate': 'foo',
+                    'jobowner': 'mhayden'
+                }
+            )
+        }
+        mock_load_state_cfg.side_effect = [
+            mock_state_cfg1,
+            mock_state_cfg2,
+        ]
+
+        cfg = {
+            'result': ['state1', 'state2'],
+            'workdir': self.tmpdir,
+            'baserepo': 'git://git.example.com/kernel.git',
+            'basehead': '1234abcdef',
+            'mergerepos': ['other_repo_name'],
+            'mergeheads': ['fedcba4321'],
+            'localpatches': ['/tmp/patch.txt', '/tmp/patch2.txt'],
+            'patchworks': ['http://patchwork.example.com/patch/1'],
+            'jobs': ['J:2547021', 'J:2547022'],
+            'krelease': '3.10.0',
+            'runner': (
+                'beaker', {
+                    'jobtemplate': 'foo',
+                    'jobowner': 'mhayden'
+                }
+            )
+        }
+        testprint = StringIO.StringIO()
+        rptclass = reporter.StdioReporter(cfg)
+        rptclass.report(printer=testprint)
+        report = testprint.getvalue().strip()
+
+        self.assertIn(cfg['basehead'], report)
+        self.assertIn(cfg['baserepo'], report)
+        self.assertIn('Result: Pass', report)
+        self.assertIn('Example machine info', report)
+        # Triple newlines look bad since some lines get double spaced and
+        # others don't.
+        self.assertNotIn("\n\n\n", report)
+
+    @responses.activate
+    @mock.patch('skt.reporter.Reporter.load_state_cfg')
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.get_patch_name')
+    @mock.patch('skt.get_patch_mbox')
+    def test_jinja2_multireport_failure(self, mock_mbox, mock_name, mock_grt,
+                                        mock_load_state_cfg):
+        """Ensure the jinja2 report works."""
+        mock_mbox.side_effect = list(self.mbox_side_effect)
+        mock_name.side_effect = list(self.name_side_effect)
+        mock_grt.side_effect = [
+            etree.fromstring(self.beaker_pass_results),
+            etree.fromstring(self.beaker_fail_results),
+        ]
+
+        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(
+            responses.GET,
+            "{}/logs/console.log".format(url_base),
+            body="Linux version 3.10.0"
+        )
+
+        responses.add(
+            responses.GET,
+            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            body="Example machine info"
+        )
+
+        mock_state_cfg1 = {
+            'workdir': self.tmpdir,
+            'baserepo': 'git://git.example.com/kernel.git',
+            'basehead': '1234abcdef',
+            'mergerepos': ['other_repo_name'],
+            'mergeheads': ['fedcba4321'],
+            'localpatches': ['/tmp/patch.txt', '/tmp/patch2.txt'],
+            'patchworks': [
+                'http://patchwork.example.com/patch/1',
+                'http://patchwork.example.com/patch/2'
+            ],
+            'jobs': ['J:2547021'],
+            'kernel_arch': 'x86_64',
+            'krelease': '3.10.0',
+            'buildlog': self.buildlog,
+            'runner': (
+                'beaker', {
+                    'jobtemplate': 'foo',
+                    'jobowner': 'mhayden'
+                }
+            )
+        }
+        mock_state_cfg2 = {
+            'workdir': self.tmpdir,
+            'baserepo': 'git://git.example.com/kernel.git',
+            'basehead': '1234abcdef',
+            'mergerepos': ['other_repo_name'],
+            'mergeheads': ['fedcba4321'],
+            'localpatches': ['/tmp/patch.txt', '/tmp/patch2.txt'],
+            'patchworks': [
+                'http://patchwork.example.com/patch/1',
+                'http://patchwork.example.com/patch/2'
+            ],
+            'jobs': ['J:2547022'],
+            'kernel_arch': 's390x',
+            'krelease': '3.10.0',
+            'runner': (
+                'beaker', {
+                    'jobtemplate': 'foo',
+                    'jobowner': 'mhayden'
+                }
+            )
+        }
+        mock_load_state_cfg.side_effect = [
+            mock_state_cfg1,
+            mock_state_cfg2,
+        ]
+
+        cfg = {
+            'result': ['state1', 'state2'],
+            'workdir': self.tmpdir,
+            'baserepo': 'git://git.example.com/kernel.git',
+            'basehead': '1234abcdef',
+            'mergerepos': ['other_repo_name'],
+            'mergeheads': ['fedcba4321'],
+            'localpatches': ['/tmp/patch.txt', '/tmp/patch2.txt'],
+            'patchworks': ['http://patchwork.example.com/patch/1'],
+            'jobs': ['J:2547021', 'J:2547022'],
+            'krelease': '3.10.0',
+            'runner': (
+                'beaker', {
+                    'jobtemplate': 'foo',
+                    'jobowner': 'mhayden'
+                }
+            )
+        }
+        testprint = StringIO.StringIO()
+        rptclass = reporter.StdioReporter(cfg)
+        rptclass.report(printer=testprint)
+        report = testprint.getvalue().strip()
+
+        self.assertIn(cfg['basehead'], report)
+        self.assertIn(cfg['baserepo'], report)
+        self.assertIn('Result: Pass', report)
+        self.assertIn('Result: Fail', report)
+        self.assertIn('Example machine info', report)
+        # Triple newlines look bad since some lines get double spaced and
+        # others don't.
+        self.assertNotIn("\n\n\n", report)
+
+    @responses.activate
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.get_patch_name')
+    @mock.patch('skt.get_patch_mbox')
+    def test_jinja2_baseline(self, mock_mbox, mock_name, mock_grt):
+        """Ensure the jinja2 report works."""
+        mock_mbox.side_effect = self.mbox_side_effect
+        mock_name.side_effect = self.name_side_effect
+        mock_grt.return_value = etree.fromstring(self.beaker_pass_results)
+
+        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(
+            responses.GET,
+            "{}/logs/console.log".format(url_base),
+            body="Example console log"
+        )
+
+        responses.add(
+            responses.GET,
+            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            body="Example machine info"
+        )
+
+        cfg = {
+            'workdir': self.tmpdir,
+            'baserepo': 'git://git.example.com/kernel.git',
+            'basehead': '1234abcdef',
+            'jobs': ['J:2547021'],
+            'retcode': '0',
+            'runner': (
+                'beaker', {
+                    'jobtemplate': 'foo',
+                    'jobowner': 'mhayden'
+                }
+            )
+        }
+        testprint = StringIO.StringIO()
+        rptclass = reporter.StdioReporter(cfg)
+        rptclass.report(printer=testprint)
+        report = testprint.getvalue().strip()
+
+        self.assertIn(cfg['basehead'], report)
+        self.assertIn(cfg['baserepo'], report)
+        self.assertIn('Result: Pass', report)
+        self.assertIn('Example machine info', report)
+        # Triple newlines look bad since some lines get double spaced and
+        # others don't.
+        self.assertNotIn("\n\n\n", report)

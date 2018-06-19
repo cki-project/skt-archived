@@ -21,13 +21,16 @@ import logging
 import os
 import re
 import smtplib
+import sys
 import StringIO
 
+from jinja2 import Environment, FileSystemLoader
 import requests
 
 import skt
 import skt.runner
 
+SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
 
 MULTI_PASS = 0
 MULTI_MERGE = 1
@@ -298,48 +301,9 @@ class Reporter(object):
 
         self.mergedata = mergedata
 
-    def getmergeinfo(self):
-        """
-        Retrieve information about applied patches and base repository as a
-        list of strings which should be then appended to the report. Add the
-        configuration which was used to build the kernel to reporter's list
-        of attachments.
-
-        Returns: A list of strings representing data about applied patches and
-                 base repository.
-        """
-        patchlist = self.mergedata['localpatch'] + self.mergedata['patchwork']
-
-        if patchlist:
-            result = ['We applied the following patch']
-            if len(patchlist) > 1:
-                result[0] += 'es:\n'
-            else:
-                result[0] += ':\n'
-
-            for patchpath in self.mergedata['localpatch']:
-                result += ['  - %s' % patchpath]
-
-            for (purl, pname) in self.mergedata['patchwork']:
-                result += ['  - %s,' % pname,
-                           '    grabbed from %s\n' % purl]
-
-            result += ['on top of commit %s from the repository at' %
-                       self.mergedata['base'][1][:12],
-                       '  %s' % self.mergedata['base'][0]]
-        else:
-            result = ['We cloned the git tree and checked out %s from the '
-                      'repository at' % self.mergedata['base'][1][:12],
-                      '  %s' % self.mergedata['base'][0]]
-
-        return result
-
     def get_kernel_config(self, suffix=None):
         cfgname = "config.gz" if not suffix else "config_{}.gz".format(suffix)
-
         self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
-        return ['\nThe kernel was built with the attached configuration '
-                '(%s).' % cfgname]
 
     def getjobids(self):
         jobids = []
@@ -348,34 +312,10 @@ class Reporter(object):
                 jobids.append(jobid)
         return jobids
 
-    def getmergefailure(self):
-        result = ['\nHowever, the application of the last patch above '
-                  'failed with the',
-                  'following output:\n']
-
-        with open(self.cfg.get("mergelog"), 'r') as fileh:
-            for line in fileh:
-                # Skip the useless part of the 'git am' output
-                if "The copy of the patch" in line:
-                    break
-                result.append('    ' + line.strip())
-
-        result += ['\nPlease note that if there are subsequent patches in the '
-                   'series, they weren\'t',
-                   'applied because of the error message stated above.\n']
-
-        return result
-
     def getbuildfailure(self, suffix=None):
         attname = "build.log.gz" if not suffix else "build_%s.log.gz" % suffix
-        result = ['However, the build failed. We are attaching the build '
-                  'output for',
-                  'more information (%s).' % attname]
-
         with open(self.cfg.get("buildlog"), 'r') as fileh:
             self.attach.append((attname, gzipdata(fileh.read())))
-
-        return result
 
     def getjobresults(self):
         """
@@ -398,8 +338,7 @@ class Reporter(object):
         for test in ['Boot test', 'LTP lite']:
             result.append("  - %s" % test)
 
-        result += ['\nwhich produced the results below:']
-
+        result = []
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
         job_list = sorted(list(self.cfg.get("jobs", [])))
         vresults = runner.getverboseresults(job_list)
@@ -408,6 +347,7 @@ class Reporter(object):
         jidx = 1
         for jobid in job_list:
             for (recipe, rdata) in vresults[jobid].iteritems():
+                temp_result = {}
                 if recipe == "result":
                     continue
 
@@ -421,68 +361,94 @@ class Reporter(object):
                     # any details is useless so skip it.
                     continue
 
-                result.append("Test run #%d" % jidx)
-                result.append("Result: %s" % res)
+                temp_result['test_run'] = jidx
+                temp_result['result'] = res
 
                 if res != "Pass":
                     logging.info("Failure detected in recipe %s, attaching "
                                  "console log", recipe)
                     ctraces = clog.gettraces()
-                    if ctraces:
-                        result.append("This is the first call trace we found:")
-                        result.append(ctraces[0])
 
-                    clfname = "%02d_console.log.gz" % jidx
-                    result.append("For more information about the failure, see"
-                                  " attached console log: %s" % clfname)
-                    self.attach.append((clfname, clog.getfulllog()))
+                    temp_result['ctraces'] = None
+                    if ctraces:
+                        temp_result['ctraces'] = ctraces[0]
+
+                    console_log_file_name = "%02d_console.log.gz" % jidx
+                    temp_result['console_log'] = console_log_file_name
+                    self.attach.append(
+                        (console_log_file_name, clog.getfulllog())
+                    )
 
                 if slshwurl is not None:
-                    if system not in minfo["short"]:
-                        response = requests.get(slshwurl)
-                        if response:
-                            result.append("\nMachine info:")
-                            result += response.text.split('\n')
-                            minfo["short"][system] = jidx
-                    else:
-                        result.append("Machine info: same as #%d" %
-                                      minfo["short"].get(system))
+                    response = requests.get(slshwurl)
+                    if response:
+                        temp_result['machine_info'] = response.text
+                        minfo["short"][system] = jidx
 
-                result.append('')
+                result.append(temp_result)
                 jidx += 1
 
         return result
 
     def getreport(self):
-        msg = ['Hello,\n',
-               'We appreciate your contributions to the Linux kernel and '
-               'would like to help',
-               'test them. Below are the results of automatic tests we ran']
-        if self.mergedata['localpatch'] or self.mergedata['patchwork']:
-            msg[-1] += ' on a patchset'
-            msg += ['you\'re involved with, with hope it will help you find '
-                    'possible issues sooner.']
-        else:
-            # There is no patchset the person was involved with
-            msg[-1] += ', with hope it'
-            msg += ['will help you find possible issues sooner.']
+        j2_env = Environment(
+            loader=FileSystemLoader(SCRIPT_PATH),
+            trim_blocks=True,
+            lstrip_blocks=True
+        )
+        template = j2_env.get_template('templates/email_report.j2')
 
-        msg += ['\n'] + self.getmergeinfo()
+        # For a single report, we load up our existing config.
+        skt_states = [self.cfg]
 
-        if self.cfg.get("mergelog"):
-            msg += self.getmergefailure()
-        else:
-            self.get_kernel_config()
-            if self.cfg.get("buildlog"):
-                msg += self.getbuildfailure()
-            elif self.cfg.get('runner'):
-                msg += self.getjobresults()
+        # For a multireport, we load up the configs provided by the user.
+        if self.multireport:
+            skt_states = [self.load_state_cfg(x) for x in self.statefiles]
 
-        msg += ['\nPlease reply to this email if you find an issue with our '
-                'testing process,',
-                'or wish to not receive these reports anymore.',
-                '\nSincerely,',
-                '  Kernel CI Team']
+        reports = []
+        # Loop over each state and prepare the data for the report
+        for skt_state in skt_states:
+            # Load the state file and update our mergedata
+            self.cfg = skt_state
+            self.update_mergedata()
+
+            # Create a temporary report section that we can append at the end
+            temp_report = self.cfg
+            temp_report['mergedata'] = self.mergedata
+
+            # If the merge failed, get the merge log
+            temp_report['mergelog_output'] = None
+            if self.cfg.get('mergelog'):
+                with open(self.cfg.get('mergelog'), 'r') as fileh:
+                    temp_report['mergelog_output'] = fileh.read()
+
+            # Attach the kernel config to the report if the merge passed
+            if not self.cfg.get('mergelog'):
+                self.get_kernel_config()
+
+            # If the compile failed, get the build log
+            temp_report['buildlog_output'] = None
+            if self.cfg.get('buildlog'):
+                self.getbuildfailure()
+                with open(self.cfg.get('buildlog'), 'r') as fileh:
+                    temp_report['buildlog_output'] = fileh.read()
+
+            # Get the test results
+            temp_report['jobresults'] = self.getjobresults()
+
+            # Add the section to the report
+            reports.append(temp_report)
+
+        # If we have a multreport, we need the overall summary
+        multireport_summary = None
+        if self.multireport:
+            multireport_summary = self.get_multireport_summary()
+
+        # Render the jinja2 template
+        msg = template.render(
+            reports=reports,
+            summary=multireport_summary
+        )
 
         # Move configuration attachments to the end because some mail clients
         # (eg. mutt) inline them and they are huge
@@ -494,7 +460,7 @@ class Reporter(object):
             if attachment not in config_attachments
         ] + config_attachments
 
-        return '\n'.join(msg)
+        return msg
 
     def load_state_cfg(self, statefile):
         """
@@ -502,35 +468,35 @@ class Reporter(object):
 
         Raises: Exception if required 'runner' section is missing
         """
-        self.cfg = {}
+        cfg = {}
         state_to_report = ConfigParser.ConfigParser()
         state_to_report.read(statefile)
 
         # FIXME This can be simplified or removed after configuration and
         # state split
         for (name, value) in state_to_report.items('state'):
-            if not self.cfg.get(name):
+            if not cfg.get(name):
                 if name.startswith('jobid_'):
-                    if 'jobs' not in self.cfg:
-                        self.cfg['jobs'] = set()
-                    self.cfg['jobs'].add(value)
+                    if 'jobs' not in cfg:
+                        cfg['jobs'] = set()
+                    cfg['jobs'].add(value)
                 elif name.startswith('mergerepo_'):
-                    if 'mergerepos' not in self.cfg:
-                        self.cfg['mergerepos'] = list()
-                    self.cfg['mergerepos'].append(value)
+                    if 'mergerepos' not in cfg:
+                        cfg['mergerepos'] = list()
+                    cfg['mergerepos'].append(value)
                 elif name.startswith('mergehead_'):
-                    if 'mergeheads' not in self.cfg:
-                        self.cfg['mergeheads'] = list()
-                    self.cfg['mergeheads'].append(value)
+                    if 'mergeheads' not in cfg:
+                        cfg['mergeheads'] = list()
+                    cfg['mergeheads'].append(value)
                 elif name.startswith('localpatch_'):
-                    if 'localpatches' not in self.cfg:
-                        self.cfg['localpatches'] = list()
-                    self.cfg['localpatches'].append(value)
+                    if 'localpatches' not in cfg:
+                        cfg['localpatches'] = list()
+                    cfg['localpatches'].append(value)
                 elif name.startswith('patchwork_'):
-                    if 'patchworks' not in self.cfg:
-                        self.cfg['patchworks'] = list()
-                    self.cfg['patchworks'].append(value)
-                self.cfg[name] = value
+                    if 'patchworks' not in cfg:
+                        cfg['patchworks'] = list()
+                    cfg['patchworks'].append(value)
+                cfg[name] = value
 
         # Get runner info
         if state_to_report.has_section('runner'):
@@ -538,86 +504,13 @@ class Reporter(object):
             for (key, val) in state_to_report.items('runner'):
                 if key != 'type':
                     runner_config[key] = val
-                self.cfg['runner'] = [state_to_report.get('runner', 'type'),
-                                      runner_config]
+                cfg['runner'] = [state_to_report.get('runner', 'type'),
+                                 runner_config]
         else:
             logging.debug('No runner info found in state file, test runs will'
                           ' not be reported')
 
-    def get_multireport(self):
-        intro = ['Hello,\n',
-                 'We appreciate your contributions to the Linux kernel and '
-                 'would like to help',
-                 'test them. Below are the results of automatic tests we ran']
-        results = []
-
-        for idx, statefile in enumerate(self.statefiles):
-            self.load_state_cfg(statefile)
-            self.update_mergedata()
-
-            if self.cfg.get("jobs"):
-                for jobid in sorted(self.cfg.get("jobs")):
-                    self.multi_job_ids.append(jobid)
-
-            # The patches applied should be same for all runs but we need to
-            # include the information only once
-            if not idx:
-                if self.mergedata['localpatch'] or self.mergedata['patchwork']:
-                    intro[-1] += ' on a patchset'
-                    intro += ['you\'re involved with, with hope it will help '
-                              'you find possible issues sooner.']
-                else:
-                    # There is no patchset the person was involved with
-                    intro[-1] += ', with hope it'
-                    intro += ['will help you find possible issues sooner.']
-
-                results += ['\n'] + self.getmergeinfo() + ['']
-
-                # We use the same tree for all runs so any merge failures are
-                # same as well.
-                if self.cfg.get('mergelog'):
-                    self.multireport_failed = MULTI_MERGE
-                    results += self.getmergefailure()
-
-            marker = self.cfg.get('kernel_arch', str(idx + 1))
-            results += ['\n##### These are the results for %s' %
-                        (marker + ' architecture'
-                         if self.cfg.get('kernel_arch')
-                         else 'test set %s' % marker)]
-            if not self.cfg.get('mergelog'):
-                results += self.get_kernel_config(marker)
-
-                if self.cfg.get('buildlog'):
-                    if not self.multireport_failed:
-                        self.multireport_failed = MULTI_BUILD
-                    results += self.getbuildfailure(marker)
-                elif self.cfg.get('runner'):
-                    results += self.getjobresults()
-            else:
-                results += ['', 'Patch application failure!']
-
-            results.append('\n')
-
-            if self.cfg.get('retcode') != '0':
-                self.multireport_failed = MULTI_TEST
-
-        results += ['Please reply to this email if you find an issue with our '
-                    'testing process,',
-                    'or wish to not receive these reports anymore.',
-                    '\nSincerely,',
-                    '  Kernel CI Team']
-
-        # Move configuration attachments to the end because some mail clients
-        # (eg. mutt) inline them and they are huge
-        # It's not safe to iterate over changing list so let's use a helper
-        config_attachments = [attachment for attachment in self.attach
-                              if 'config' in attachment[0]]
-        self.attach = [
-            attachment for attachment in self.attach
-            if attachment not in config_attachments
-        ] + config_attachments
-
-        return '\n'.join(intro + self.get_multireport_summary() + results)
+        return cfg
 
     def getsubject(self):
         if not self.cfg.get('mergelog') and \
@@ -659,23 +552,33 @@ class Reporter(object):
         return subject
 
     def get_multireport_summary(self):
-        """
-        Get a summary (pass / fail) of the multireport.
+        """Get a summary (pass / fail) of the multireport.
 
         Returns: A list of lines (strings) representing the summary.
         """
-        summary = ['\nTEST SUMMARY:']
 
+<<<<<<< HEAD
         if self.multireport_failed == MULTI_PASS:
             summary += ['  All builds and tests PASSED.']
+=======
+        if self.multireport_failed == MULTI_PASS and not self.multiretcode:
+            summary = 'All builds and tests PASSED.'
+>>>>>>> Use jinja2 for sending reports
         elif self.multireport_failed == MULTI_MERGE:
-            summary += ['  Patch application FAILED!']
+            summary = 'Patch application FAILED!'
         elif self.multireport_failed == MULTI_BUILD:
+<<<<<<< HEAD
             summary += ['  One or more builds FAILED!']
         elif self.multireport_failed == MULTI_TEST:
             summary += ['  Testing FAILED!']
 
         summary += ['\nMore detailed data follows.', '------------']
+=======
+            summary = 'One or more builds FAILED!'
+        elif self.multireport_failed == MULTI_TEST or self.multiretcode:
+            summary = 'Testing FAILED!'
+
+>>>>>>> Use jinja2 for sending reports
         return summary
 
     # TODO Define abstract "report" method.
@@ -685,22 +588,22 @@ class StdioReporter(Reporter):
     """A reporter sending results to stdout"""
     TYPE = 'stdio'
 
-    def report(self):
+    def report(self, printer=sys.stdout):
         if self.multireport:
             # We need to run the reporting function first to get the aggregated
             # data to build subject from
-            report = self.get_multireport()
-            print(self.get_multisubject())
-            print(report)
+            report = self.getreport()
+            printer.write("Subject: {}\n".format(self.get_multisubject()))
+            printer.write(report)
         else:
             self.update_mergedata()
-            print("Subject:", self.getsubject())
-            print(self.getreport())
+            printer.write("Subject: {}\n".format(self.getsubject()))
+            printer.write(self.getreport())
 
         for (name, att) in self.attach:
             if name.endswith(('.log', '.txt')):
-                print("\n---------------\n", name, sep='')
-                print(att)
+                printer.write("\n---------------\n", name, sep='')
+                printer.write(att)
 
 
 class MailReporter(Reporter):
@@ -736,7 +639,7 @@ class MailReporter(Reporter):
         if self.multireport:
             # We need to run the reporting function first to get aggregates to
             # build subject from
-            msg.attach(MIMEText(self.get_multireport()))
+            msg.attach(MIMEText(self.getreport()))
             if not msg['Subject']:
                 msg['Subject'] = self.get_multisubject()
             # Add the SKT job IDs so we can correlate emails to jobs
