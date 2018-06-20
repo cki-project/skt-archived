@@ -2,6 +2,16 @@
 
 ## June 2018
 
+* Arguments for `skt merge` should now be used multiple times instead of
+  supplying multiple values for each option. This affects the following
+  arguments:
+
+  * `--patch` (formerly `--patchlist`)
+  * `--pw`
+  * `--merge-ref`
+
+  Example: `skt merge --pw URL1 --pw URL2 --pw URL3`
+
 * Arguments for reporter are now explicitly defined and JSON strings are no
   longer required. Users can specify the following arguments:
 
