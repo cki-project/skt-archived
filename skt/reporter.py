@@ -508,10 +508,10 @@ class Reporter(object):
         return '\n'.join(msg)
 
     def load_state_cfg(self, statefile):
-        """
-        Load state info from statefile and reassign to self.cfg.
+        """Load state info from statefile and reassign to self.cfg.
 
-        Raises: Exception if required 'runner' section is missing
+        Args:
+            statefile: A state file from a skt build.
         """
         self.cfg = {}
         state_to_report = ConfigParser.ConfigParser()
