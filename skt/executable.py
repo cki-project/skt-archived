@@ -159,10 +159,10 @@ def cmd_merge(cfg):
             if retcode:
                 return
 
-        if cfg.get('patchlist'):
+        if cfg.get('patch'):
             utypes.append("[local patch]")
             idx = 0
-            for patch in cfg.get('patchlist'):
+            for patch in cfg.get('patch'):
                 patch = os.path.abspath(patch)
                 save_state(cfg, {'localpatch_%02d' % idx: patch})
                 ktree.merge_patch_file(patch)
@@ -503,23 +503,31 @@ def setup_parser():
         help="Base repo ref to which patches are applied (default: master)"
     )
     parser_merge.add_argument(
-        "--patchlist",
+        "--patch",
         type=str,
-        nargs="+",
-        help="Paths to each local patch to apply (space delimited)"
+        action='append',
+        help=(
+            "Path to each local patch to apply "
+            "(use multiple times for multiple patches)"
+        )
     )
     parser_merge.add_argument(
         "--pw",
         type=str,
-        nargs="+",
-        help="URLs to each Patchwork patch to apply (space delimited)"
+        action='append',
+        help=(
+            "URL to Patchwork patch to apply"
+            "(use multiple times for multiple patches)"
+        )
     )
     parser_merge.add_argument(
         "-m",
         "--merge-ref",
-        nargs="+",
-        help="Merge ref format: 'url [ref]'",
-        action="append"
+        action='append',
+        help=(
+            "Merge ref format: 'url [ref]'",
+            "(use multiple times for multiple merge refs)"
+        ),
     )
     parser_merge.add_argument(
         "--fetch-depth",

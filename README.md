@@ -170,7 +170,7 @@ To apply a local patch run:
     skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
         merge --baserepo <REPO_URL> \
               --ref <REPO_REF> \
-              --patchlist <PATH_TO_PATCH>
+              --patch <PATH_TO_PATCH>
 
 Here, `<PATH_TO_PATCH>` would be the patch file.
 E.g. to apply a particular patch to a particular, known-good commit from the
@@ -179,7 +179,7 @@ E.g. to apply a particular patch to a particular, known-good commit from the
     skt --rc skt-rc --state --workdir skt-workdir -vv \
         merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
               --ref a870a02cc963de35452bbed932560ed69725c4f2 \
-              --patchlist net-next-cxgb4-notify-fatal-error-to-uld-drivers.patch
+              --patch net-next-cxgb4-notify-fatal-error-to-uld-drivers.patch
 
 #### Faster clones
 
