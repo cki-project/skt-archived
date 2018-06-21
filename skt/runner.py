@@ -227,6 +227,46 @@ class BeakerRunner(Runner):
 
         return result
 
+    def get_ltp_lite_logs(self, job_id):
+        """
+        Get logs produces by LTP lite, for each recipe in specified job.
+
+        Args:
+            job_id: ID of the job for which to retrieve the logs.
+
+        Returns:
+            A dictionary in format
+              R:<recipe_id>: (<link_to_full_run_log>, <link_to_results>),
+            for each recipe in the job.
+        """
+        job_results = self.getresultstree(job_id, True)
+        ltp_logs = {}
+
+        for recipe in job_results.findall('recipeSet/recipe'):
+            recipe_id = 'R:%s' % recipe.attrib.get('id')
+
+            ltp_node = recipe.find(
+                "task[@name='/kernel/distribution/ltp/lite']"
+            )
+            if ltp_node is None:
+                continue
+
+            run_log = ltp_node.find(
+                "logs/log[@name='RHELKT1LITE.FILTERED.run.log']"
+            )
+            if run_log is not None:
+                run_log = run_log.attrib.get('href')
+
+            ltp_results = ltp_node.find(
+                "results/result/logs/log[@name='resultoutputfile.log']"
+            )
+            if ltp_results is not None:
+                ltp_results = ltp_results.attrib.get('href')
+
+            ltp_logs[recipe_id] = (run_log, ltp_results)
+
+        return ltp_logs
+
     def get_mfhost(self):
         fhosts = list()
         for data in self.failures.values():
