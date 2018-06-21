@@ -1,0 +1,175 @@
+<job id="2547021" owner="someone@example" result="Fail" retention_tag="scratch" status="Completed">
+	<whiteboard>skt 4.17.0-rc1+ [patchwork] e6fbae817eec812bf6686c131bb8452d21c83504.tar.gz [noavc] [noselinux]</whiteboard>
+	<recipeSet id="4243047" priority="Normal" response="ack">
+		<recipe arch="x86_64" distro="Fedora-26" duration="0:14:56" family="Fedora26" finish_time="2018-06-15 10:57:25" id="5273166" job_id="2547021" kernel_options="selinux=0" kernel_options_post="" kickstart_url="http://beaker.example.com/kickstart/4336389" recipe_set_id="4243047" result="Fail" role="None" start_time="2018-06-15 10:42:29" status="Completed" system="hp.example.com" variant="Server" whiteboard="4.17.0-rc1+">
+			<autopick random="false"/>
+			<watchdog/>
+			<installation install_finished="2018-06-15 10:49:46" install_started="2018-06-15 10:43:29" postinstall_finished="2018-06-15 10:50:38"/>
+			<packages/>
+			<ks_appends/>
+			<roles>
+				<role value="None">
+					<system value="hp.example.com"/>
+				</role>
+			</roles>
+			<repos/>
+			<distroRequires>
+
+
+				<and>
+
+
+					<distro_family op="=" value="Fedora26"/>
+
+
+					<distro_tag op="=" value="RELEASED"/>
+
+
+					<distro_variant op="=" value="Server"/>
+
+
+					<distro_arch op="=" value="x86_64"/>
+
+
+				</and>
+
+
+			</distroRequires>
+			<hostRequires>
+
+
+				<and>
+
+
+					<arch op="=" value="x86_64"/>
+
+
+
+				</and>
+
+
+				<system_type value="Machine"/>
+			</hostRequires>
+			<partitions/>
+			<logs>
+				<log href="https://beaker.example.com/recipes/5273166/logs/console.log" name="console.log"/>
+				<log href="https://beaker.example.com/recipes/5273166/logs/anaconda.log" name="anaconda.log"/>
+				<log href="https://beaker.example.com/recipes/5273166/logs/sys.log" name="sys.log"/>
+				<log href="https://beaker.example.com/recipes/5273166/logs/storage.log" name="storage.log"/>
+				<log href="https://beaker.example.com/recipes/5273166/logs/program.log" name="program.log"/>
+				<log href="https://beaker.example.com/recipes/5273166/logs/ks.cfg" name="ks.cfg"/>
+				<log href="https://beaker.example.com/recipes/5273166/logs/ifcfg.log" name="ifcfg.log"/>
+				<log href="https://beaker.example.com/recipes/5273166/logs/packaging.log" name="packaging.log"/>
+				<log href="https://beaker.example.com/recipes/5273166/logs/boot.log" name="boot.log"/>
+			</logs>
+			<task avg_time="1200" duration="0:01:17" finish_time="2018-06-15 10:54:09" id="73795442" name="/distribution/install" result="Fail" role="STANDALONE" start_time="2018-06-15 10:52:52" status="Completed" version="1.12-2">
+				<rpm name="beaker-distribution-install" path="/mnt/tests/distribution/install"/>
+				<roles>
+					<role value="STANDALONE">
+						<system value="hp.example.com"/>
+					</role>
+				</roles>
+				<logs>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/logs/harness.log" name="harness.log"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/logs/taskout.log" name="taskout.log"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/logs/anaconda-ks.cfg" name="anaconda-ks.cfg"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/logs/boot.messages" name="boot.messages"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/logs/procmem.log" name="procmem.log"/>
+				</logs>
+				<results>
+					<result id="357912600" path="/distribution/install/CheckRecipe" result="Fail" score="None" start_time="2018-06-15 10:54:06">
+						None
+						<logs>
+							<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/results/357912600/logs/dmesg.log" name="dmesg.log"/>
+							<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/results/357912600/logs/resultoutputfile.log" name="resultoutputfile.log"/>
+						</logs>
+					</result>
+					<result id="357912602" path="/distribution/install" result="Fail" score="737.00" start_time="2018-06-15 10:54:07">
+						None
+						<logs>
+							<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/results/357912602/logs/resultoutputfile.log" name="resultoutputfile.log"/>
+						</logs>
+					</result>
+					<result id="357912607" path="/distribution/install/Sysinfo" result="Fail" score="1000000.00" start_time="2018-06-15 10:54:09">
+						None
+						<logs>
+							<log href="https://beaker.example.com/recipes/5273166/tasks/73795442/results/357912607/logs/resultoutputfile.log" name="resultoutputfile.log"/>
+						</logs>
+					</result>
+				</results>
+			</task>
+			<task avg_time="10800" duration="0:00:09" finish_time="2018-06-15 10:54:19" id="73795443" name="/distribution/command" result="Fail" role="None" start_time="2018-06-15 10:54:10" status="Completed" version="1.1-4">
+				<rpm name="distribution-distribution-command" path="/mnt/tests/distribution/command"/>
+				<roles>
+					<role value="None">
+						<system value="hp.example.com"/>
+					</role>
+				</roles>
+				<params>
+					<param name="CMDS_TO_RUN" value="rm /usr/share/restraint/plugins/report_result.d/10_avc_check"/>
+				</params>
+				<logs>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795443/logs/harness.log" name="harness.log"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795443/logs/taskout.log" name="taskout.log"/>
+				</logs>
+				<results>
+					<result id="357912622" path="/distribution/command" result="Fail" score="0.00" start_time="2018-06-15 10:54:19">
+						None
+						<logs>
+							<log href="https://beaker.example.com/recipes/5273166/tasks/73795443/results/357912622/logs/resultoutputfile.log" name="resultoutputfile.log"/>
+						</logs>
+					</result>
+				</results>
+			</task>
+			<task duration="0:00:09" finish_time="2018-06-15 10:54:28" id="73795444" name="/test/misc/machineinfo" result="Fail" role="None" start_time="2018-06-15 10:54:19" status="Completed">
+				<fetch url="https://github.com/RH-FMK/tests-beaker/archive/master.zip#test/misc/machineinfo"/>
+				<roles>
+					<role value="None">
+						<system value="hp.example.com"/>
+					</role>
+				</roles>
+				<logs>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795444/logs/harness.log" name="harness.log"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795444/logs/taskout.log" name="taskout.log"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795444/logs/machinedesc.log" name="machinedesc.log"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795444/logs/lshw.log" name="lshw.log"/>
+				</logs>
+				<results>
+					<result id="357912640" path="/kernel/misc/machineinfo" result="Fail" score="0.00" start_time="2018-06-15 10:54:28">None</result>
+				</results>
+			</task>
+			<task duration="0:02:56" finish_time="2018-06-15 10:57:24" id="73795445" name="/distribution/kpkginstall" result="Fail" role="STANDALONE" start_time="2018-06-15 10:54:28" status="Completed">
+				<fetch url="https://github.com/RH-FMK/tests-beaker/archive/master.zip#distribution/kpkginstall"/>
+				<roles>
+					<role value="STANDALONE">
+						<system value="hp.example.com"/>
+					</role>
+				</roles>
+				<params>
+					<param name="KPKG_URL" value="http://example.com/builds/e6fbae817eec812bf6686c131bb8452d21c83504.tar.gz"/>
+					<param name="KVER" value="4.17.0-rc1+"/>
+				</params>
+				<logs>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795445/logs/harness.log" name="harness.log"/>
+					<log href="https://beaker.example.com/recipes/5273166/tasks/73795445/logs/taskout.log" name="taskout.log"/>
+				</logs>
+				<results>
+					<result id="357912733" path="/distribution/kpkginstall/install" result="Fail" score="0.00" start_time="2018-06-15 10:55:19">
+						None
+						<logs>
+							<log href="https://beaker.example.com/recipes/5273166/tasks/73795445/results/357912733/logs/resultoutputfile.log" name="resultoutputfile.log"/>
+						</logs>
+					</result>
+					<result id="357913099" path="/distribution/kpkginstall/reboot" result="Fail" score="0.00" start_time="2018-06-15 10:57:23">
+						None
+						<logs>
+							<log href="https://beaker.example.com/recipes/5273166/tasks/73795445/results/357913099/logs/dmesg.log" name="dmesg.log"/>
+							<log href="https://beaker.example.com/recipes/5273166/tasks/73795445/results/357913099/logs/resultoutputfile.log" name="resultoutputfile.log"/>
+						</logs>
+					</result>
+				</results>
+			</task>
+		</recipe>
+	</recipeSet>
+</job>
+
