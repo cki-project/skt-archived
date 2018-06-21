@@ -392,10 +392,12 @@ class Reporter(object):
         Returns:
             A list of lines representing results of test runs.
         """
+        # FIXME save the list of tests from beakerxml and read them from state
+        # instead of hardcoding
+        test_list = ['Boot test', 'LTP lite']
         result = ['\n\nWe ran the following tests:']
 
-        # TODO: Get info from sktrc when we have it there
-        for test in ['Boot test', 'LTP lite']:
+        for test in test_list:
             result.append("  - %s" % test)
 
         result += ['\nwhich produced the results below:']
@@ -418,8 +420,10 @@ class Reporter(object):
                     # The targeted kernel either didn't start booting or the
                     # console wasn't logged. The second one isn't an issue if
                     # everything went well, however reporting a failure without
-                    # any details is useless so skip it.
-                    continue
+                    # any details is useless so skip it if nothing besides boot
+                    # test was run.
+                    if 'LTP lite' not in test_list:
+                        continue
 
                 result.append("Test run #%d" % jidx)
                 result.append("Result: %s" % res)
@@ -433,9 +437,16 @@ class Reporter(object):
                         result.append(ctraces[0])
 
                     clfname = "%02d_console.log.gz" % jidx
-                    result.append("For more information about the failure, see"
-                                  " attached console log: %s" % clfname)
                     self.attach.append((clfname, clog.getfulllog()))
+                    result += ["\nFor more information about the failure, "
+                               "see attached console log",
+                               "(%s) and LTP lite logs (for each Beaker "
+                               "recipe):" % clfname]
+
+                    ltp_results = runner.get_ltp_lite_logs(jobid)
+                    for recipe, ltp_logs in ltp_results.items():
+                        result += ['\n  ' + recipe]
+                        result += ['    ' + ltp_log for ltp_log in ltp_logs]
 
                 if slshwurl is not None:
                     if system not in minfo["short"]:
@@ -445,7 +456,7 @@ class Reporter(object):
                             result += response.text.split('\n')
                             minfo["short"][system] = jidx
                     else:
-                        result.append("Machine info: same as #%d" %
+                        result.append("\nMachine info: same as #%d" %
                                       minfo["short"].get(system))
 
                 result.append('')
