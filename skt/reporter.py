@@ -51,6 +51,65 @@ def gzipdata(data):
     return tstr.getvalue()
 
 
+def load_state_cfg(statefile):
+    """Load state information from a state file.
+
+    It takes the current config and adjusts state information within the
+    config based on the state file provided.
+
+    Args:
+        statefile:      Path to a skt state file to read
+
+    Returns: A cfg dictionary.
+
+    """
+    cfg = {}
+    state_to_report = ConfigParser.ConfigParser()
+    state_to_report.read(statefile)
+
+    # FIXME This can be simplified or removed after configuration and
+    # state split
+    for (name, value) in state_to_report.items('state'):
+        if not cfg.get(name):
+            if name.startswith('jobid_'):
+                if 'jobs' not in cfg:
+                    cfg['jobs'] = set()
+                cfg['jobs'].add(value)
+            elif name.startswith('mergerepo_'):
+                if 'mergerepos' not in cfg:
+                    cfg['mergerepos'] = list()
+                cfg['mergerepos'].append(value)
+            elif name.startswith('mergehead_'):
+                if 'mergeheads' not in cfg:
+                    cfg['mergeheads'] = list()
+                cfg['mergeheads'].append(value)
+            elif name.startswith('localpatch_'):
+                if 'localpatches' not in cfg:
+                    cfg['localpatches'] = list()
+                cfg['localpatches'].append(value)
+            elif name.startswith('patchwork_'):
+                if 'patchworks' not in cfg:
+                    cfg['patchworks'] = list()
+                cfg['patchworks'].append(value)
+            cfg[name] = value
+
+    # Get runner info
+    if state_to_report.has_section('runner'):
+        runner_config = {}
+        for (key, val) in state_to_report.items('runner'):
+            if key != 'type':
+                runner_config[key] = val
+            cfg['runner'] = [
+                state_to_report.get('runner', 'type'),
+                runner_config
+            ]
+    else:
+        logging.debug('No runner info found in state file, test runs will'
+                      ' not be reported')
+
+    return cfg
+
+
 class ConsoleLog(object):
     """Console log parser"""
 
@@ -507,54 +566,6 @@ class Reporter(object):
 
         return '\n'.join(msg)
 
-    def load_state_cfg(self, statefile):
-        """Load state info from statefile and reassign to self.cfg.
-
-        Args:
-            statefile: A state file from a skt build.
-        """
-        self.cfg = {}
-        state_to_report = ConfigParser.ConfigParser()
-        state_to_report.read(statefile)
-
-        # FIXME This can be simplified or removed after configuration and
-        # state split
-        for (name, value) in state_to_report.items('state'):
-            if not self.cfg.get(name):
-                if name.startswith('jobid_'):
-                    if 'jobs' not in self.cfg:
-                        self.cfg['jobs'] = set()
-                    self.cfg['jobs'].add(value)
-                elif name.startswith('mergerepo_'):
-                    if 'mergerepos' not in self.cfg:
-                        self.cfg['mergerepos'] = list()
-                    self.cfg['mergerepos'].append(value)
-                elif name.startswith('mergehead_'):
-                    if 'mergeheads' not in self.cfg:
-                        self.cfg['mergeheads'] = list()
-                    self.cfg['mergeheads'].append(value)
-                elif name.startswith('localpatch_'):
-                    if 'localpatches' not in self.cfg:
-                        self.cfg['localpatches'] = list()
-                    self.cfg['localpatches'].append(value)
-                elif name.startswith('patchwork_'):
-                    if 'patchworks' not in self.cfg:
-                        self.cfg['patchworks'] = list()
-                    self.cfg['patchworks'].append(value)
-                self.cfg[name] = value
-
-        # Get runner info
-        if state_to_report.has_section('runner'):
-            runner_config = {}
-            for (key, val) in state_to_report.items('runner'):
-                if key != 'type':
-                    runner_config[key] = val
-                self.cfg['runner'] = [state_to_report.get('runner', 'type'),
-                                      runner_config]
-        else:
-            logging.debug('No runner info found in state file, test runs will'
-                          ' not be reported')
-
     def get_multireport(self):
         intro = ['Hello,\n',
                  'We appreciate your contributions to the Linux kernel and '
@@ -563,7 +574,7 @@ class Reporter(object):
         results = []
 
         for idx, statefile in enumerate(self.statefiles):
-            self.load_state_cfg(statefile)
+            self.cfg = load_state_cfg(statefile)
             self.update_mergedata()
 
             if self.cfg.get("jobs"):
