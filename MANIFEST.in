@@ -2,3 +2,4 @@ include README.md
 include LICENSE
 include skt/*
 include tests/*
+include skt/templates/*

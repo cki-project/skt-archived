@@ -1,0 +1,83 @@
+Hello,
+
+Thank you for your contributions to the Linux kernel. We have completed one
+or more tests and the results of those tests are provided below.
+
+{% if summary %}
+Test summary: {{ summary }}
+
+{% endif %}
+{# Reports for a single result or multiple results will have the same merge #}
+{# results. Using the data from the first statefile should be sufficient    #}
+{# the initial section of the report.                                       #}
+{% set mergedata = reports[0]['mergedata'] %}
+{% if mergedata['localpatch'] or mergedata['patchwork'] %}
+Automatic tests ran on a patchset that you are involved with and results are
+shown below.
+
+Patches applied:
+
+  {% if mergedata['localpatch'] %}
+    {% for localpatch in mergedata['localpatch'] %}
+    - {{ localpatch }}
+    {% endfor %}
+  {% endif %}
+  {% if mergedata['patchwork'] %}
+    {% for patchwork_url, patchwork_name in mergedata['patchwork'] %}
+    - {{ patchwork_name }}
+      (downloaded from {{ patchwork_url }})
+    {% endfor %}
+  {% endif %}
+
+These patches were applied to:
+
+    ref:  {{ mergedata['base'][1] }}
+    repo: {{ mergedata['base'][0] }}
+
+{% else %}
+We performed tests on commit {{ mergedata['base'][1] }} from {{ mergedata['base'][0] }}.
+
+{% endif %}
+{% if reports[0]['mergelog'] %}
+However, the patches failed to merge. The output from git is included here:
+
+{{ mergelog | indent(4, first=True) }}
+{% endif %}
+{# Loop over the states provided with the report. Single reports will go    #}
+{# through this loop only one time. Multireports will loop over the reports #}
+{# and display results for each test.                                       #}
+{% for report in reports %}
+{% set mergedata = report['mergedata'] %}
+{% set jobresults = report['jobresults'] %}
+{% if report['buildlog'] and report['kernel_arch'] %}
+However, the kernel failed to compile on {{ report['kernel_arch'] }}.
+The build output is attached to this email.
+
+{% elif report['buildlog'] %}
+However, the kernel failed to compile. The build output is attached to this
+email.
+
+{% endif %}
+{% if jobresults %}
+  {% if loop.first %}
+The following tests were performed on the kernel:
+
+    - Boot test
+    - LTP lite
+
+The results of those tests are provided below:
+
+  {% endif %}
+    {% for jobresult in jobresults %}
+    Test Run
+    ------------------------------------------------------------------------
+    {% if report['kernel_arch'] %}
+    Kernel Architecture: {{ report['kernel_arch'] }}
+    {% endif %}
+    Result: {{ jobresult['result'] }}
+    Machine Information:
+{{ jobresult['machine_info'] | indent(8, first=True) }}
+
+    {% endfor %}
+{% endif %}
+{% endfor %}
