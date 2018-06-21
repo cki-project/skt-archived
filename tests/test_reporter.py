@@ -14,12 +14,18 @@ Test cases for reporter module.
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+import StringIO
+import gzip
+import os
 import re
+import shutil
+import tempfile
 import unittest
 
 from contextlib import contextmanager
 
 import mock
+import responses
 
 from skt import reporter
 
@@ -69,6 +75,25 @@ class TestConsoleLog(unittest.TestCase):
                 tmp_trace.append(line)
         expected_traces.append('\n'.join(tmp_trace))
         return expected_traces
+
+    def test_fetchdata(self):
+        """Ensure fetchdata() returns an empty list with no URL."""
+        consolelog = reporter.ConsoleLog(kver='4-4', url=None)
+        result = consolelog.fetchdata()
+        self.assertItemsEqual([], result)
+
+    def test_getfulllog(self):
+        """Ensure getfulllog() returns gzipped data."""
+        consolelog = reporter.ConsoleLog(kver='4-4', url=None)
+        consolelog.data = ['foo']
+        result = consolelog.getfulllog()
+
+        # Decompress the string and make sure it matches our test data
+        tstr = StringIO.StringIO(result)
+        with gzip.GzipFile(fileobj=tstr, mode="r") as fileh:
+            data_test = fileh.read()
+
+        self.assertEqual(data_test, consolelog.data[0])
 
     def test_kernel_version_unmatch(self):
         """Check it doesn't catch any trace when kernel version doesn't
