@@ -590,12 +590,14 @@ class Reporter(object):
                     self.multireport_failed = MULTI_MERGE
                     results += self.getmergefailure()
 
-            marker = self.cfg.get('kernel_arch', str(idx + 1))
-            results += ['\n##### These are the results for %s' %
-                        (marker + ' architecture'
-                         if self.cfg.get('kernel_arch')
-                         else 'test set %s' % marker)]
+            # Skip config/build/run retrieval if the merge failed.
             if not self.cfg.get('mergelog'):
+                marker = self.cfg.get('kernel_arch', str(idx + 1))
+                results += ['\n##### These are the results for %s' %
+                            (marker + ' architecture'
+                             if self.cfg.get('kernel_arch')
+                             else 'test set %s' % marker)]
+
                 results += self.get_kernel_config(marker)
 
                 if self.cfg.get('buildlog'):
@@ -604,8 +606,6 @@ class Reporter(object):
                     results += self.getbuildfailure(marker)
                 elif self.cfg.get('runner'):
                     results += self.getjobresults()
-            else:
-                results += ['', 'Patch application failure!']
 
             results.append('\n')
 
