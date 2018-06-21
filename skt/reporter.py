@@ -11,7 +11,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-from __future__ import print_function
 import ConfigParser
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -21,6 +20,7 @@ import logging
 import os
 import re
 import smtplib
+import sys
 import StringIO
 
 import requests
@@ -696,22 +696,22 @@ class StdioReporter(Reporter):
     """A reporter sending results to stdout"""
     TYPE = 'stdio'
 
-    def report(self):
+    def report(self, printer=sys.stdout):
         if self.multireport:
             # We need to run the reporting function first to get the aggregated
             # data to build subject from
             report = self.get_multireport()
-            print(self.get_multisubject())
-            print(report)
+            printer.write("{}\n".format(self.get_multisubject()))
+            printer.write(report)
         else:
             self.update_mergedata()
-            print("Subject:", self.getsubject())
-            print(self.getreport())
+            printer.write("Subject: {}\n".format(self.getsubject()))
+            printer.write(self.getreport())
 
         for (name, att) in self.attach:
             if name.endswith(('.log', '.txt')):
-                print("\n---------------\n", name, sep='')
-                print(att)
+                printer.write("\n---------------\n{}\n".format(name))
+                printer.write(att)
 
 
 class MailReporter(Reporter):
