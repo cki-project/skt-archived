@@ -327,8 +327,12 @@ class BeakerRunner(Runner):
 
     def recipe_to_job(self, recipe, samehost=False):
         tmp = recipe.copy()
+
+        hreq = tmp.find("hostRequires")
+        hostname = hreq.find('hostname')
+        if hostname is not None:
+            hreq.remove(hostname)
         if samehost:
-            hreq = tmp.find("hostRequires")
             hostname = etree.Element("hostname")
             hostname.set("op", "=")
             hostname.set("value", tmp.attrib.get("system"))
