@@ -149,9 +149,11 @@ class BeakerRunner(Runner):
             jobid = self.lastsubmitted
 
         root = self.getresultstree(jobid, True)
-        el = root.find("recipeSet/recipe/logs/log[@name='console.log']")
-        if el is not None:
-            url = el.attrib.get("href")
+        console_log = root.find(
+            "recipeSet/recipe/logs/log[@name='console.log']"
+        )
+        if console_log is not None:
+            url = console_log.attrib.get("href")
 
         return url
 
@@ -172,7 +174,7 @@ class BeakerRunner(Runner):
             for (jid, rset) in self.j2r.iteritems():
                 if cid in rset:
                     rset.remove(cid)
-                    if len(rset) == 0:
+                    if not rset:
                         deljids.add(jid)
             for jid in deljids:
                 del self.j2r[jid]
@@ -311,7 +313,7 @@ class BeakerRunner(Runner):
                 fhosts = fhosts.union(set(data[0]))
                 ret = 1
 
-        if ret != 0 and len(fhosts) > 0:
+        if ret and fhosts:
             msg = "unknown"
             if len(fhosts) > 1:
                 msg = "multiple hosts"
@@ -325,7 +327,7 @@ class BeakerRunner(Runner):
 
     def recipe_to_job(self, recipe, samehost=False):
         tmp = recipe.copy()
-        if (samehost):
+        if samehost:
             hreq = tmp.find("hostRequires")
             hostname = etree.Element("hostname")
             hostname.set("op", "=")
@@ -338,7 +340,7 @@ class BeakerRunner(Runner):
         newwb = etree.Element("whiteboard")
         newwb.text = "%s [R:%s]" % (self.whiteboard, tmp.attrib.get("id"))
 
-        if (samehost):
+        if samehost:
             newwb.text += " (%s)" % tmp.attrib.get("system")
 
         newroot = etree.Element("job")
@@ -349,8 +351,8 @@ class BeakerRunner(Runner):
 
     def watchloop(self):
         iteration = 0
-        while len(self.watchlist):
-            if iteration > 0:
+        while self.watchlist:
+            if iteration:
                 time.sleep(self.watchdelay)
 
             for (cid, reschedule, origin) in self.watchlist.copy():
@@ -417,8 +419,8 @@ class BeakerRunner(Runner):
             self.whiteboard = root.find("whiteboard").text
 
         self.j2r[jobid] = set()
-        for el in root.findall("recipeSet/recipe"):
-            cid = "R:%s" % el.attrib.get("id")
+        for recipe in root.findall("recipeSet/recipe"):
+            cid = "R:%s" % recipe.attrib.get("id")
             self.j2r[jobid].add(cid)
             self.watchlist.add((cid, reschedule, origin))
             self.recipes.add(cid)
