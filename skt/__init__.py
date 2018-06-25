@@ -16,6 +16,8 @@ from email.errors import HeaderParseError
 import email.header
 import email.parser
 import os
+import re
+
 import requests
 
 
@@ -68,7 +70,7 @@ def get_patch_name(content):
         return '<SUBJECT MISSING>'
 
     # Remove header folding
-    subject = subject.replace('\n', ' ').replace('\t', '').replace('\r', '')
+    subject = re.sub(r'\r?\n[ \t]', ' ', subject)
 
     try:
         # decode_header() returns a list of tuples (value, charset)
