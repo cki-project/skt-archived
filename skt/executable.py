@@ -506,7 +506,7 @@ def setup_parser():
         "--patch",
         type=str,
         action='append',
-        help="Path to each local patch to apply " +
+        help="Path to a local patch to apply " +
              "(use multiple times for multiple patches)"
     )
     parser_merge.add_argument(
