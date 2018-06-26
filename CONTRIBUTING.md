@@ -46,6 +46,7 @@ patches on a regular basis. Reviewers should:
 * Feedback should be constructive (*"I would suggest that you..."* rather
   than *"I don't like this"*)
 * Identify areas for improvement, especially with test coverage
+* Test the changes being reviewed with each respin.
 * Provide as complete feedback as possible with each respin to minimize
   number of iterations.
 * Focus on getting changes into a "good enough" shape and merged sooner, but
