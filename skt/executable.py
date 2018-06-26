@@ -508,22 +508,22 @@ def setup_parser():
         "--patch",
         type=str,
         action='append',
-        help="Path to a local patch to apply " +
-             "(use multiple times for multiple patches)"
+        help="Path to a local patch to apply "
+             + "(use multiple times for multiple patches)"
     )
     parser_merge.add_argument(
         "--pw",
         type=str,
         action='append',
-        help="URL to Patchwork patch to apply " +
-             "(use multiple times for multiple patches)"
+        help="URL to Patchwork patch to apply "
+             + "(use multiple times for multiple patches)"
     )
     parser_merge.add_argument(
         "-m",
         "--merge-ref",
         action='append',
-        help="Merge ref format: 'url [ref]' " +
-             "(use multiple times for multiple merge refs)"
+        help="Merge ref format: 'url [ref]' "
+             + "(use multiple times for multiple merge refs)"
     )
     parser_merge.add_argument(
         "--fetch-depth",
