@@ -41,6 +41,68 @@ def read_asset(filename):
         return fileh.read()
 
 
+class TestReporterFunctions(unittest.TestCase):
+    """Test cases for the functions in skt.reporter."""
+
+    def setUp(self):
+        """Test fixtures."""
+        self.statefile = "{}/assets/testing_state.cfg".format(SCRIPT_PATH)
+        self.statefile_no_runner = (
+            "{}/assets/testing_state_no_runner.cfg".format(SCRIPT_PATH)
+        )
+
+    def test_load_state_cfg(self):
+        """Test with a state file that has a runner section."""
+        cfg = reporter.load_state_cfg(self.statefile)
+
+        expected_cfg = {
+            'jobid_01': 'J:123456',
+            'jobs': set(['J:123456']),
+            'localpatch_01': '/tmp/patch.txt',
+            'localpatches': ['/tmp/patch.txt'],
+            'mergehead_01': 'master',
+            'mergeheads': ['master'],
+            'mergerepo_01': 'git://git.kernel.org/pub/scm/linux/kernel/git/',
+            'mergerepos': ['git://git.kernel.org/pub/scm/linux/kernel/git/'],
+            'patchwork_01': 'http://example.com/patch/1',
+            'patchworks': ['http://example.com/patch/1'],
+            'runner': ['beaker', {'jobtemplate': 'test_template.xml'}]
+        }
+        self.assertDictEqual(expected_cfg, cfg)
+
+    @mock.patch('logging.debug')
+    def test_load_state_no_runner(self, mock_log):
+        """Test with a state file that has no runner section."""
+        cfg = reporter.load_state_cfg(self.statefile_no_runner)
+
+        expected_cfg = {
+            'foo': 'bar',
+            'jobid_01': 'J:123456',
+            'jobid_02': 'J:123456',
+            'jobs': set(['J:123456']),
+            'localpatch_01': '/tmp/patch.txt',
+            'localpatch_02': '/tmp/patch.txt',
+            'localpatches': ['/tmp/patch.txt', '/tmp/patch.txt'],
+            'mergehead_01': 'master',
+            'mergehead_02': 'master',
+            'mergeheads': ['master', 'master'],
+            'mergerepo_01': 'git://git.kernel.org/pub/scm/linux/kernel/git/',
+            'mergerepo_02': 'git://git.kernel.org/pub/scm/linux/kernel/git/',
+            'mergerepos': [
+                'git://git.kernel.org/pub/scm/linux/kernel/git/',
+                'git://git.kernel.org/pub/scm/linux/kernel/git/'
+            ],
+            'patchwork_01': 'http://example.com/patch/1',
+            'patchwork_02': 'http://example.com/patch/1',
+            'patchworks': [
+                'http://example.com/patch/1',
+                'http://example.com/patch/1'
+            ]
+        }
+        self.assertDictEqual(expected_cfg, cfg)
+        mock_log.assert_called_once()
+
+
 class TestConsoleLog(unittest.TestCase):
     """Test cases for reporter.ConsoleLog class."""
 
