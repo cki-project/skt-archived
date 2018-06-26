@@ -38,7 +38,7 @@ class KernelBuilder(object):
         self.buildlog = "%s/build.log" % self.source_dir
         self.make_argv_base = ["make", "-C", self.source_dir]
         self.enable_debuginfo = enable_debuginfo
-        self.build_arch = self.get_build_arch()
+        self.build_arch = self.__get_build_arch()
         self.rh_configs_glob = rh_configs_glob
 
         # Split the extra make arguments provided by the user
@@ -55,7 +55,7 @@ class KernelBuilder(object):
         logging.info("basecfg: %s", self.basecfg)
         logging.info("cfgtype: %s", self.cfgtype)
 
-    def adjust_config_option(self, action, option):
+    def __adjust_config_option(self, action, option):
         """Adjust a kernel config option using kernel scripts."""
         if action not in ['enable', 'disable']:
             raise LookupError("Only 'enable' and 'disable' are supported.")
@@ -75,18 +75,18 @@ class KernelBuilder(object):
         logging.info("cleaning up tree: %s", args)
         subprocess.check_call(args)
 
-    def glob_escape(self, pathname):
+    def __glob_escape(self, pathname):
         """Escape any wildcard/glob characters in pathname."""
         return re.sub("[]*?[]", "[\g<0>]", pathname)
 
-    def prepare_kernel_config(self):
+    def __prepare_kernel_config(self):
         """Prepare the kernel config for the compile."""
         if self.cfgtype == 'rh-configs':
             # Build Red Hat configs and copy the correct one into place
-            self.make_redhat_config()
+            self.__make_redhat_config()
         elif self.cfgtype == 'tinyconfig':
             # Build an extremely small config file for quick testing
-            self.make_tinyconfig()
+            self.__make_tinyconfig()
         else:
             # Copy the existing config file into place
             shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
@@ -100,18 +100,18 @@ class KernelBuilder(object):
         # of kernel issues on a specific system. This is why debuginfo is
         # disabled by default.
         if not self.enable_debuginfo:
-            self.adjust_config_option('disable', 'debug_info')
+            self.__adjust_config_option('disable', 'debug_info')
 
         self._ready = 1
 
-    def make_redhat_config(self):
+    def __make_redhat_config(self):
         """Prepare the Red Hat kernel config files."""
         args = self.make_argv_base + ['rh-configs']
         logging.info("building Red Hat configs: %s", args)
         subprocess.check_call(args)
 
         # Copy the correct kernel config into place
-        escaped_source_dir = self.glob_escape(self.source_dir)
+        escaped_source_dir = self.__glob_escape(self.source_dir)
         config = "{}/{}".format(escaped_source_dir, self.rh_configs_glob)
         config_filename = glob.glob(config)
 
@@ -130,13 +130,13 @@ class KernelBuilder(object):
             "{}/.config".format(self.source_dir)
         )
 
-    def make_tinyconfig(self):
+    def __make_tinyconfig(self):
         """Make the smallest kernel config file possible for quick testing."""
         args = self.make_argv_base + ['tinyconfig']
         logging.info("building tinyconfig: %s", args)
         subprocess.check_call(args)
 
-    def get_build_arch(self):
+    def __get_build_arch(self):
         """Determine the build architecture for the kernel build."""
         # Detect cross-compiling via the ARCH= environment variable
         if 'ARCH' in os.environ:
@@ -150,7 +150,7 @@ class KernelBuilder(object):
     def getrelease(self):
         krelease = None
         if not self._ready:
-            self.prepare_kernel_config()
+            self.__prepare_kernel_config()
 
         args = self.make_argv_base + ["kernelrelease"]
         mk = subprocess.Popen(args, stdout=subprocess.PIPE)
@@ -184,7 +184,7 @@ class KernelBuilder(object):
         """
         fpath = None
         stdout_list = []
-        self.prepare_kernel_config()
+        self.__prepare_kernel_config()
 
         # Set up the arguments and options for the kernel build
         targz_pkg_argv = [

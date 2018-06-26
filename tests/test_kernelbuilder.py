@@ -71,6 +71,7 @@ class KBuilderTest(unittest.TestCase):
 
     def test_adjust_config_option(self):
         """Ensure adjust_config_option() calls the correct commands."""
+        # pylint: disable=W0212,E1101
         expected_args = [
             "{}/scripts/config".format(self.tmpdir),
             "--file",
@@ -80,7 +81,8 @@ class KBuilderTest(unittest.TestCase):
         ]
 
         with self.ctx_check_call as m_check_call:
-            self.kbuilder.adjust_config_option('disable', 'some_option')
+            self.kbuilder._KernelBuilder__adjust_config_option('disable',
+                                                               'some_option')
             self.assertEqual(
                 m_check_call.mock_calls[0],
                 mock.call(expected_args)
@@ -88,15 +90,18 @@ class KBuilderTest(unittest.TestCase):
 
     def test_get_build_arch(self):
         """Ensure get_build_arch() returns the ARCH env variable."""
+        # pylint: disable=W0212,E1101
         os.environ['ARCH'] = 's390x'
-        result = self.kbuilder.get_build_arch()
+        result = self.kbuilder._KernelBuilder__get_build_arch()
 
         self.assertEqual('s390x', result)
 
     def test_adjust_config_option_bogus(self):
         """Ensure adjust_config_option() rejects bogus actions."""
+        # pylint: disable=W0212,E1101
         with self.assertRaises(LookupError) as excmsg:
-            self.kbuilder.adjust_config_option('foo', 'some option')
+            self.kbuilder._KernelBuilder__adjust_config_option('foo',
+                                                               'some option')
             self.assertEqual(
                 excmsg,
                 "Only 'enable' and 'disable' are supported."
@@ -172,7 +177,8 @@ class KBuilderTest(unittest.TestCase):
         )
         self.assertEqual(kbuilder.extra_make_args, [extra_make_args_example])
 
-    @mock.patch("skt.kernelbuilder.KernelBuilder.prepare_kernel_config")
+    @mock.patch("skt.kernelbuilder.KernelBuilder."
+                "_KernelBuilder__prepare_kernel_config")
     def test_getrelease(self, mock_prepare):
         """Ensure get_release() handles a valid kernel version string."""
         kernel_version = '4.17.0-rc6+\n'
@@ -183,7 +189,8 @@ class KBuilderTest(unittest.TestCase):
             result = self.kbuilder.getrelease()
             self.assertEqual(kernel_version.strip(), result)
 
-    @mock.patch("skt.kernelbuilder.KernelBuilder.prepare_kernel_config")
+    @mock.patch("skt.kernelbuilder.KernelBuilder."
+                "_KernelBuilder__prepare_kernel_config")
     def test_getrelease_regex_fail(self, mock_prepare):
         """Ensure get_release() fails if the regex doesn't match."""
         mock_popen = self.ctx_popen
@@ -193,7 +200,8 @@ class KBuilderTest(unittest.TestCase):
             with self.assertRaises(Exception):
                 self.kbuilder.getrelease()
 
-    @mock.patch("skt.kernelbuilder.KernelBuilder.prepare_kernel_config")
+    @mock.patch("skt.kernelbuilder.KernelBuilder."
+                "_KernelBuilder__prepare_kernel_config")
     def test_getrelease_ready(self, mock_prepare):
         """Ensure get_release() skips prepare when _ready=1."""
         kernel_version = '4.17.0-rc6+\n'
@@ -209,17 +217,19 @@ class KBuilderTest(unittest.TestCase):
             # since self._ready was set to 1.
             mock_prepare.assert_not_called()
 
-    @mock.patch("skt.kernelbuilder.KernelBuilder.adjust_config_option")
+    @mock.patch("skt.kernelbuilder.KernelBuilder."
+                "_KernelBuilder__adjust_config_option")
     @mock.patch('shutil.copyfile')
     @mock.patch("glob.glob")
     @mock.patch("subprocess.check_call")
     def test_prep_config_redhat(self, mock_check_call, mock_glob, mock_shutil,
                                 mock_adjust_cfg):
         """Ensure KernelBuilder handles Red Hat configs."""
+        # pylint: disable=W0212,E1101
         self.kbuilder.cfgtype = 'rh-configs'
         self.kbuilder.enable_debuginfo = True
         mock_glob.return_value = ['configs/config-3.10.0-x86_64.config']
-        self.kbuilder.prepare_kernel_config()
+        self.kbuilder._KernelBuilder__prepare_kernel_config()
 
         # Ensure the configs were built using the correct command
         check_call_args = mock_check_call.call_args[0]
@@ -236,20 +246,23 @@ class KBuilderTest(unittest.TestCase):
     def test_redhat_config_glob_failure(self, mock_check_call, mock_glob,
                                         mock_info, mock_err):
         """Ensure that skt exits when no Red Hat config files match."""
+        # pylint: disable=W0212,E1101
         mock_check_call.return_value = ''
         mock_glob.return_value = []
         with self.assertRaises(SystemExit):
-            self.kbuilder.make_redhat_config()
+            self.kbuilder._KernelBuilder__make_redhat_config()
 
         mock_info.assert_called_once()
         mock_err.assert_called_once()
 
-    @mock.patch("skt.kernelbuilder.KernelBuilder.adjust_config_option")
+    @mock.patch("skt.kernelbuilder.KernelBuilder."
+                "_KernelBuilder__adjust_config_option")
     @mock.patch("subprocess.check_call")
     def test_prep_config_tinyconfig(self, mock_check_call, mock_adjust_cfg):
         """Ensure KernelBuilder handles tinyconfig."""
+        # pylint: disable=W0212,E1101
         self.kbuilder.cfgtype = 'tinyconfig'
-        self.kbuilder.prepare_kernel_config()
+        self.kbuilder._KernelBuilder__prepare_kernel_config()
 
         # Ensure the config was built using the correct command
         check_call_args = mock_check_call.call_args[0]
