@@ -175,9 +175,10 @@ def cmd_merge(cfg):
                 save_state(cfg, {'patchwork_%02d' % idx: patch})
                 ktree.merge_patchwork_patch(patch)
                 idx += 1
-    except Exception as e:
+    except Exception:
         save_state(cfg, {'mergelog': ktree.mergelog})
-        raise e
+        (exc, exc_type, trace) = sys.exc_info()
+        raise exc, exc_type, trace
 
     uid = "[baseline]"
     if utypes:
@@ -219,9 +220,10 @@ def cmd_build(cfg):
 
     try:
         tgz = builder.mktgz()
-    except Exception as e:
+    except Exception:
         save_state(cfg, {'buildlog': builder.buildlog})
-        raise e
+        (exc, exc_type, trace) = sys.exc_info()
+        raise exc, exc_type, trace
 
     if cfg.get('buildhead'):
         ttgz = "%s.tar.gz" % cfg.get('buildhead')
