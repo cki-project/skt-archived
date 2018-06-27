@@ -15,10 +15,12 @@ Test cases for runner module.
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 from StringIO import StringIO
+from io import BytesIO
 import os
 import sys
 import unittest
 
+import mock
 from skt import executable
 
 
@@ -31,6 +33,8 @@ class TestExecutable(unittest.TestCase):
         parser = executable.setup_parser()
 
         # Capture stdout/stderr temporarily
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
         temp_stdout = StringIO()
         temp_stderr = StringIO()
         sys.stdout = temp_stdout
@@ -49,6 +53,25 @@ class TestExecutable(unittest.TestCase):
 
         if expected_stderr:
             self.assertIn(expected_stderr, temp_stderr.getvalue().strip())
+
+        # Reset stdout/stderr
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+    def load_config_tester(self, config_file, testing_args):
+        """Reusable method to test the load_config() method."""
+        mock_open = mock.patch(
+            'ConfigParser.open',
+            return_value=BytesIO('\n'.join(config_file))
+        )
+        parser = executable.setup_parser()
+        args = parser.parse_args(testing_args)
+
+        with mock_open:
+            cfg = executable.load_config(args)
+
+        self.assertTrue(isinstance(cfg, dict))
+        return cfg
 
     def test_full_path_relative(self):
         """Verify that full_path() expands a relative path"""
@@ -99,3 +122,128 @@ class TestExecutable(unittest.TestCase):
         """Test check_args() with stdio and valid arguments."""
         args = ['report', '--reporter', 'stdio']
         self.check_args_tester(args, expected_fail=False)
+
+    def test_load_config(self):
+        """Test load_config() with some arguments."""
+        config_file = [
+            '[config]',
+            'foo=bar',
+            'workdir=/tmp/workdir',
+            'merge_ref=master',
+            'basecfg=.config',
+            'buildinfo=value',
+            'buildconf=value',
+            'tarpkg=value',
+        ]
+        args = ['--rc', '/tmp/testing.ini', '--workdir', '/tmp/workdir',
+                '--state', '--junit', '/tmp/junit', 'report', '--reporter',
+                'stdio', '--result', '/tmp/state.txt']
+        cfg = self.load_config_tester(config_file, args)
+        self.assertEqual('bar', cfg['foo'])
+        self.assertEqual('report', cfg['_name'])
+
+    def test_load_config_merge_ref(self):
+        """Test load_config() with a merge_ref section."""
+        config_file = [
+            '[config]',
+            'foo=bar',
+            'workdir=/tmp/workdir',
+            '[merge-01]',
+            'url=http://example.com',
+            'ref=master'
+        ]
+        args = ['--workdir', '/tmp/workdir', '--state', 'merge']
+        # Run with url + ref in merge_ref section
+        cfg1 = self.load_config_tester(config_file, args)
+
+        # Run with just url in merge_ref section
+        config_file.pop()
+        cfg2 = self.load_config_tester(config_file, args)
+
+        self.assertListEqual(
+            ['http://example.com', 'master'],
+            cfg1['merge_ref'][0]
+        )
+        self.assertListEqual(
+            ['http://example.com'],
+            cfg2['merge_ref'][0]
+        )
+
+    def test_load_config_reporter_args(self):
+        """Test load_config() with reporter arguments."""
+        config_file = []
+        args = ['--rc', '/tmp/testing.ini', 'report', '--reporter', 'mail',
+                '--mail-to', 'someone@example.com', '--mail-from',
+                'sender@example.com']
+        cfg = self.load_config_tester(config_file, args)
+        self.assertEqual('mail', cfg['type'])
+
+    def test_load_config_reporter_config(self):
+        """Test load_config() with reporter in the config file."""
+        # pylint: disable=invalid-name
+        config_file = [
+            '[reporter]',
+            'type=stdio',
+        ]
+        args = ['--rc', '/tmp/testing.ini', 'report']
+        cfg = self.load_config_tester(config_file, args)
+        self.assertTupleEqual(('type', 'stdio'), cfg['reporter'][0])
+
+    def test_load_config_runner_args(self):
+        """Test load_config() with runner arguments."""
+        config_file = []
+        args = ['--rc', '/tmp/testing.ini', '--workdir', '/tmp/workdir',
+                '--state', 'run', '--runner', 'myrunner', '[\'value\']']
+        cfg = self.load_config_tester(config_file, args)
+        self.assertListEqual(['myrunner', ['value']], cfg['runner'])
+
+    def test_load_config_with_state_arg(self):
+        """Test load_config() with state."""
+        config_file = [
+            '[state]',
+            'jobid_01=J:123456',
+            'jobid_02=J:234567',
+            'mergerepo_01=git://example.com/repo1',
+            'mergerepo_02=git://example.com/repo2',
+            'mergehead_01=master',
+            'mergehead_02=master',
+            'localpatch_01=/tmp/patch1.txt',
+            'localpatch_02=/tmp/patch2.txt',
+            'patchwork_01=http://patchwork.example.com/patch/1',
+            'patchwork_02=http://patchwork.example.com/patch/2',
+            'workdir=/tmp/workdir2',
+            'some_other_state=some_value',
+            '[publisher]',
+            'type=mypublisher',
+            'destination=/tmp/publish',
+            'baseurl=http://example.com/publish',
+            '[runner]',
+            'type=myrunner',
+            'jobtemplate=mytemplate.xml',
+        ]
+        args = ['--rc', '/tmp/lolwut.ini', '--workdir', '/tmp/workdir',
+                '--state', 'merge']
+        cfg = self.load_config_tester(config_file, args)
+
+        # Check that state was retrieved from the config file
+        self.assertSetEqual(set([u'J:123456', u'J:234567']), cfg['jobs'])
+        self.assertListEqual(
+            ['master', 'master'],
+            cfg['mergeheads']
+        )
+        self.assertListEqual(
+            ['git://example.com/repo1', 'git://example.com/repo2'],
+            cfg['mergerepos']
+        )
+        self.assertListEqual(
+            ['/tmp/patch1.txt', '/tmp/patch2.txt'],
+            cfg['localpatches']
+        )
+        self.assertListEqual(
+            [
+                'http://patchwork.example.com/patch/1',
+                'http://patchwork.example.com/patch/2'
+            ],
+            cfg['patchworks']
+        )
+        self.assertEqual('some_value', cfg['some_other_state'])
