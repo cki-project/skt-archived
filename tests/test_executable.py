@@ -1,6 +1,3 @@
-"""
-Test cases for runner module.
-"""
 # Copyright (c) 2018 Red Hat, Inc. All rights reserved. This copyrighted
 # material is made available to anyone wishing to use, modify, copy, or
 # redistribute it subject to the terms and conditions of the GNU General Public
@@ -14,6 +11,7 @@ Test cases for runner module.
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+"""Test cases for runner module."""
 from StringIO import StringIO
 from io import BytesIO
 import os
@@ -25,7 +23,7 @@ from skt import executable
 
 
 class TestExecutable(unittest.TestCase):
-    """Test cases for executable module"""
+    """Test cases for executable module."""
 
     def check_args_tester(self, args, expected_fail=True,
                           expected_stdout=None, expected_stderr=None):
@@ -74,14 +72,14 @@ class TestExecutable(unittest.TestCase):
         return cfg
 
     def test_full_path_relative(self):
-        """Verify that full_path() expands a relative path"""
+        """Verify that full_path() expands a relative path."""
         filename = "somefile"
         result = executable.full_path(filename)
         expected_path = "{}/{}".format(os.getcwd(), filename)
         self.assertEqual(expected_path, result)
 
     def test_full_path_user_directory(self):
-        """Verify that full_path() expands a user directory path"""
+        """Verify that full_path() expands a user directory path."""
         filename = "somefile"
         result = executable.full_path("~/{}".format(filename))
         expected_path = "{}/{}".format(os.path.expanduser('~'), filename)
