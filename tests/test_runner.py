@@ -60,12 +60,14 @@ class TestRunner(unittest.TestCase):
 
     def test_getxml(self):
         """Ensure BeakerRunner.getxml() returns xml"""
-        result = self.myrunner.getxml({})
+        # pylint: disable=W0212,E1101
+        result = self.myrunner._BeakerRunner__getxml({})
         self.assertEqual(result, self.test_xml)
 
     def test_getxml_replace(self):
         """Ensure BeakerRunner.getxml() returns xml with replacements"""
-        result = self.myrunner.getxml({'KVER': 'kernel-4.16'})
+        # pylint: disable=W0212,E1101
+        result = self.myrunner._BeakerRunner__getxml({'KVER': 'kernel-4.16'})
         expected_xml = self.test_xml.replace("##KVER##", "kernel-4.16")
         self.assertEqual(result, expected_xml)
 
@@ -74,7 +76,8 @@ class TestRunner(unittest.TestCase):
         Ensure BeakerRunner.getxml() returns xml with multi-instance
         replacements.
         """
-        result = self.myrunner.getxml({'ARCH': 's390x'})
+        # pylint: disable=W0212,E1101
+        result = self.myrunner._BeakerRunner__getxml({'ARCH': 's390x'})
         expected_xml = self.test_xml.replace("##ARCH##", "s390x")
         self.assertEqual(result, expected_xml)
 
@@ -109,38 +112,39 @@ class TestRunner(unittest.TestCase):
     def test_getconsolelog(self, mock_getresultstree):
         """Ensure getconsolelog() works"""
         # Mock up a beaker XML reply
+        # pylint: disable=W0212,E1101
         mocked_xml = misc.get_asset_content('beaker_results.xml')
         mock_getresultstree.return_value = etree.fromstring(mocked_xml)
 
-        result = self.myrunner.getconsolelog()
+        result = self.myrunner._BeakerRunner__getconsolelog()
         self.assertEqual(result, "http://example.com/")
 
     def test_forget_cid_withj(self):
         """Ensure _forget_cid() works with jobs"""
-        # pylint: disable=protected-access
+        # pylint: disable=protected-access,E1101
         self.myrunner.jobs = ["J:00001"]
         self.myrunner.j2r = {"J:00001": ["R:00001"]}
         self.myrunner.recipes = ["R:00001"]
-        result = self.myrunner._forget_cid("J:00001")
+        result = self.myrunner._BeakerRunner__forget_cid("J:00001")
         self.assertIsNone(result)
         self.assertEqual(self.myrunner.jobs, [])
         self.assertEqual(self.myrunner.recipes, [])
 
     def test_forget_cid_withr(self):
         """Ensure _forget_cid() works with recipes"""
-        # pylint: disable=protected-access
+        # pylint: disable=protected-access,E1101
         self.myrunner.jobs = ["J:00001"]
         self.myrunner.j2r = {"J:00001": ["R:00001"]}
         self.myrunner.recipes = ["R:00001"]
-        result = self.myrunner._forget_cid("R:00001")
+        result = self.myrunner._BeakerRunner__forget_cid("R:00001")
         self.assertIsNone(result)
         self.assertEqual(self.myrunner.recipes, [])
 
     def test_forget_cid_bad_job(self):
         """Ensure _forget_cid() fails with an invalid taskspec"""
-        # pylint: disable=protected-access
+        # pylint: disable=protected-access,E1101
         with self.assertRaises(Exception) as context:
-            self.myrunner._forget_cid("OHCOMEON:00001")
+            self.myrunner._BeakerRunner__forget_cid("OHCOMEON:00001")
 
         self.assertIn(
             "Unknown cid type: OHCOMEON:00001",
@@ -179,30 +183,33 @@ class TestRunner(unittest.TestCase):
     def test_jobresult(self, mock_getresultstree):
         """Ensure jobresult() works"""
         # beaker_xml up a beaker XML reply
+        # pylint: disable=W0212,E1101
         beaker_xml = misc.get_asset_content('beaker_results.xml')
         mock_getresultstree.return_value = etree.fromstring(beaker_xml)
 
-        result = self.myrunner.jobresult("J:00001")
+        result = self.myrunner._BeakerRunner__jobresult("J:00001")
         self.assertTupleEqual(result, (0, 'Pass'))
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     def test_jobresult_failure(self, mock_getresultstree):
         """Ensure jobresult() handles a job failure"""
         # Mock up a beaker XML reply
+        # pylint: disable=W0212,E1101
         beaker_xml = misc.get_asset_content('beaker_fail_results.xml')
         mock_getresultstree.return_value = etree.fromstring(beaker_xml)
 
-        result = self.myrunner.jobresult("J:00001")
+        result = self.myrunner._BeakerRunner__jobresult("J:00001")
         self.assertTupleEqual(result, (1, 'Fail'))
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     def test_getresults(self, mock_getresultstree):
         """Ensure getresults() works"""
         # Mock up a beaker XML reply
+        # pylint: disable=W0212,E1101
         beaker_xml = misc.get_asset_content('beaker_results.xml')
         mock_getresultstree.return_value = etree.fromstring(beaker_xml)
 
-        result = self.myrunner.getresults("J:00001")
+        result = self.myrunner._BeakerRunner__getresults("J:00001")
         self.assertEqual(result, 0)
 
     @mock.patch('logging.warning')
@@ -210,6 +217,7 @@ class TestRunner(unittest.TestCase):
     def test_getresults_failure(self, mock_getresultstree, mock_logging):
         """Ensure getresults() handles a job failure"""
         # Mock up a beaker XML reply
+        # pylint: disable=W0212,E1101
         beaker_xml = misc.get_asset_content('beaker_fail_results.xml')
         mock_getresultstree.return_value = etree.fromstring(beaker_xml)
 
@@ -217,36 +225,38 @@ class TestRunner(unittest.TestCase):
         self.myrunner.failures = {
             'test': ['A', None, 4]
         }
-        result = self.myrunner.getresults("J:00001")
+        result = self.myrunner._BeakerRunner__getresults("J:00001")
         self.assertEqual(result, 1)
 
         # Go through the failure loop with one failed host
         self.myrunner.failures = {
             'test': [['A'], ['a'], 1]
         }
-        result = self.myrunner.getresults("J:00001")
+        result = self.myrunner._BeakerRunner__getresults("J:00001")
         self.assertEqual(result, 1)
 
         # Go through the failure loop with multiple failed hosts
         self.myrunner.failures = {
             'test': [['A', 'B'], ['a'], 1]
         }
-        result = self.myrunner.getresults("J:00001")
+        result = self.myrunner._BeakerRunner__getresults("J:00001")
         self.assertEqual(result, 1)
         mock_logging.assert_called()
 
     def test_recipe_to_job(self):
         """Ensure recipe_to_job() works"""
+        # pylint: disable=W0212,E1101
         beaker_xml = misc.get_asset_content('beaker_results.xml')
         xml_parsed = etree.fromstring(beaker_xml)
 
-        result = self.myrunner.recipe_to_job(xml_parsed)
+        result = self.myrunner._BeakerRunner__recipe_to_job(xml_parsed)
         self.assertEqual(result.tag, 'job')
 
-        result = self.myrunner.recipe_to_job(xml_parsed, samehost=True)
+        result = self.myrunner._BeakerRunner__recipe_to_job(xml_parsed,
+                                                            samehost=True)
         self.assertEqual(result.tag, 'job')
 
-    @mock.patch('skt.runner.BeakerRunner.jobsubmit')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run(self, mock_jobsubmit):
         """Ensure BeakerRunner.run works"""
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
@@ -258,7 +268,7 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner.run(url, release, wait)
         self.assertEqual(result, 0)
 
-    @mock.patch('skt.runner.BeakerRunner.jobsubmit')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run_host(self, mock_jobsubmit):
         """Ensure BeakerRunner.run works"""
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
@@ -272,7 +282,7 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(result, 0)
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    @mock.patch('skt.runner.BeakerRunner.jobsubmit')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run_wait(self, mock_jobsubmit, mock_getresultstree):
         """Ensure BeakerRunner.run works"""
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
