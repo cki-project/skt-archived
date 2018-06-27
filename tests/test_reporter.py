@@ -153,8 +153,9 @@ class TestConsoleLog(unittest.TestCase):
 
     def test_fetchdata(self):
         """Ensure fetchdata() returns an empty list with no URL."""
+        # pylint: disable=W0212,E1101
         consolelog = reporter.ConsoleLog(kver='4-4', url=None)
-        result = consolelog.fetchdata()
+        result = consolelog._ConsoleLog__fetchdata()
         self.assertItemsEqual([], result)
 
     def test_getfulllog(self):
