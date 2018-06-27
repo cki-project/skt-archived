@@ -621,7 +621,6 @@ def setup_parser():
         dest="type",
         type=str,
         choices=('stdio', 'mail'),
-        default='stdio',
         help="Reporter to use"
     )
     parser_report.add_argument(
