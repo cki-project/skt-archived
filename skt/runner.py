@@ -70,7 +70,7 @@ class BeakerRunner(Runner):
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
 
-    def getxml(self, replacements):
+    def __getxml(self, replacements):
         """
         Generate job XML with template replacements applied. Search the
         template for words surrounded by "##" strings and replace them with
@@ -133,7 +133,7 @@ class BeakerRunner(Runner):
             bkr = subprocess.Popen(args, stdout=fileh)
             bkr.communicate()
 
-    def getconsolelog(self, jobid=None):
+    def __getconsolelog(self, jobid=None):
         """
         Retrieve console log URL from a Beaker job.
 
@@ -157,7 +157,7 @@ class BeakerRunner(Runner):
 
         return url
 
-    def _forget_cid(self, cid):
+    def __forget_cid(self, cid):
         """
         Remove a job or recipe from the current list
 
@@ -276,7 +276,7 @@ class BeakerRunner(Runner):
 
         return max(set(fhosts), key=fhosts.count)
 
-    def jobresult(self, jobid):
+    def __jobresult(self, jobid):
         ret = 0
         result = None
 
@@ -290,13 +290,13 @@ class BeakerRunner(Runner):
 
         return (ret, result)
 
-    def getresults(self, jobid=None):
+    def __getresults(self, jobid=None):
         ret = 0
         fhosts = set()
         tfailures = 0
 
         if jobid is not None:
-            (ret, _) = self.jobresult(jobid)
+            (ret, _) = self.__jobresult(jobid)
 
         if jobid is None or ret != 0:
             for (recipe, data) in self.failures.iteritems():
@@ -325,7 +325,7 @@ class BeakerRunner(Runner):
 
         return ret
 
-    def recipe_to_job(self, recipe, samehost=False):
+    def __recipe_to_job(self, recipe, samehost=False):
         tmp = recipe.copy()
 
         hreq = tmp.find("hostRequires")
@@ -353,7 +353,7 @@ class BeakerRunner(Runner):
 
         return newroot
 
-    def watchloop(self):
+    def __watchloop(self):
         iteration = 0
         while self.watchlist:
             if iteration:
@@ -380,10 +380,10 @@ class BeakerRunner(Runner):
                                 tinst.attrib.get("result") != "Pass":
                             logging.warning("%s failed before kernelinstall, "
                                             "resubmitting", cid)
-                            self._forget_cid(cid)
-                            newjob = self.recipe_to_job(root, False)
-                            newjobid = self.jobsubmit(etree.tostring(newjob))
-                            self.add_to_watchlist(newjobid, reschedule, None)
+                            self.__forget_cid(cid)
+                            newjob = self.__recipe_to_job(root, False)
+                            newjobid = self.__jobsubmit(etree.tostring(newjob))
+                            self.__add_to_watchlist(newjobid, reschedule, None)
                         else:
                             if origin is None:
                                 origin = cid
@@ -402,21 +402,25 @@ class BeakerRunner(Runner):
                                 logging.info("%s -> '%s', resubmitting",
                                              cid, root.attrib.get("result"))
 
-                                newjob = self.recipe_to_job(root, False)
-                                newjobid = self.jobsubmit(etree.tostring(
+                                newjob = self.__recipe_to_job(root, False)
+                                newjobid = self.__jobsubmit(etree.tostring(
                                     newjob
                                 ))
-                                self.add_to_watchlist(newjobid, False, origin)
+                                self.__add_to_watchlist(newjobid,
+                                                        False,
+                                                        origin)
 
-                                newjob = self.recipe_to_job(root, True)
-                                newjobid = self.jobsubmit(etree.tostring(
+                                newjob = self.__recipe_to_job(root, True)
+                                newjobid = self.__jobsubmit(etree.tostring(
                                     newjob
                                 ))
-                                self.add_to_watchlist(newjobid, False, origin)
+                                self.__add_to_watchlist(newjobid,
+                                                        False,
+                                                        origin)
 
             iteration += 1
 
-    def add_to_watchlist(self, jobid, reschedule=True, origin=None):
+    def __add_to_watchlist(self, jobid, reschedule=True, origin=None):
         root = self.getresultstree(jobid)
 
         if self.whiteboard is None:
@@ -435,10 +439,10 @@ class BeakerRunner(Runner):
     def wait(self, jobid=None, reschedule=True):
         if jobid is None:
             jobid = self.lastsubmitted
-        self.add_to_watchlist(jobid, reschedule)
-        self.watchloop()
+        self.__add_to_watchlist(jobid, reschedule)
+        self.__watchloop()
 
-    def gethost(self, jobid=None):
+    def __gethost(self, jobid=None):
         if jobid is None:
             jobid = self.lastsubmitted
 
@@ -449,7 +453,7 @@ class BeakerRunner(Runner):
 
         return recipe.attrib.get("system")
 
-    def jobsubmit(self, xml):
+    def __jobsubmit(self, xml):
         jobid = None
         args = ["bkr", "job-submit"]
 
@@ -492,16 +496,16 @@ class BeakerRunner(Runner):
             hostname = "(%s) " % host
             hostnametag = '<hostname op="=" value="%s"/>' % host
 
-        jobid = self.jobsubmit(self.getxml({'KVER': release,
-                                            'KPKG_URL': url,
-                                            'UID': uid,
-                                            'ARCH': arch,
-                                            'HOSTNAME': hostname,
-                                            'HOSTNAMETAG': hostnametag}))
+        jobid = self.__jobsubmit(self.__getxml({'KVER': release,
+                                                'KPKG_URL': url,
+                                                'UID': uid,
+                                                'ARCH': arch,
+                                                'HOSTNAME': hostname,
+                                                'HOSTNAMETAG': hostnametag}))
 
         if wait:
             self.wait(jobid, reschedule)
-            ret = self.getresults()
+            ret = self.__getresults()
 
         return ret
 
