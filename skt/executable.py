@@ -826,8 +826,7 @@ def load_config(args):
         cfg['basecfg'] = full_path(cfg.get('basecfg'))
 
     # Get an absolute path for the configuration file
-    if cfg.get('rc'):
-        cfg['rc'] = full_path(cfg.get('rc'))
+    cfg['rc'] = full_path(cfg.get('rc'))
 
     # Get an absolute path for the buildinfo
     if cfg.get('buildinfo'):
