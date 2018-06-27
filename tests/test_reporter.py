@@ -152,7 +152,7 @@ class TestConsoleLog(unittest.TestCase):
         return expected_traces
 
     def test_fetchdata(self):
-        """Ensure fetchdata() returns an empty list with no URL."""
+        """Ensure __fetchdata() returns an empty list with no URL."""
         # pylint: disable=W0212,E1101
         consolelog = reporter.ConsoleLog(kver='4-4', url=None)
         result = consolelog._ConsoleLog__fetchdata()

@@ -251,7 +251,7 @@ class KernelTree(object):
         if self.fetch_depth:
             git_fetch_args.extend(['--depth', self.fetch_depth])
 
-        # The git_cmd() method expects a list of args, not a list of strings,
+        # The __git_cmd() method expects a list of args, not a list of strings,
         # so we need to expand our list into args with *.
         self.__git_cmd(*git_fetch_args)
 

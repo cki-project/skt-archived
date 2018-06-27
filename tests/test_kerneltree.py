@@ -152,7 +152,7 @@ class KernelTreeTest(unittest.TestCase):
         self.assertEqual(result, 'abcdef')
 
     def test_get_remote_url(self):
-        """Ensure get_remote_url() returns a fetch url."""
+        """Ensure __get_remote_url() returns a fetch url."""
         # pylint: disable=W0212,E1101
         expected_stdout = "Fetch URL: http://example.com/"
         self.m_popen_good.communicate = Mock(
@@ -167,7 +167,8 @@ class KernelTreeTest(unittest.TestCase):
     @mock.patch('logging.warning')
     def test_get_remote_name(self, mock_logging):
         """
-        Ensure get_remote_name() handles remote names from get_remote_url().
+        Ensure __get_remote_name() handles remote names
+        from __get_remote_url().
         """
         # If get_remote_url keeps returning the same value, then
         # get_remote_name() will keep adding underscores forever and this test
@@ -190,7 +191,7 @@ class KernelTreeTest(unittest.TestCase):
     @mock.patch('logging.debug')
     @mock.patch('subprocess.check_output')
     def test_git_cmd(self, mock_check_output, mock_logging):
-        """Ensure git_cmd() works."""
+        """Ensure __git_cmd() works."""
         # pylint: disable=W0212,E1101
         mock_check_output.return_value = "Test return value"
         output = self.kerneltree._KernelTree__git_cmd("status")
@@ -307,7 +308,7 @@ class KernelTreeTest(unittest.TestCase):
 
     @mock.patch('skt.kerneltree.KernelTree._KernelTree__git_cmd')
     def test_setup_repository_add(self, mock_git_cmd):
-        """Ensure setup_repository() adds the origin URL."""
+        """Ensure __setup_repository() adds the origin URL."""
         # pylint: disable=W0212,E1101
         mock_git_cmd.side_effect = [True, "remote1\nremote2\remote3\n", True]
         self.kerneltree._KernelTree__setup_repository()
@@ -315,7 +316,7 @@ class KernelTreeTest(unittest.TestCase):
 
     @mock.patch('skt.kerneltree.KernelTree._KernelTree__git_cmd')
     def test_setup_repository_set(self, mock_git_cmd):
-        """Ensure setup_repository() sets the origin URL when it exists."""
+        """Ensure __setup_repository() sets the origin URL when it exists."""
         # pylint: disable=W0212,E1101
         mock_git_cmd.side_effect = [True, "remote1\nremote2\norigin\n", True]
         self.kerneltree._KernelTree__setup_repository()
