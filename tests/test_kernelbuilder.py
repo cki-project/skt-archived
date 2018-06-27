@@ -70,7 +70,7 @@ class KBuilderTest(unittest.TestCase):
         self.assertEqual(result, "{}/.config".format(self.tmpdir))
 
     def test_adjust_config_option(self):
-        """Ensure adjust_config_option() calls the correct commands."""
+        """Ensure __adjust_config_option() calls the correct commands."""
         # pylint: disable=W0212,E1101
         expected_args = [
             "{}/scripts/config".format(self.tmpdir),
@@ -89,7 +89,7 @@ class KBuilderTest(unittest.TestCase):
             )
 
     def test_get_build_arch(self):
-        """Ensure get_build_arch() returns the ARCH env variable."""
+        """Ensure __get_build_arch() returns the ARCH env variable."""
         # pylint: disable=W0212,E1101
         os.environ['ARCH'] = 's390x'
         result = self.kbuilder._KernelBuilder__get_build_arch()
@@ -97,7 +97,7 @@ class KBuilderTest(unittest.TestCase):
         self.assertEqual('s390x', result)
 
     def test_adjust_config_option_bogus(self):
-        """Ensure adjust_config_option() rejects bogus actions."""
+        """Ensure __adjust_config_option() rejects bogus actions."""
         # pylint: disable=W0212,E1101
         with self.assertRaises(LookupError) as excmsg:
             self.kbuilder._KernelBuilder__adjust_config_option('foo',
