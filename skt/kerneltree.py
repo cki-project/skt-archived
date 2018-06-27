@@ -64,13 +64,13 @@ class KernelTree(object):
             pass
 
         # Initialize the repository
-        self.setup_repository()
+        self.__setup_repository()
 
         logging.info("base repo url: %s", self.uri)
         logging.info("base ref: %s", self.ref)
         logging.info("work dir: %s", self.wdir)
 
-    def git_cmd_call(self, func, *args, **kwargs):
+    def __git_cmd_call(self, func, *args, **kwargs):
         """
         Call a subprocess-module-compatible function with arguments required
         to run a git command.
@@ -100,7 +100,7 @@ class KernelTree(object):
             **kwargs
         )
 
-    def git_cmd(self, *args, **kwargs):
+    def __git_cmd(self, *args, **kwargs):
         """
         Run a git command and return its output.
 
@@ -112,12 +112,14 @@ class KernelTree(object):
             Git command output.
         """
         try:
-            return self.git_cmd_call(subprocess.check_output, *args, **kwargs)
+            return self.__git_cmd_call(subprocess.check_output,
+                                       *args,
+                                       **kwargs)
         except subprocess.CalledProcessError as exc:
             logging.debug(exc.output)
             raise(exc)
 
-    def git_cmd_pipe(self, input, *args, **kwargs):
+    def __git_cmd_pipe(self, input, *args, **kwargs):
         """
         Feed input to a git command and return its output.
 
@@ -129,11 +131,11 @@ class KernelTree(object):
         Returns:
             Git command exit status and output.
         """
-        process = self.git_cmd_call(subprocess.Popen,
-                                    *args,
-                                    stdin=subprocess.PIPE,
-                                    stdout=subprocess.PIPE,
-                                    **kwargs)
+        process = self.__git_cmd_call(subprocess.Popen,
+                                      *args,
+                                      stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE,
+                                      **kwargs)
         (output, _) = process.communicate(input)
         status = process.wait()
         return status, output
@@ -141,19 +143,19 @@ class KernelTree(object):
     def getpath(self):
         return self.wdir
 
-    def setup_repository(self):
+    def __setup_repository(self):
         """Initialize the repo and set the origin."""
-        self.git_cmd("init")
+        self.__git_cmd("init")
 
         # Does the repo have an origin set?
-        if 'origin' in self.git_cmd("remote").split('\n'):
+        if 'origin' in self.__git_cmd("remote").split('\n'):
             # Ensure the origin is set to the correct URL
             logging.debug("Setting URL for remote 'origin': %s" % self.uri)
-            self.git_cmd("remote", "set-url", "origin", self.uri)
+            self.__git_cmd("remote", "set-url", "origin", self.uri)
         else:
             # Add the origin remote
             logging.debug("Adding missing remote 'origin': %s" % self.uri)
-            self.git_cmd("remote", "add", "origin", self.uri)
+            self.__git_cmd("remote", "add", "origin", self.uri)
 
     def dumpinfo(self, fname='buildinfo.csv'):
         """
@@ -251,11 +253,11 @@ class KernelTree(object):
 
         # The git_cmd() method expects a list of args, not a list of strings,
         # so we need to expand our list into args with *.
-        self.git_cmd(*git_fetch_args)
+        self.__git_cmd(*git_fetch_args)
 
         logging.info("checking out %s", self.ref)
-        self.git_cmd("checkout", "-q", "--detach", dstref)
-        self.git_cmd("reset", "--hard", dstref)
+        self.__git_cmd("checkout", "-q", "--detach", dstref)
+        self.__git_cmd("reset", "--hard", dstref)
 
         head = self.get_commit_hash()
         self.info.append(("base", self.uri, head))
@@ -266,7 +268,7 @@ class KernelTree(object):
         logging.info("cleaning up %s", self.wdir)
         shutil.rmtree(self.wdir)
 
-    def get_remote_url(self, remote):
+    def __get_remote_url(self, remote):
         rurl = None
         grs = subprocess.Popen(["git",
                                 "--work-tree", self.wdir,
@@ -283,11 +285,11 @@ class KernelTree(object):
 
         return rurl
 
-    def get_remote_name(self, uri):
+    def __get_remote_name(self, uri):
         remote_name = (uri.split('/')[-1].replace('.git', '')
                        if not uri.endswith('/')
                        else uri.split('/')[-2].replace('.git', ''))
-        while self.get_remote_url(remote_name) == uri:
+        while self.__get_remote_url(remote_name) == uri:
             logging.warning(
                 "remote '%s' already exists with a different uri, adding '_'",
                 remote_name
@@ -297,33 +299,33 @@ class KernelTree(object):
         return remote_name
 
     def merge_git_ref(self, uri, ref="master"):
-        remote_name = self.get_remote_name(uri)
+        remote_name = self.__get_remote_name(uri)
         head = None
 
         try:
-            self.git_cmd("remote", "add", remote_name, uri,
-                         stderr=subprocess.PIPE)
+            self.__git_cmd("remote", "add", remote_name, uri,
+                           stderr=subprocess.PIPE)
         except subprocess.CalledProcessError:
             pass
 
         dstref = "refs/remotes/%s/%s" % (remote_name, ref.split('/')[-1])
         logging.info("fetching %s", dstref)
-        self.git_cmd("fetch", remote_name,
-                     "+%s:%s" % (ref, dstref))
+        self.__git_cmd("fetch", remote_name,
+                       "+%s:%s" % (ref, dstref))
 
         logging.info("merging %s: %s", remote_name, ref)
         try:
             grargs = {'stdout': subprocess.PIPE} if \
                 logging.getLogger().level > logging.DEBUG else {}
 
-            self.git_cmd("merge", "--no-edit", dstref, **grargs)
+            self.__git_cmd("merge", "--no-edit", dstref, **grargs)
             head = self.get_commit_hash(dstref)
             self.info.append(("git", uri, head))
             logging.info("%s %s: %s", remote_name, ref, head)
         except subprocess.CalledProcessError:
             logging.warning("failed to merge '%s' from %s, skipping", ref,
                             remote_name)
-            self.git_cmd("reset", "--hard")
+            self.__git_cmd("reset", "--hard")
             return (1, None)
 
         return (0, head)
@@ -334,12 +336,12 @@ class KernelTree(object):
         logging.info("Applying %s", uri)
 
         # Run in workdir to workaround "git am" ignoring --work-tree
-        status, output = self.git_cmd_pipe(patch_content,
-                                           "am", "-",
-                                           cwd=self.wdir)
+        status, output = self.__git_cmd_pipe(patch_content,
+                                             "am", "-",
+                                             cwd=self.wdir)
         if status != 0:
             try:
-                self.git_cmd("am", "--abort", cwd=self.wdir)
+                self.__git_cmd("am", "--abort", cwd=self.wdir)
             except subprocess.CalledProcessError as exc:
                 logging.debug("%s failed with status %d and "
                               "following output:\n%s",
@@ -363,10 +365,10 @@ class KernelTree(object):
 
         # Run in workdir to workaround "git am" ignoring --work-tree
         try:
-            self.git_cmd("am", path, cwd=self.wdir)
+            self.__git_cmd("am", path, cwd=self.wdir)
         except subprocess.CalledProcessError as exc:
             try:
-                self.git_cmd("am", "--abort", cwd=self.wdir)
+                self.__git_cmd("am", "--abort", cwd=self.wdir)
             except subprocess.CalledProcessError as exc:
                 logging.debug("%s failed with status %d and "
                               "following output:\n%s",

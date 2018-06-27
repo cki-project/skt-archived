@@ -85,7 +85,8 @@ class KernelTreeTest(unittest.TestCase):
         """Ensure checkout() runs git commands to check out a ref."""
         self.m_popen_good.communicate = Mock(return_value=('stdout', None))
 
-        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.git_cmd')
+        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
+                                  '_KernelTree__git_cmd')
 
         # Test with a fetch depth
         with self.popen_good, mock_git_cmd:
@@ -152,13 +153,14 @@ class KernelTreeTest(unittest.TestCase):
 
     def test_get_remote_url(self):
         """Ensure get_remote_url() returns a fetch url."""
+        # pylint: disable=W0212,E1101
         expected_stdout = "Fetch URL: http://example.com/"
         self.m_popen_good.communicate = Mock(
             return_value=(expected_stdout, None)
         )
 
         with self.popen_good:
-            result = self.kerneltree.get_remote_url('origin')
+            result = self.kerneltree._KernelTree__get_remote_url('origin')
 
         self.assertEqual(result, 'http://example.com/')
 
@@ -170,13 +172,16 @@ class KernelTreeTest(unittest.TestCase):
         # If get_remote_url keeps returning the same value, then
         # get_remote_name() will keep adding underscores forever and this test
         # would never pass.
+        # pylint: disable=W0212,E1101
         mocked_get_remote_url = mock.patch(
-            'skt.kerneltree.KernelTree.get_remote_url',
+            'skt.kerneltree.KernelTree._KernelTree__get_remote_url',
             side_effect=['http://example.com/', "http://example2.com"]
         )
 
         with mocked_get_remote_url:
-            result = self.kerneltree.get_remote_name("http://example.com/")
+            result = self.kerneltree._KernelTree__get_remote_name(
+                "http://example.com/"
+            )
 
         self.assertEqual('example.com_', result)
 
@@ -186,14 +191,16 @@ class KernelTreeTest(unittest.TestCase):
     @mock.patch('subprocess.check_output')
     def test_git_cmd(self, mock_check_output, mock_logging):
         """Ensure git_cmd() works."""
+        # pylint: disable=W0212,E1101
         mock_check_output.return_value = "Test return value"
-        output = self.kerneltree.git_cmd("status")
+        output = self.kerneltree._KernelTree__git_cmd("status")
         self.assertEqual("Test return value", output)
         mock_logging.assert_called_once()
 
     def test_merge_git_ref(self):
         """Ensure merge_git_ref() returns a proper tuple."""
-        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.git_cmd')
+        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
+                                  '_KernelTree__git_cmd')
         mock_get_commit_hash = mock.patch(
             'skt.kerneltree.KernelTree.get_commit_hash',
             return_value="abcdef"
@@ -205,9 +212,9 @@ class KernelTreeTest(unittest.TestCase):
         self.assertTupleEqual((0, 'abcdef'), result)
 
     @mock.patch('logging.warning')
-    @mock.patch('skt.kerneltree.KernelTree.get_remote_name')
+    @mock.patch('skt.kerneltree.KernelTree._KernelTree__get_remote_name')
     @mock.patch('skt.kerneltree.KernelTree.get_commit_hash')
-    @mock.patch('skt.kerneltree.KernelTree.git_cmd')
+    @mock.patch('skt.kerneltree.KernelTree._KernelTree__git_cmd')
     def test_merge_git_ref_failure(self, mock_git_cmd, mock_get_commit_hash,
                                    mock_get_remote_name, mock_logging):
         """Ensure merge_git_ref() fails properly when remote add fails."""
@@ -229,7 +236,8 @@ class KernelTreeTest(unittest.TestCase):
     def test_merge_pw_patch(self):
         """Ensure merge_patchwork_patch() handles patches properly."""
         mock_gpm = mock.patch('skt.get_patch_mbox')
-        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.git_cmd')
+        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
+                                  '_KernelTree__git_cmd')
         mock_gpn = mock.patch(
             'skt.get_patch_name',
             return_value="patch_name"
@@ -250,7 +258,8 @@ class KernelTreeTest(unittest.TestCase):
     def test_merge_pw_patch_failure(self):
         """Ensure merge_patchwork_patch() handles patch failures properly."""
         mock_get_patch_mbox = mock.patch('skt.get_patch_mbox')
-        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.git_cmd')
+        mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
+                                  '_KernelTree__git_cmd')
 
         self.m_popen_bad.communicate = Mock(return_value=('stdout', None))
 
@@ -296,16 +305,18 @@ class KernelTreeTest(unittest.TestCase):
         with self.assertRaises(Exception):
             self.kerneltree.merge_patch_file('patch_does_not_exist')
 
-    @mock.patch('skt.kerneltree.KernelTree.git_cmd')
+    @mock.patch('skt.kerneltree.KernelTree._KernelTree__git_cmd')
     def test_setup_repository_add(self, mock_git_cmd):
         """Ensure setup_repository() adds the origin URL."""
+        # pylint: disable=W0212,E1101
         mock_git_cmd.side_effect = [True, "remote1\nremote2\remote3\n", True]
-        self.kerneltree.setup_repository()
+        self.kerneltree._KernelTree__setup_repository()
         self.assertIn('add', mock_git_cmd.call_args_list[2][0])
 
-    @mock.patch('skt.kerneltree.KernelTree.git_cmd')
+    @mock.patch('skt.kerneltree.KernelTree._KernelTree__git_cmd')
     def test_setup_repository_set(self, mock_git_cmd):
         """Ensure setup_repository() sets the origin URL when it exists."""
+        # pylint: disable=W0212,E1101
         mock_git_cmd.side_effect = [True, "remote1\nremote2\norigin\n", True]
-        self.kerneltree.setup_repository()
+        self.kerneltree._KernelTree__setup_repository()
         self.assertIn('set-url', mock_git_cmd.call_args_list[2][0])
