@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -34,7 +35,7 @@ import skt
 import skt.publisher
 import skt.reporter
 import skt.runner
-from skt.kernelbuilder import KernelBuilder
+from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
 
 DEFAULTRC = "~/.sktrc"
@@ -213,6 +214,7 @@ def cmd_build(cfg):
     Args:
         cfg:    A dictionary of skt configuration.
     """
+    global retcode
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
 
@@ -231,8 +233,13 @@ def cmd_build(cfg):
 
     try:
         tgz = builder.mktgz()
-    except Exception:
+    except (CommandTimeoutError, subprocess.CalledProcessError, ParsingError,
+            IOError) as exc:
+        logging.error(exc)
         save_state(cfg, {'buildlog': builder.buildlog})
+        retcode = 1
+        return
+    except Exception:
         (exc, exc_type, trace) = sys.exc_info()
         raise exc, exc_type, trace
 
