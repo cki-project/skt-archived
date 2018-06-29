@@ -84,17 +84,17 @@ def junit(func):
 
     The generated test case is named "skt.<function-name>". The case stdout is
     set to JSON representation of the configuration object after the function
-    call has completed. The created test case is appended to the
-    "_testcases" list in the configuration object after that. Sets the global
-    "retcode" to 1 in case the function throws an exception. The testcase is
-    considered failed if the function throws an exeption or if the global
-    "retcode" is set to anything but zero after function returns.
+    call has completed. The created test case is appended to the "_testcases"
+    list in the configuration object after that. Sets the global "retcode" to
+    1 in case of test failure and 2 and above in case of infrastructure failure
+    or skt problem (eg. Beaker server is unreachable).
 
     Args:
         func:   The function to call in the created function. Must accept
                 a configuration object as the argument. Return value would be
                 ignored. Can set the global "retcode" to indicate success
-                (zero) or failure (non-zero).
+                (zero), test failure (1) or infrastructure failure (2 and
+                above).
 
     Return:
         The created function.
@@ -108,13 +108,20 @@ def junit(func):
             try:
                 func(cfg)
             except Exception:
-                logging.error("Exception caught: %s", traceback.format_exc())
-                tc.add_failure_info(traceback.format_exc())
-                retcode = 1
+                logging.error("Unexpected exception caught, probably an "
+                              "infrastructure failure or skt bug: %s",
+                              traceback.format_exc())
+                tc.add_error_info(traceback.format_exc())
+                retcode = 2
 
-            # No exception but retcode != 0, probably tests failed
-            if retcode != 0 and not tc.is_failure():
+            if retcode == 1:
+                # Tests failed
                 tc.add_failure_info("Step finished with retcode: %d" % retcode)
+            elif retcode >= 2:
+                tc.add_error_info(
+                    "Infrastructure issue or skt bug detected, retcode: %d" %
+                    retcode
+                )
 
             tc.stdout = json.dumps(cfg, default=str)
             tc.elapsed_sec = time.time() - tstart
