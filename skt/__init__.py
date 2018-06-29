@@ -80,19 +80,3 @@ def get_patch_name(content):
         return '<SUBJECT ENCODING INVALID>'
 
     return ''.join(decoded)
-
-
-class CommandTimeoutError(Exception):
-    """
-    Exception raised when a timeout occurs on a process which has had timeouts
-    enabled. The accompanying value is a string whose value is the command
-    launched plus a small explanation.
-    """
-
-
-class ParsingError(Exception):
-    """
-    Exception raised when a regex does not match and it is impossible to
-    continue. The accompanying value is a string which explains what it can not
-    find.
-    """
