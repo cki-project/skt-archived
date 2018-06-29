@@ -894,28 +894,24 @@ def check_args(parser, args):
 
 
 def main():
-    global retcode
-
-    parser = setup_parser()
-    args = parser.parse_args()
-    check_args(parser, args)
-
-    setup_logging(args.verbose)
-    cfg = load_config(args)
-
-    args.func(cfg)
-    if cfg.get('junit'):
-        ts = junit_xml.TestSuite("skt", cfg.get('_testcases'))
-        with open("%s/%s.xml" % (cfg.get('junit'), args._name), 'w') as fileh:
-            junit_xml.TestSuite.to_file(fileh, [ts])
-
-    sys.exit(retcode)
-
-
-if __name__ == '__main__':
     try:
-        main()
+        global retcode
+
+        parser = setup_parser()
+        args = parser.parse_args()
+        check_args(parser, args)
+
+        setup_logging(args.verbose)
+        cfg = load_config(args)
+
+        args.func(cfg)
+        if cfg.get('junit'):
+            ts = junit_xml.TestSuite("skt", cfg.get('_testcases'))
+            with open("%s/%s.xml" % (cfg.get('junit'), args._name),
+                      'w') as fileh:
+                junit_xml.TestSuite.to_file(fileh, [ts])
+
+        sys.exit(retcode)
     except KeyboardInterrupt:
-        # cleanup??
         print("\nExited at user request.")
-        sys.exit(1)
+        sys.exit(130)
