@@ -350,8 +350,10 @@ class KernelTree(object):
             with open(self.mergelog, "w") as fileh:
                 fileh.write(output)
 
-            raise Exception("Failed to apply patch %s" %
-                            os.path.basename(os.path.normpath(uri)))
+            raise PatchApplicationError(
+                "Failed to apply patch %s" %
+                os.path.basename(os.path.normpath(uri))
+            )
 
         patchname = skt.get_patch_name(patch_content)
         # FIXME Do proper CSV escaping, or switch data format instead of
@@ -377,6 +379,10 @@ class KernelTree(object):
             with open(self.mergelog, "w") as fileh:
                 fileh.write(exc.output)
 
-            raise Exception("Failed to apply patch %s" % path)
+            raise PatchApplicationError("Failed to apply patch %s" % path)
 
         self.info.append(("patch", path))
+
+
+class PatchApplicationError(Exception):
+    """Exception raised when the patch fails to apply."""
