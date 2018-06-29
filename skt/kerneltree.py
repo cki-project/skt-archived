@@ -117,16 +117,16 @@ class KernelTree(object):
                                        **kwargs)
         except subprocess.CalledProcessError as exc:
             logging.debug(exc.output)
-            raise(exc)
+            raise exc
 
-    def __git_cmd_pipe(self, input, *args, **kwargs):
+    def __git_cmd_pipe(self, command_input, *args, **kwargs):
         """
         Feed input to a git command and return its output.
 
         Args:
-            input:      Input to feed to the git command.
-            *args:      Git command arguments.
-            **kwargs:   Extra keyword arguments to subprocess.Popen.
+            command_input:      Input to feed to the git command.
+            *args:              Git command arguments.
+            **kwargs:           Extra keyword arguments to subprocess.Popen.
 
         Returns:
             Git command exit status and output.
@@ -136,7 +136,7 @@ class KernelTree(object):
                                       stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
                                       **kwargs)
-        (output, _) = process.communicate(input)
+        (output, _) = process.communicate(command_input)
         status = process.wait()
         return status, output
 
@@ -171,9 +171,9 @@ class KernelTree(object):
             Full path to the written file.
         """
         fpath = '/'.join([self.wdir, fname])
-        with open(fpath, 'w') as f:
+        with open(fpath, 'w') as fileh:
             for iitem in self.info:
-                f.write(','.join(iitem) + "\n")
+                fileh.write(','.join(iitem) + "\n")
         return fpath
 
     def get_commit_date(self, ref=None):
