@@ -46,8 +46,8 @@ def gzipdata(data):
         String containing gzip-compressed data.
     """
     tstr = StringIO.StringIO()
-    with gzip.GzipFile(fileobj=tstr, mode="w") as f:
-        f.write(data)
+    with gzip.GzipFile(fileobj=tstr, mode="w") as fileh:
+        fileh.write(data)
     return tstr.getvalue()
 
 
@@ -115,35 +115,36 @@ class ConsoleLog(object):
 
     # List of regular expression strings matching
     # lines beginning an oops or a call trace output
-    oopsmsg = [r"general protection fault:",
-               r"BUG:",
-               r"kernel BUG at",
-               r"do_IRQ: stack overflow:",
-               r"RTNL: assertion failed",
-               r"Eeek! page_mapcount\(page\) went negative!",
-               r"near stack overflow \(cur:",
-               r"double fault:",
-               r"Badness at",
-               r"NETDEV WATCHDOG",
-               r"WARNING: at",
-               r"appears to be on the same physical disk",
-               r"Unable to handle kernel",
-               r"sysctl table check failed",
-               r"------------\[ cut here \]------------",
-               r"list_del corruption\.",
-               r"list_add corruption\.",
-               r"NMI watchdog: BUG: soft lockup",
-               r"irq [0-9]+: nobody cared",
-               r"INFO: task .* blocked for more than [0-9]+ seconds",
-               r"vmwrite error: reg ",
-               r"page allocation failure: order:",
-               r"page allocation stalls for.*order:.*mode:",
-               r"INFO: rcu_sched self-detected stall on CPU",
-               r"INFO: rcu_sched detected stalls on CPUs/tasks:",
-               r"NMI watchdog: Watchdog detected hard LOCKUP",
-               r"Kernel panic - not syncing: ",
-               r"Oops: Unrecoverable TM Unavailable Exception"
-               ]
+    oopsmsg = [
+        r"general protection fault:",
+        r"BUG:",
+        r"kernel BUG at",
+        r"do_IRQ: stack overflow:",
+        r"RTNL: assertion failed",
+        r"Eeek! page_mapcount\(page\) went negative!",
+        r"near stack overflow \(cur:",
+        r"double fault:",
+        r"Badness at",
+        r"NETDEV WATCHDOG",
+        r"WARNING: at",
+        r"appears to be on the same physical disk",
+        r"Unable to handle kernel",
+        r"sysctl table check failed",
+        r"------------\[ cut here \]------------",
+        r"list_del corruption\.",
+        r"list_add corruption\.",
+        r"NMI watchdog: BUG: soft lockup",
+        r"irq [0-9]+: nobody cared",
+        r"INFO: task .* blocked for more than [0-9]+ seconds",
+        r"vmwrite error: reg ",
+        r"page allocation failure: order:",
+        r"page allocation stalls for.*order:.*mode:",
+        r"INFO: rcu_sched self-detected stall on CPU",
+        r"INFO: rcu_sched detected stalls on CPUs/tasks:",
+        r"NMI watchdog: Watchdog detected hard LOCKUP",
+        r"Kernel panic - not syncing: ",
+        r"Oops: Unrecoverable TM Unavailable Exception"
+    ]
 
     # List of regular expression strings matching
     # lines appearing in a call trace output
@@ -784,6 +785,6 @@ class MailReporter(Reporter):
 
             msg.attach(tmp)
 
-        s = smtplib.SMTP(self.smtp_url)
-        s.sendmail(self.mailfrom, self.mailto, msg.as_string())
-        s.quit()
+        mailserver = smtplib.SMTP(self.smtp_url)
+        mailserver.sendmail(self.mailfrom, self.mailto, msg.as_string())
+        mailserver.quit()
