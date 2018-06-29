@@ -132,6 +132,10 @@ class BeakerRunner(Runner):
         with open(fname, 'w') as fileh:
             bkr = subprocess.Popen(args, stdout=fileh)
             bkr.communicate()
+        if bkr.returncode != 0:
+            raise Exception(
+                'Unable to get Beaker job results for job %s' % jobid
+            )
 
     def __getconsolelog(self, jobid=None):
         """
@@ -496,16 +500,22 @@ class BeakerRunner(Runner):
             hostname = "(%s) " % host
             hostnametag = '<hostname op="=" value="%s"/>' % host
 
-        jobid = self.__jobsubmit(self.__getxml({'KVER': release,
-                                                'KPKG_URL': url,
-                                                'UID': uid,
-                                                'ARCH': arch,
-                                                'HOSTNAME': hostname,
-                                                'HOSTNAMETAG': hostnametag}))
+        try:
+            jobid = self.__jobsubmit(self.__getxml(
+                {'KVER': release,
+                 'KPKG_URL': url,
+                 'UID': uid,
+                 'ARCH': arch,
+                 'HOSTNAME': hostname,
+                 'HOSTNAMETAG': hostnametag}
+            ))
 
-        if wait:
-            self.wait(jobid, reschedule)
-            ret = self.__getresults()
+            if wait:
+                self.wait(jobid, reschedule)
+                ret = self.__getresults()
+        except Exception as exc:
+            logging.error(exc)
+            ret = 2
 
         return ret
 

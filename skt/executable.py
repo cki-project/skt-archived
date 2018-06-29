@@ -322,27 +322,34 @@ def cmd_run(cfg):
     idx = 0
     for job in runner.jobs:
         if cfg.get('wait') and cfg.get('junit'):
-            runner.dumpjunitresults(job, cfg.get('junit'))
+            try:
+                runner.dumpjunitresults(job, cfg.get('junit'))
+            except Exception as exc:
+                logging.error(exc)
+                retcode = 2
         save_state(cfg, {'jobid_%s' % (idx): job})
         idx += 1
 
     cfg['jobs'] = runner.jobs
 
-    if retcode and cfg.get('basehead') and cfg.get('publisher') \
+    if retcode == 1 and cfg.get('basehead') and cfg.get('publisher') \
             and cfg.get('basehead') != cfg.get('buildhead'):
         # TODO: there is a chance that baseline 'krelease' is different
         baserunner = skt.runner.getrunner(*cfg.get('runner'))
         publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
         baseurl = publisher.geturl("%s.tar.gz" % cfg.get('basehead'))
         basehost = runner.get_mfhost()
-        baseres = baserunner.run(baseurl, cfg.get('krelease'), cfg.get('wait'),
-                                 host=basehost, uid="baseline check",
-                                 reschedule=False)
-        save_state(cfg, {'baseretcode': baseres})
-
-        # If baseline also fails - assume pass
-        if baseres:
-            retcode = 0
+        try:
+            baseres = baserunner.run(baseurl, cfg.get('krelease'),
+                                     cfg.get('wait'), host=basehost,
+                                     uid="baseline check", reschedule=False)
+            save_state(cfg, {'baseretcode': baseres})
+            # If baseline also fails - assume pass
+            if baseres:
+                retcode = 0
+        except Exception as exc:
+            logging.error(exc)
+            retcode = 2
 
     save_state(cfg, {'retcode': retcode})
 
