@@ -32,7 +32,6 @@ def make_process_exception(*args, **kwargs):
 
 
 class KernelTreeTest(unittest.TestCase):
-    # (Too many public methods) pylint: disable=too-many-public-methods
     """Test cases for KernelBuilder class."""
 
     def setUp(self):
