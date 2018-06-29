@@ -35,7 +35,7 @@ import skt.publisher
 import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder
-from skt.kerneltree import KernelTree
+from skt.kerneltree import KernelTree, PatchApplicationError
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
@@ -182,8 +182,12 @@ def cmd_merge(cfg):
                 save_state(cfg, {'patchwork_%02d' % idx: patch})
                 ktree.merge_patchwork_patch(patch)
                 idx += 1
-    except Exception:
+    except PatchApplicationError as patch_exc:
+        retcode = 1
+        logging.error(patch_exc)
         save_state(cfg, {'mergelog': ktree.mergelog})
+        return
+    except Exception:
         (exc, exc_type, trace) = sys.exc_info()
         raise exc, exc_type, trace
 
