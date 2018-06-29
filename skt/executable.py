@@ -14,6 +14,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
+from __future__ import print_function
 import ConfigParser
 import argparse
 import ast
@@ -104,7 +105,7 @@ def junit(func):
         global retcode
         if cfg.get('junit'):
             tstart = time.time()
-            tc = junit_xml.TestCase(func.__name__, classname="skt")
+            testcase = junit_xml.TestCase(func.__name__, classname="skt")
 
             try:
                 func(cfg)
@@ -112,21 +113,22 @@ def junit(func):
                 logging.error("Unexpected exception caught, probably an "
                               "infrastructure failure or skt bug: %s",
                               traceback.format_exc())
-                tc.add_error_info(traceback.format_exc())
+                testcase.add_error_info(traceback.format_exc())
                 retcode = 2
 
             if retcode == 1:
                 # Tests failed
-                tc.add_failure_info("Step finished with retcode: %d" % retcode)
+                testcase.add_failure_info("Step finished with retcode: %d" %
+                                          retcode)
             elif retcode >= 2:
-                tc.add_error_info(
+                testcase.add_error_info(
                     "Infrastructure issue or skt bug detected, retcode: %d" %
                     retcode
                 )
 
-            tc.stdout = json.dumps(cfg, default=str)
-            tc.elapsed_sec = time.time() - tstart
-            cfg['_testcases'].append(tc)
+            testcase.stdout = json.dumps(cfg, default=str)
+            testcase.elapsed_sec = time.time() - tstart
+            cfg['_testcases'].append(testcase)
         else:
             func(cfg)
     return wrapper
@@ -889,7 +891,7 @@ def check_args(parser, args):
     # Users must specify a glob to match generated kernel config files when
     # building configs with `make rh-configs`
     if (args._name == 'build' and args.cfgtype == 'rh-configs'
-       and not args.rh_configs_glob):
+            and not args.rh_configs_glob):
         parser.error("--cfgtype rh-configs requires --rh-configs-glob to set")
 
     # Check required arguments for 'report'
@@ -924,10 +926,10 @@ def main():
 
         args.func(cfg)
         if cfg.get('junit'):
-            ts = junit_xml.TestSuite("skt", cfg.get('_testcases'))
+            testsuite = junit_xml.TestSuite("skt", cfg.get('_testcases'))
             with open("%s/%s.xml" % (cfg.get('junit'), args._name),
                       'w') as fileh:
-                junit_xml.TestSuite.to_file(fileh, [ts])
+                junit_xml.TestSuite.to_file(fileh, [testsuite])
 
         sys.exit(retcode)
     except KeyboardInterrupt:
