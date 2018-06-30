@@ -481,7 +481,7 @@ def setup_parser():
         "-w",
         "--wipe",
         help=(
-            "Clean build (make mrproper before building) and remove workdir"
+            "Clean build (make mrproper before building) and remove workdir "
             "when finished"
         ),
         action="store_true",
