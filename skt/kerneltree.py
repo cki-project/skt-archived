@@ -240,7 +240,7 @@ class KernelTree(object):
         Returns:
             Full hash of the last commit.
         """
-        dstref = "refs/remotes/origin/%s" % (self.ref.split('/')[-1])
+        dstref = "refs/remotes/origin/%s" % (self.ref.rpartition('/')[2])
         logging.info("fetching base repo")
         git_fetch_args = [
             "fetch", "origin",
@@ -286,9 +286,11 @@ class KernelTree(object):
         return rurl
 
     def __get_remote_name(self, uri):
-        remote_name = (uri.split('/')[-1].replace('.git', '')
-                       if not uri.endswith('/')
-                       else uri.split('/')[-2].replace('.git', ''))
+        if not uri.endswith('/'):
+            remote_name = uri.rpartition('/')[2].replace('.git', '')
+        else:
+            remote_name = uri.rstrip('/').rpartition('/')[2].replace('.git',
+                                                                     '')
         while self.__get_remote_url(remote_name) == uri:
             logging.warning(
                 "remote '%s' already exists with a different uri, adding '_'",
@@ -308,7 +310,7 @@ class KernelTree(object):
         except subprocess.CalledProcessError:
             pass
 
-        dstref = "refs/remotes/%s/%s" % (remote_name, ref.split('/')[-1])
+        dstref = "refs/remotes/%s/%s" % (remote_name, ref.rpartition('/')[2])
         logging.info("fetching %s", dstref)
         self.__git_cmd("fetch", remote_name,
                        "+%s:%s" % (ref, dstref))

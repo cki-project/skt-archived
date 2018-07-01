@@ -487,7 +487,7 @@ class BeakerRunner(Runner):
         self.watchlist = set()
 
         # FIXME Pass or retrieve this explicitly
-        uid += " %s" % url.split('/')[-1]
+        uid += " %s" % url.rpartition('/')[2]
 
         if host is None:
             hostname = ""
