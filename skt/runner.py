@@ -485,6 +485,30 @@ class BeakerRunner(Runner):
 
     def run(self, url, release, wait=False, host=None, uid="",
             arch=platform.machine(), reschedule=True):
+        """
+        Run tests in Beaker.
+
+        Args:
+            url:        URL pointing to kernel tarball.
+            release:    NVR of the tested kernel.
+            wait:       False if skt should exit after submitting the jobs,
+                        True if it should wait for them to finish.
+            host:       Force testing on a machine with provided hostname.
+            uid:        Username jobs should be submitted under. Can be
+                        retrieved by running `bkr whoami`.
+            arch:       Architecture of the machine the tests should run on, in
+                        a format accepted by Beaker. Defaults to architecture
+                        of the current machine skt is running on if not
+                        specified.
+            reschedule: True to try to rule out infrastructure / host-specific
+                        failures by resubmitting the job (on both the same and
+                        different host), False otherwise.
+
+        Returns:
+            0 if everything passed
+            1 if testing failed
+            2 in case of infrastructure error (exceptions are logged)
+        """
         ret = 0
         self.failures = {}
         self.recipes = set()
