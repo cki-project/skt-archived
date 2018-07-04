@@ -19,7 +19,7 @@ import subprocess
 
 
 class Publisher(object):
-    """An abstract result publisher"""
+    """An abstract result publisher."""
     # TODO This probably shouldn't be here as we never use it, and it should
     # not be inherited
     TYPE = 'default'
