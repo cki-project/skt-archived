@@ -11,7 +11,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
-"""Class for managing a kernel source tree"""
+"""Class for managing a kernel source tree."""
 import logging
 import os
 import re
@@ -24,7 +24,7 @@ import skt
 class KernelTree(object):
     """
     KernelTree - a kernel git repository "checkout", i.e. a clone with a
-    working directory
+    working directory.
     """
 
     def __init__(self, uri, ref=None, wdir=None, fetch_depth=None):

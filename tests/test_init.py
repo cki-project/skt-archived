@@ -1,6 +1,3 @@
-"""
-Test cases for __init__.py.
-"""
 # Copyright (c) 2018 Red Hat, Inc. All rights reserved. This copyrighted
 # material is made available to anyone wishing to use, modify, copy, or
 # redistribute it subject to the terms and conditions of the GNU General Public
@@ -14,6 +11,7 @@ Test cases for __init__.py.
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+"""Test cases for __init__.py."""
 from __future__ import division
 from email.errors import HeaderParseError
 import unittest
@@ -26,7 +24,7 @@ import skt
 
 
 class TestIndependent(unittest.TestCase):
-    """Test cases for independent functions in __init__.py"""
+    """Test cases for independent functions in __init__.py."""
 
     @responses.activate
     def test_get_patch_mbox(self):
@@ -67,17 +65,17 @@ class TestIndependent(unittest.TestCase):
             skt.get_patch_mbox('http://patchwork.example.com/patch/1')
 
     def test_nonexistent_patch_subject(self):
-        """Ensure get_patch_name() handles nonexistent 'Subject' in mbox"""
+        """Ensure get_patch_name() handles nonexistent 'Subject' in mbox."""
         mbox_body = 'nothing useful here'
         self.assertEqual('<SUBJECT MISSING>', skt.get_patch_name(mbox_body))
 
     def test_ok_patch_subject(self):
-        """Ensure get_patch_name() returns correct 'Subject' if present"""
+        """Ensure get_patch_name() returns correct 'Subject' if present."""
         mbox_body = 'From Test Thu May 2 17:49:51 2018\nSubject: GOOD SUBJECT'
         self.assertEqual('GOOD SUBJECT', skt.get_patch_name(mbox_body))
 
     def test_encoded_patch_subject(self):
-        """Ensure get_patch_name() correctly decodes UTF-8 'Subject'"""
+        """Ensure get_patch_name() correctly decodes UTF-8 'Subject'."""
         mbox_body = ('From Test Thu May 2 17:49:51 2018\n'
                      'Subject: =?utf-8?q?=5BTEST=5D?=')
         self.assertEqual('[TEST]', skt.get_patch_name(mbox_body))
@@ -95,7 +93,7 @@ class TestIndependent(unittest.TestCase):
     def test_multipart_encoded_subject(self):
         """
         Ensure get_patch_name() correctly decodes multipart encoding
-        of 'Subject'
+        of 'Subject'.
         """
         mbox_body = ('From Test Thu May 2 17:49:51 2018\nSubject: '
                      '=?ISO-8859-1?B?SWYgeW91IGNhbiByZWFkIHRoaXMgeW8=?=\n'

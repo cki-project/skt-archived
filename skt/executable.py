@@ -45,7 +45,7 @@ retcode = 0
 
 
 def full_path(path):
-    """Get an absolute path to a file"""
+    """Get an absolute path to a file."""
     return os.path.abspath(os.path.expanduser(path))
 
 
