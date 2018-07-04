@@ -65,7 +65,8 @@ def load_state_cfg(statefile):
     """
     cfg = {}
     state_to_report = ConfigParser.ConfigParser()
-    state_to_report.read(statefile)
+    with open(statefile, 'r') as fileh:
+        state_to_report.readfp(fileh)
 
     # FIXME This can be simplified or removed after configuration and
     # state split
