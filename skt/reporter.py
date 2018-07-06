@@ -505,8 +505,8 @@ class Reporter(object):
                                "recipe):" % clfname]
 
                     ltp_results = runner.get_ltp_lite_logs(jobid)
-                    for recipe, ltp_logs in ltp_results.items():
-                        result += ['\n  ' + recipe]
+                    for ltp_recipe, ltp_logs in ltp_results.items():
+                        result += ['\n  ' + ltp_recipe]
                         result += ['    ' + ltp_log for ltp_log in ltp_logs]
 
                 if slshwurl is not None:
