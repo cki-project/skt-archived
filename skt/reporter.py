@@ -470,6 +470,12 @@ class Reporter(object):
         minfo = {"short": {}, "long": {}}
         jidx = 1
         for jobid, values in vresults.items():
+            job_result = values.get('result')
+            job_status = values.get('status')
+            if job_result == 'Warn' and job_status == 'Aborted':
+                logging.info('Skipping aborted job %s', jobid)
+                continue
+
             for recipe in [key for key in values if key.startswith('R:')]:
                 (res, system, clogurl, slshwurl, _) = values[recipe]
 

@@ -166,7 +166,8 @@ class TestRunner(unittest.TestCase):
                     'http://example.com/machinedesc.log',
                     'http://example.com/lshw.log'
                 ),
-                'result': 'Pass'
+                'result': 'Pass',
+                'status': 'Completed'
             }
         }
         self.assertDictEqual(result, expected_result)

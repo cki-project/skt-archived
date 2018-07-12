@@ -202,6 +202,7 @@ class BeakerRunner(Runner):
             root = self.getresultstree(jobid, True)
 
             result[jobid]['result'] = root.attrib.get("result")
+            result[jobid]['status'] = root.attrib.get('status')
 
             for recipe in root.findall("recipeSet/recipe"):
                 rid = "R:%s" % recipe.attrib.get("id")
