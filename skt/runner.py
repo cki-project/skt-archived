@@ -311,6 +311,17 @@ class BeakerRunner(Runner):
         return (ret, result)
 
     def __getresults(self, jobid=None):
+        """
+        Get return code based on the job results.
+
+        Args:
+            jobid: Beaker job ID in format 'J:<id>'. If not passed, all
+                   submitted jobs are checked.
+
+        Returns:
+            0 if all jobs passed, 1 in case of failures and 2 in case of
+            infrastructure failures.
+        """
         ret = 0
         fhosts = set()
         tfailures = 0
@@ -319,13 +330,22 @@ class BeakerRunner(Runner):
             (ret, _) = self.__jobresult(jobid)
 
         if jobid is None or ret != 0:
+            if self.failures:
+                all_aborted = all([data[1] == ('Warn', 'Aborted')
+                                   for data in self.failures.values()])
+                if all_aborted:
+                    logging.warning('All jobs aborted, possible infrastructure'
+                                    ' failure.')
+                    return 2
+
             for (recipe, data) in self.failures.iteritems():
                 # Treat single failure as a fluke during normal run
                 if data[2] >= 3 and len(data[0]) < 2:
                     continue
                 tfailures += len(data[0])
                 logging.info("%s failed %d/%d (%s)%s", recipe, len(data[0]),
-                             data[2], ', '.join(data[1]),
+                             data[2], ', '.join([result for (result, _)  # noqa
+                                                 in data[1]]),
                              ""
                              if len(set(data[0])) > 1
                              else ": %s" % data[0][0])
@@ -415,7 +435,7 @@ class BeakerRunner(Runner):
                             self.failures[origin][0].append(root.attrib.get(
                                 "system"
                             ))
-                            self.failures[origin][1].add(result)
+                            self.failures[origin][1].add((result, status))
 
                             if reschedule:
                                 logging.info("%s -> '%s', resubmitting",
