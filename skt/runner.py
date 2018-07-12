@@ -326,10 +326,10 @@ class BeakerRunner(Runner):
         fhosts = set()
         tfailures = 0
 
-        if jobid is not None:
+        if jobid:
             (ret, _) = self.__jobresult(jobid)
 
-        if jobid is None or ret != 0:
+        if not jobid or ret != 0:
             if self.failures:
                 all_aborted = all([data[1] == ('Warn', 'Aborted')
                                    for data in self.failures.values()])
