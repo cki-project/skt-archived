@@ -282,16 +282,31 @@ class BeakerRunner(Runner):
         return max(set(fhosts), key=fhosts.count)
 
     def __jobresult(self, jobid):
-        ret = 0
+        """
+        Get results for a specific job.
+
+        Args:
+            jobid: A Beaker job ID, in 'J:<id>' format.
+
+        Returns:
+            A tuple (ret, result), where ret is 0 if the job ended with Pass,
+            1 if a test failure occurred and 2 if it aborted (infrastructure
+            failure); and result is the job result itself.
+        """
         result = None
 
-        if jobid is not None:
-            root = self.getresultstree(jobid)
-            result = root.attrib.get("result")
+        root = self.getresultstree(jobid)
+        result = root.attrib.get("result")
+        status = root.attrib.get('status')
 
-            if result != "Pass":
-                ret = 1
-            logging.info("job result: %s [%d]", result, ret)
+        if result == "Pass":
+            ret = 0
+        elif result == 'Warn' and status == 'Aborted':
+            ret = 2
+        else:
+            ret = 1
+
+        logging.info("job result: %s [%d]", result, ret)
 
         return (ret, result)
 
