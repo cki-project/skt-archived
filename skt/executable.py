@@ -334,25 +334,6 @@ def cmd_run(cfg):
 
     cfg['jobs'] = runner.jobs
 
-    if retcode == 1 and cfg.get('basehead') and cfg.get('publisher') \
-            and cfg.get('basehead') != cfg.get('buildhead'):
-        # TODO: there is a chance that baseline 'krelease' is different
-        baserunner = skt.runner.getrunner(*cfg.get('runner'))
-        publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
-        baseurl = publisher.geturl("%s.tar.gz" % cfg.get('basehead'))
-        basehost = runner.get_mfhost()
-        try:
-            baseres = baserunner.run(baseurl, cfg.get('krelease'),
-                                     cfg.get('wait'), host=basehost,
-                                     uid="baseline check", reschedule=False)
-            save_state(cfg, {'baseretcode': baseres})
-            # If baseline also fails - assume pass
-            if baseres:
-                retcode = 0
-        except Exception as exc:
-            logging.error(exc)
-            retcode = 2
-
     save_state(cfg, {'retcode': retcode})
 
 
