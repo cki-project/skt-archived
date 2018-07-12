@@ -380,7 +380,7 @@ class BeakerRunner(Runner):
 
                     if result != 'Pass':
                         tinst = root.find(
-                            ".//task[@name='/distribution/install']"
+                            ".//task[@name='/distribution/kpkginstall']"
                         )
                         if tinst is not None and \
                                 tinst.attrib.get("result") != "Pass":
