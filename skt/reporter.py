@@ -469,12 +469,9 @@ class Reporter(object):
 
         minfo = {"short": {}, "long": {}}
         jidx = 1
-        for jobid in job_list:
-            for (recipe, rdata) in vresults[jobid].iteritems():
-                if recipe == "result":
-                    continue
-
-                (res, system, clogurl, slshwurl, _) = rdata
+        for jobid, values in vresults.items():
+            for recipe in [key for key in values if key.startswith('R:')]:
+                (res, system, clogurl, slshwurl, _) = values[recipe]
 
                 clog = ConsoleLog(self.cfg.get("krelease"), clogurl)
                 if not clog.data and res != 'Pass':
