@@ -367,17 +367,18 @@ class BeakerRunner(Runner):
             for (cid, reschedule, origin) in self.watchlist.copy():
                 root = self.getresultstree(cid)
 
-                if root.attrib.get("status") in ["Completed", "Aborted",
-                                                 "Cancelled"]:
+                result = root.attrib.get('result')
+                status = root.attrib.get('status')
+                if status in ['Completed', 'Aborted', 'Cancelled']:
                     logging.info("%s status changed to '%s', "
                                  "removing from watchlist",
                                  cid, root.attrib.get("status"))
                     self.watchlist.remove((cid, reschedule, origin))
 
-                    if root.attrib.get("status") == "Cancelled":
+                    if status == 'Cancelled':
                         continue
 
-                    if root.attrib.get("result") != "Pass":
+                    if result != 'Pass':
                         tinst = root.find(
                             ".//task[@name='/distribution/install']"
                         )
@@ -399,13 +400,11 @@ class BeakerRunner(Runner):
                             self.failures[origin][0].append(root.attrib.get(
                                 "system"
                             ))
-                            self.failures[origin][1].add(root.attrib.get(
-                                "result"
-                            ))
+                            self.failures[origin][1].add(result)
 
                             if reschedule:
                                 logging.info("%s -> '%s', resubmitting",
-                                             cid, root.attrib.get("result"))
+                                             cid, result)
 
                                 newjob = self.__recipe_to_job(root, False)
                                 newjobid = self.__jobsubmit(etree.tostring(
