@@ -221,21 +221,21 @@ class TestRunner(unittest.TestCase):
 
         # Ensure that the failure loop hits 'continue'
         self.myrunner.failures = {
-            'test': ['A', None, 4]
+            'test': ['A', set(), 4]
         }
         result = self.myrunner._BeakerRunner__getresults("J:00001")
         self.assertEqual(result, 1)
 
         # Go through the failure loop with one failed host
         self.myrunner.failures = {
-            'test': [['A'], ['a'], 1]
+            'test': [['A'], set([('result', 'status')]), 1]
         }
         result = self.myrunner._BeakerRunner__getresults("J:00001")
         self.assertEqual(result, 1)
 
         # Go through the failure loop with multiple failed hosts
         self.myrunner.failures = {
-            'test': [['A', 'B'], ['a'], 1]
+            'test': [['A', 'B'], set([('result', 'status')]), 1]
         }
         result = self.myrunner._BeakerRunner__getresults("J:00001")
         self.assertEqual(result, 1)
