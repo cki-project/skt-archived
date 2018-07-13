@@ -21,6 +21,9 @@ import time
 import xml.etree.ElementTree as etree
 
 
+MAX_ABORTED = 3
+
+
 class Runner(object):
     """An abstract test runner"""
     # TODO This probably shouldn't be here as we never use it, and it should
@@ -66,6 +69,7 @@ class BeakerRunner(Runner):
         self.jobs = set()
         self.lastsubmitted = None
         self.j2r = dict()
+        self.aborted_count = 0
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -338,6 +342,9 @@ class BeakerRunner(Runner):
                     logging.warning('All jobs aborted, possible infrastructure'
                                     ' failure.')
                     return 2
+            if self.aborted_count == MAX_ABORTED:
+                logging.error('Max count of aborted jobs achieved, please '
+                              'check your infrastructure!')
 
             for (recipe, data) in self.failures.iteritems():
                 # Treat single failure as a fluke during normal run
@@ -423,9 +430,16 @@ class BeakerRunner(Runner):
                             logging.warning("%s failed before kernelinstall, "
                                             "resubmitting", cid)
                             self.__forget_cid(cid)
-                            newjob = self.__recipe_to_job(root, False)
-                            newjobid = self.__jobsubmit(etree.tostring(newjob))
-                            self.__add_to_watchlist(newjobid, reschedule, None)
+
+                            if self.aborted_count < MAX_ABORTED:
+                                newjob = self.__recipe_to_job(root, False)
+                                newjobid = self.__jobsubmit(
+                                    etree.tostring(newjob)
+                                )
+                                self.__add_to_watchlist(newjobid,
+                                                        reschedule,
+                                                        None)
+                                self.aborted_count += 1
                         else:
                             if origin is None:
                                 origin = cid
@@ -549,6 +563,7 @@ class BeakerRunner(Runner):
         self.failures = {}
         self.recipes = set()
         self.watchlist = set()
+        self.aborted_count = 0
 
         # FIXME Pass or retrieve this explicitly
         uid += " %s" % url.split('/')[-1]
