@@ -1,5 +1,3 @@
-#!/usr/bin/python2
-
 # Copyright (c) 2017 Red Hat, Inc. All rights reserved. This copyrighted
 # material is made available to anyone wishing to use, modify, copy, or
 # redistribute it subject to the terms and conditions of the GNU General
