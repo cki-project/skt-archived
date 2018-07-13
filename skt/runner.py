@@ -257,19 +257,20 @@ class BeakerRunner(Runner):
             if ltp_node is None:
                 continue
 
+            ltp_results = ltp_node.find(
+                "results/result[@path='RHELKT1LITE.FILTERED']/logs/"
+                "log[@name='resultoutputfile.log']"
+            )
+            if ltp_results is not None:
+                ltp_results = ltp_results.attrib.get('href')
+
             run_log = ltp_node.find(
                 "logs/log[@name='RHELKT1LITE.FILTERED.run.log']"
             )
             if run_log is not None:
                 run_log = run_log.attrib.get('href')
 
-            ltp_results = ltp_node.find(
-                "results/result/logs/log[@name='resultoutputfile.log']"
-            )
-            if ltp_results is not None:
-                ltp_results = ltp_results.attrib.get('href')
-
-            ltp_logs[recipe_id] = (run_log, ltp_results)
+            ltp_logs[recipe_id] = (ltp_results, run_log)
 
         return ltp_logs
 
