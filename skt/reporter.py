@@ -526,6 +526,10 @@ class Reporter(object):
                 result.append('')
                 jidx += 1
 
+            if self.multireport and self.cfg.get('retcode') != '0' and \
+                    self.multireport_failed == MULTI_PASS:
+                self.multireport_failed = MULTI_TEST
+
         return result
 
     def _getreport(self):
@@ -624,9 +628,6 @@ class Reporter(object):
                     results += self.__getjobresults()
 
             results.append('\n')
-
-            if self.cfg.get('retcode') != '0':
-                self.multireport_failed = MULTI_TEST
 
         results += ['Please reply to this email if you find an issue with our '
                     'testing process,',
