@@ -761,7 +761,7 @@ class TestStdioReporter(unittest.TestCase):
             'https://beaker.example.com/recipes/5290731/tasks/74019102/'
             'logs/RHELKT1LITE.FILTERED.run.log',
             'https://beaker.example.com/recipes/5290731/tasks/74019102/'
-            'results/358724407/logs/resultoutputfile.log',
+            'results/358727247/logs/resultoutputfile.log',
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
