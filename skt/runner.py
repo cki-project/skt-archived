@@ -342,6 +342,12 @@ class BeakerRunner(Runner):
                     logging.warning('All jobs aborted, possible infrastructure'
                                     ' failure.')
                     return 2
+
+                job_cancelled = any(status == 'Cancelled'
+                                    for data in self.failures.values()
+                                    for _, status in data[1])
+                if job_cancelled:
+                    return 2
             if self.aborted_count == MAX_ABORTED:
                 logging.error('Max count of aborted jobs achieved, please '
                               'check your infrastructure!')
@@ -419,7 +425,20 @@ class BeakerRunner(Runner):
                     self.watchlist.remove((cid, reschedule, origin))
 
                     if status == 'Cancelled':
-                        continue
+                        logging.error('Cancelled job detected! Cancelling the'
+                                      ' rest of running jobs and aborting!')
+                        self.failures[cid] = [[root.attrib.get('system')],
+                                              set([(result, status)]),
+                                              1]
+                        jobs_to_cancel = [job for (job, _, _)
+                                          in self.watchlist.copy()]
+                        if jobs_to_cancel:
+                            ret = subprocess.call(['bkr', 'job-cancel']
+                                                  + jobs_to_cancel)
+                            if ret:
+                                logging.info('Failed to cancel the remaining '
+                                             'jobs')
+                        return
 
                     if result != 'Pass':
                         tinst = root.find(
