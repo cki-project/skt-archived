@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import sys
 import time
+import skt
 from threading import Timer
 
 
@@ -35,7 +36,7 @@ class KernelBuilder(object):
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
-        self.buildlog = "%s/build.log" % self.source_dir
+        self.buildlog = skt.join_with_slash(self.source_dir, "build.log")
         self.make_argv_base = ["make", "-C", self.source_dir]
         self.enable_debuginfo = enable_debuginfo
         self.build_arch = self.__get_build_arch()
@@ -56,7 +57,7 @@ class KernelBuilder(object):
             raise LookupError("Only 'enable' and 'disable' are supported.")
 
         args = [
-            "{}/scripts/config".format(self.source_dir),
+            skt.join_with_slash(self.source_dir, "scripts", "config"),
             "--file", self.get_cfgpath(),
             "--{}".format(action),
             option
@@ -84,7 +85,8 @@ class KernelBuilder(object):
             self.__make_tinyconfig()
         else:
             # Copy the existing config file into place
-            shutil.copyfile(self.basecfg, "%s/.config" % self.source_dir)
+            shutil.copyfile(self.basecfg,
+                            skt.join_with_slash(self.source_dir, ".config"))
             args = self.make_argv_base + [self.cfgtype]
             logging.info("prepare config: %s", args)
             subprocess.check_call(args)
@@ -107,7 +109,7 @@ class KernelBuilder(object):
 
         # Copy the correct kernel config into place
         escaped_source_dir = self.__glob_escape(self.source_dir)
-        config = "{}/{}".format(escaped_source_dir, self.rh_configs_glob)
+        config = skt.join_with_slash(escaped_source_dir, self.rh_configs_glob)
         config_filename = glob.glob(config)
 
         # We should exit with an error if there are no matches
@@ -122,7 +124,7 @@ class KernelBuilder(object):
         logging.info("copying Red Hat config: %s", config_filename[0])
         shutil.copyfile(
             config_filename[0],
-            "{}/.config".format(self.source_dir)
+            skt.join_with_slash(self.source_dir, ".config")
         )
 
     def __make_tinyconfig(self):
@@ -140,7 +142,7 @@ class KernelBuilder(object):
         return platform.machine()
 
     def get_cfgpath(self):
-        return "%s/.config" % self.source_dir
+        return skt.join_with_slash(self.source_dir, ".config")
 
     def getrelease(self):
         krelease = None
@@ -235,7 +237,7 @@ class KernelBuilder(object):
                           ''.join(stdout_list), re.MULTILINE)
         if match:
             fpath = os.path.realpath(
-                os.path.join(
+                skt.join_with_slash(
                     self.source_dir,
                     match.group(1)
                 )

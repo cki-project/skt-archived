@@ -16,6 +16,7 @@ import logging
 import os
 import shutil
 import subprocess
+import skt
 
 
 class Publisher(object):
@@ -49,7 +50,7 @@ class Publisher(object):
         Returns:
             Published URL corresponding to the specified source.
         """
-        return "%s/%s" % (self.baseurl, os.path.basename(source))
+        return skt.join_with_slash(self.baseurl, os.path.basename(source))
 
     # TODO Define abstract "publish" method.
 

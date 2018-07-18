@@ -228,6 +228,7 @@ class KBuilderTest(unittest.TestCase):
         # pylint: disable=W0212,E1101
         self.kbuilder.cfgtype = 'rh-configs'
         self.kbuilder.enable_debuginfo = True
+        self.kbuilder.rh_configs_glob = "redhat/configs/kernel-*-x86_64.config"
         mock_glob.return_value = ['configs/config-3.10.0-x86_64.config']
         self.kbuilder._KernelBuilder__prepare_kernel_config()
 
@@ -249,6 +250,7 @@ class KBuilderTest(unittest.TestCase):
         # pylint: disable=W0212,E1101
         mock_check_call.return_value = ''
         mock_glob.return_value = []
+        self.kbuilder.rh_configs_glob = "redhat/configs/kernel-*-x86_64.config"
         with self.assertRaises(SystemExit):
             self.kbuilder._KernelBuilder__make_redhat_config()
 

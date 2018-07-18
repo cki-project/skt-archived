@@ -353,8 +353,8 @@ class Reporter(object):
                 if response:
                     mergedata['config'] = response.text
             else:
-                with open("%s/.config" % self.cfg.get("workdir"),
-                          "r") as fileh:
+                with open(skt.join_with_slash(self.cfg.get("workdir"),
+                                              ".config"), "r") as fileh:
                     mergedata['config'] = fileh.read()
 
         self.mergedata = mergedata
