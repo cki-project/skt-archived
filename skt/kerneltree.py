@@ -58,11 +58,6 @@ class KernelTree(object):
         except OSError:
             pass
 
-        try:
-            os.unlink(self.mergelog)
-        except OSError:
-            pass
-
         # Initialize the repository
         self.__setup_repository()
 

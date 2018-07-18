@@ -47,11 +47,6 @@ class KernelBuilder(object):
         else:
             self.extra_make_args = []
 
-        try:
-            os.unlink(self.buildlog)
-        except OSError:
-            pass
-
         logging.info("basecfg: %s", self.basecfg)
         logging.info("cfgtype: %s", self.cfgtype)
 
