@@ -155,6 +155,18 @@ def cmd_merge(cfg):
                      'basehead': bhead,
                      'commitdate': commitdate})
 
+    # Remove existing results from previous runs (if any)
+    for filename in os.listdir(cfg.get('workdir')):
+        if filename.startswith('merge.'):
+            try:
+                os.unlink(os.path.join(cfg.get('workdir'), filename))
+            except OSError:
+                pass
+
+    report_string = ''
+    merge_result_path = os.path.join(cfg.get('workdir'), 'merge.result')
+    merge_report_path = os.path.join(cfg.get('workdir'), 'merge.report')
+
     try:
         idx = 0
         for mb in cfg.get('merge_ref'):
@@ -163,9 +175,20 @@ def cmd_merge(cfg):
             (retcode, _) = ktree.merge_git_ref(*mb)
 
             utypes.append("[git]")
-            idx += 1
             if retcode:
+                if retcode != 2:
+                    with os.fdopen(os.open(merge_result_path,
+                                           os.O_CREAT | os.O_WRONLY),
+                                   'w') as result_file:
+                        result_file.write('false')
+                    with os.fdopen(os.open(merge_report_path,
+                                           os.O_CREAT | os.O_WRONLY),
+                                   'w') as report_file:
+                        report_file.write(report_string)
+
                 return
+
+            idx += 1
 
         if cfg.get('patch'):
             utypes.append("[local patch]")
@@ -187,6 +210,14 @@ def cmd_merge(cfg):
         retcode = 1
         logging.error(patch_exc)
         save_state(cfg, {'mergelog': ktree.mergelog})
+
+        with os.fdopen(os.open(merge_result_path, os.O_CREAT | os.O_WRONLY),
+                       'w') as result_file:
+            result_file.write('false')
+        with os.fdopen(os.open(merge_report_path, os.O_CREAT | os.O_WRONLY),
+                       'w') as report_file:
+            report_file.write(report_string)
+
         return
     except Exception:
         (exc, exc_type, trace) = sys.exc_info()
@@ -205,6 +236,13 @@ def cmd_merge(cfg):
                      'buildhead': buildhead,
                      'uid': uid})
 
+    with os.fdopen(os.open(merge_result_path, os.O_CREAT | os.O_WRONLY),
+                   'w') as result_file:
+        result_file.write('true')
+    with os.fdopen(os.open(merge_report_path, os.O_CREAT | os.O_WRONLY),
+                   'w') as report_file:
+        report_file.write(report_string)
+
 
 @junit
 def cmd_build(cfg):
@@ -217,6 +255,18 @@ def cmd_build(cfg):
     global retcode
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
+
+    # Remove existing results from previous runs (if any)
+    for filename in os.listdir(cfg.get('workdir')):
+        if filename.startswith('build.'):
+            try:
+                os.unlink(os.path.join(cfg.get('workdir'), filename))
+            except OSError:
+                pass
+
+    report_string = ''
+    build_result_path = os.path.join(cfg.get('workdir'), 'build.result')
+    build_report_path = os.path.join(cfg.get('workdir'), 'build.report')
 
     builder = KernelBuilder(
         source_dir=cfg.get('workdir'),
@@ -270,6 +320,13 @@ def cmd_build(cfg):
                      'krelease': krelease,
                      'kernel_arch': kernel_arch})
 
+    with os.fdopen(os.open(build_result_path, os.O_CREAT | os.O_WRONLY),
+                   'w') as result_file:
+        result_file.write('true' if not retcode else 'false')
+    with os.fdopen(os.open(build_report_path, os.O_CREAT | os.O_WRONLY),
+                   'w') as report_file:
+        report_file.write(report_string)
+
 
 @junit
 def cmd_publish(cfg):
@@ -314,6 +371,19 @@ def cmd_run(cfg):
         cfg:    A dictionary of skt configuration.
     """
     global retcode
+
+    # Remove existing results from previous runs (if any)
+    for filename in os.listdir(cfg.get('workdir')):
+        if filename.startswith('run.'):
+            try:
+                os.unlink(os.path.join(cfg.get('workdir'), filename))
+            except OSError:
+                pass
+
+    report_string = ''
+    run_result_path = os.path.join(cfg.get('workdir'), 'run.result')
+    run_report_path = os.path.join(cfg.get('workdir'), 'run.report')
+
     runner = skt.runner.getrunner(*cfg.get('runner'))
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
                          cfg.get('wait'), uid=cfg.get('uid'),
@@ -333,6 +403,14 @@ def cmd_run(cfg):
     cfg['jobs'] = runner.jobs
 
     save_state(cfg, {'retcode': retcode})
+
+    if retcode != 2:
+        with os.fdopen(os.open(run_result_path, os.O_CREAT | os.O_WRONLY),
+                       'w') as result_file:
+            result_file.write('true' if retcode else 'false')
+        with os.fdopen(os.open(run_report_path, os.O_CREAT | os.O_WRONLY),
+                       'w') as report_file:
+            report_file.write(report_string)
 
 
 def cmd_report(cfg):
