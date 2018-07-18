@@ -15,10 +15,29 @@
 from email.errors import HeaderParseError
 import email.header
 import email.parser
-import os
 import re
 
 import requests
+
+
+def join_with_slash(base, *suffix_tuple):
+    """
+    Join parts of URL or path by slashes. Trailing slash of base, and each
+    arg in suffix_tupple are removed. It only keeps trailing slash at the
+    end of the part if it is specified.
+
+    Args:
+        base:          Base URL or path.
+        *suffix_tuple: Tuple of suffixes
+
+    Returns:
+        The URL or path string
+    """
+    parts = [base.rstrip('/')]
+    for arg in suffix_tuple:
+        parts.append(arg.strip('/'))
+    ending = '/' if arg.endswith('/') else ''
+    return '/'.join(parts) + ending
 
 
 def get_patch_mbox(url):
@@ -34,9 +53,7 @@ def get_patch_mbox(url):
     Raises:
         Exception in case the URL is currently unavailable or invalid
     """
-    # Use os.path for manipulation with URL because urlparse can't deal
-    # with URLs ending both with and without slash.
-    mbox_url = os.path.join(url, 'mbox')
+    mbox_url = join_with_slash(url, 'mbox')
 
     try:
         response = requests.get(mbox_url)
