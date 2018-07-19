@@ -164,12 +164,18 @@ def cmd_merge(cfg):
             except OSError:
                 pass
 
-    report_string = ''
+    report_string = '\n'.join(['We cloned the git tree and checked out %s '
+                               'from the repository at' % bhead[:12],
+                               '  %s' % cfg.get('baserepo')])
     merge_result_path = os.path.join(cfg.get('workdir'), 'merge.result')
     merge_report_path = os.path.join(cfg.get('workdir'), 'merge.report')
 
     try:
         if cfg.get('merge_ref'):
+            report_string = '{}\n{}'.format(
+                report_string,
+                'We merged the following references into the tree:'
+            )
             for mb in cfg.get('merge_ref'):
                 save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
                                  'mergehead_%02d' % idx: bhead})
@@ -189,26 +195,61 @@ def cmd_merge(cfg):
 
                     return
 
+                report_string += '  - %s\n    into commit %s' % (mb[0],
+                                                                 bhead[:12])
                 idx += 1
 
-        elif cfg.get('patch'):
-            utypes.append("[local patch]")
-            for patch in cfg.get('patch'):
-                patch = os.path.abspath(patch)
-                save_state(cfg, {'localpatch_%02d' % idx: patch})
-                ktree.merge_patch_file(patch)
-                idx += 1
+        elif cfg.get('patch') or cfg.get('pw'):
+            report_string = 'We applied the following patch(es):\n'
 
-        elif cfg.get('pw'):
-            utypes.append("[patchwork]")
-            for patch in cfg.get('pw'):
-                save_state(cfg, {'patchwork_%02d' % idx: patch})
-                ktree.merge_patchwork_patch(patch)
-                idx += 1
+            if cfg.get('patch'):
+                utypes.append("[local patch]")
+                for patch in cfg.get('patch'):
+                    patch = os.path.abspath(patch)
+                    save_state(cfg, {'localpatch_%02d' % idx: patch})
+                    report_string += '  - %s\n' % patch
+
+                    ktree.merge_patch_file(patch)
+                    idx += 1
+
+            elif cfg.get('pw'):
+                utypes.append("[patchwork]")
+                for patch in cfg.get('pw'):
+                    save_state(cfg, {'patchwork_%02d' % idx: patch})
+                    report_string += '  - %s,\n' % skt.get_patch_name(
+                        skt.get_patch_mbox(patch)
+                    )
+                    report_string += '    grabbed from %s\n' % patch
+
+                    ktree.merge_patchwork_patch(patch)
+                    idx += 1
+
+            report_string += '\n'.join([
+                'on top of commit %s from the repository at' % bhead[:12],
+                '  %s' % cfg.get('baserepo')
+            ])
     except PatchApplicationError as patch_exc:
         retcode = 1
         logging.error(patch_exc)
         save_state(cfg, {'mergelog': ktree.mergelog})
+
+        report_string += '\n'.join([
+            '\nHowever, the application of the last patch above failed with'
+            ' the',
+            'following output:\n\n'
+        ])
+        with open(ktree.mergelog, 'r') as mergelog:
+            for line in mergelog:
+                # Skip the useless part of the 'git am' output
+                if "The copy of the patch" in line:
+                    break
+                report_string += '    %s\n' % line.strip()
+
+        report_string += '\n'.join([
+            '\nPlease note that if there are subsequent patches in the series,'
+            ' they weren\'t',
+            'applied because of the error message stated above.\n'
+        ])
 
         with os.fdopen(os.open(merge_result_path, os.O_CREAT | os.O_WRONLY),
                        'w') as result_file:
