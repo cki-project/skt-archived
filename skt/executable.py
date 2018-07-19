@@ -143,6 +143,7 @@ def cmd_merge(cfg):
     """
     global retcode
     utypes = []
+    idx = 0
     ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
@@ -168,40 +169,38 @@ def cmd_merge(cfg):
     merge_report_path = os.path.join(cfg.get('workdir'), 'merge.report')
 
     try:
-        idx = 0
-        for mb in cfg.get('merge_ref'):
-            save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
-                             'mergehead_%02d' % idx: bhead})
-            (retcode, _) = ktree.merge_git_ref(*mb)
+        if cfg.get('merge_ref'):
+            for mb in cfg.get('merge_ref'):
+                save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
+                                 'mergehead_%02d' % idx: bhead})
+                (retcode, _) = ktree.merge_git_ref(*mb)
 
-            utypes.append("[git]")
-            if retcode:
-                if retcode != 2:
-                    with os.fdopen(os.open(merge_result_path,
-                                           os.O_CREAT | os.O_WRONLY),
-                                   'w') as result_file:
-                        result_file.write('false')
-                    with os.fdopen(os.open(merge_report_path,
-                                           os.O_CREAT | os.O_WRONLY),
-                                   'w') as report_file:
-                        report_file.write(report_string)
+                utypes.append("[git]")
+                if retcode:
+                    if retcode != 2:
+                        with os.fdopen(os.open(merge_result_path,
+                                               os.O_CREAT | os.O_WRONLY),
+                                       'w') as result_file:
+                            result_file.write('false')
+                        with os.fdopen(os.open(merge_report_path,
+                                               os.O_CREAT | os.O_WRONLY),
+                                       'w') as report_file:
+                            report_file.write(report_string)
 
-                return
+                    return
 
-            idx += 1
+                idx += 1
 
-        if cfg.get('patch'):
+        elif cfg.get('patch'):
             utypes.append("[local patch]")
-            idx = 0
             for patch in cfg.get('patch'):
                 patch = os.path.abspath(patch)
                 save_state(cfg, {'localpatch_%02d' % idx: patch})
                 ktree.merge_patch_file(patch)
                 idx += 1
 
-        if cfg.get('pw'):
+        elif cfg.get('pw'):
             utypes.append("[patchwork]")
-            idx = 0
             for patch in cfg.get('pw'):
                 save_state(cfg, {'patchwork_%02d' % idx: patch})
                 ktree.merge_patchwork_patch(patch)
@@ -950,6 +949,13 @@ def check_args(parser, args):
     if (args._name == 'build' and args.cfgtype == 'rh-configs'
             and not args.rh_configs_glob):
         parser.error("--cfgtype rh-configs requires --rh-configs-glob to set")
+
+    # Don't allow a mix of --merge-ref, --patch and --pw options
+    if args._name == 'merge':
+        if (args.merge_ref and any([args.patch, args.pw])) \
+                or (args.patch and args.pw):
+            parser.error('--merge-ref, --patch and --pw options are mutually '
+                         'exclusive!')
 
     # Check required arguments for 'report'
     if args._name == 'report':
