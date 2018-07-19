@@ -362,9 +362,7 @@ class Reporter(object):
     def __getmergeinfo(self):
         """
         Retrieve information about applied patches and base repository as a
-        list of strings which should be then appended to the report. Add the
-        configuration which was used to build the kernel to reporter's list
-        of attachments.
+        list of strings which should be then appended to the report.
 
         Returns: A list of strings representing data about applied patches and
                  base repository.
@@ -396,6 +394,17 @@ class Reporter(object):
         return result
 
     def __get_kernel_config(self, suffix=None):
+        """
+        Add the configuration which was used to build the kernel to reporter's
+        list of attachments. Add optional suffix to attachment's name to
+        distinguish it from other configs.
+
+        Args:
+            suffix: Optional suffix to add to attachment's name.
+
+        Returns:
+            A list of strings representing build configuration data.
+        """
         cfgname = "config.gz" if not suffix else "config_{}.gz".format(suffix)
 
         self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
