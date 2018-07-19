@@ -549,7 +549,7 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report for kernel 3.10.0',
-            'We applied the following patches:',
+            'We merged the following references into the tree:',
             'commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
             'Test run #1\nResult: Pass',
