@@ -231,9 +231,6 @@ class TestStdioReporter(unittest.TestCase):
             'krelease': '3.10.0',
             'baserepo': 'git://git.example.com/kernel.git',
             'basehead': '1234abcdef',
-            'mergerepos': ['other_repo_name'],
-            'mergeheads': ['fedcba4321'],
-            'localpatches': ['/tmp/patch.txt', '/tmp/patch2.txt'],
             'patchworks': [
                 'http://patchwork.example.com/patch/1',
                 'http://patchwork.example.com/patch/2'
@@ -521,8 +518,6 @@ class TestStdioReporter(unittest.TestCase):
             'git,{},{}'.format(
                 self.basecfg['baserepo'], self.basecfg['basehead']
             ),
-            'patch,/tmp/patch1.txt',
-            'patchwork,http://patchwork.example.com/patch/1,Patch name',
             'bogus,this should not be here'
         ]
         responses.add(
@@ -545,8 +540,7 @@ class TestStdioReporter(unittest.TestCase):
         mock_grt.return_value = self.beaker_pass_results
         self.basecfg['retcode'] = '0'
         self.basecfg['infourl'] = "http://example.com/infourl"
-        self.basecfg['localpatches'] = []
-        self.basecfg['patchworks'] = ["http://patchwork.example.com/patch/1"]
+        self.basecfg['patchworks'] = []
 
         testprint = StringIO.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
@@ -594,7 +588,6 @@ class TestStdioReporter(unittest.TestCase):
         self.basecfg['cfgurl'] = "http://example.com/config"
         del self.basecfg['krelease']
         del self.basecfg['runner']
-        del self.basecfg['mergerepos']
 
         testprint = StringIO.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
