@@ -367,11 +367,19 @@ class Reporter(object):
         Returns: A list of strings representing data about applied patches and
                  base repository.
         """
-        patchlist = self.mergedata['localpatch'] + self.mergedata['patchwork']
+        result = ['We cloned the git tree and checked out %s from the '
+                  'repository at' % self.mergedata['base'][1][:12],
+                  '  %s' % self.mergedata['base'][0]]
 
-        if patchlist:
+        if self.mergedata['merge_git']:
+            result += ['\nWe merged the following references into the tree:']
+            for repo, head in self.mergedata['merge_git']:
+                result += ['  - %s' % repo,
+                           '    into commit %s' % head[:12]]
+        elif self.mergedata['localpatch'] or self.mergedata['patchwork']:
             result = ['We applied the following patch']
-            if len(patchlist) > 1:
+            if len(self.mergedata['localpatch']
+                   + self.mergedata['patchwork']) > 1:
                 result[0] += 'es:\n'
             else:
                 result[0] += ':\n'
@@ -386,10 +394,6 @@ class Reporter(object):
             result += ['on top of commit %s from the repository at' %
                        self.mergedata['base'][1][:12],
                        '  %s' % self.mergedata['base'][0]]
-        else:
-            result = ['We cloned the git tree and checked out %s from the '
-                      'repository at' % self.mergedata['base'][1][:12],
-                      '  %s' % self.mergedata['base'][0]]
 
         return result
 
