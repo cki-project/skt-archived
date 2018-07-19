@@ -179,7 +179,7 @@ def cmd_merge(cfg):
             for mb in cfg.get('merge_ref'):
                 save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
                                  'mergehead_%02d' % idx: bhead})
-                (retcode, _) = ktree.merge_git_ref(*mb)
+                (retcode, bhead) = ktree.merge_git_ref(*mb)
 
                 utypes.append("[git]")
                 if retcode:
