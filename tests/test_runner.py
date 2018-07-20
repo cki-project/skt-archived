@@ -114,7 +114,7 @@ class TestRunner(unittest.TestCase):
         mocked_xml = misc.get_asset_content('beaker_results.xml')
         mock_getresultstree.return_value = etree.fromstring(mocked_xml)
 
-        result = self.myrunner._BeakerRunner__getconsolelog()
+        result = self.myrunner._BeakerRunner__getconsolelog(jobid=0)
         self.assertEqual(result, "http://example.com/")
 
     def test_forget_cid_withj(self):

@@ -67,7 +67,6 @@ class BeakerRunner(Runner):
         self.failures = {}
         self.recipes = set()
         self.jobs = set()
-        self.lastsubmitted = None
         self.j2r = dict()
         self.aborted_count = 0
 
@@ -141,7 +140,7 @@ class BeakerRunner(Runner):
                 'Unable to get Beaker job results for job %s' % jobid
             )
 
-    def __getconsolelog(self, jobid=None):
+    def __getconsolelog(self, jobid):
         """
         Retrieve console log URL from a Beaker job.
 
@@ -152,9 +151,6 @@ class BeakerRunner(Runner):
             The URL for console logs within the Beaker environment.
         """
         url = None
-
-        if jobid is None:
-            jobid = self.lastsubmitted
 
         root = self.getresultstree(jobid, True)
         console_log = root.find(
@@ -509,16 +505,11 @@ class BeakerRunner(Runner):
                 self.failures[origin][2] += 1
             logging.info("added %s to watchlist", cid)
 
-    def wait(self, jobid=None, reschedule=True):
-        if jobid is None:
-            jobid = self.lastsubmitted
+    def wait(self, jobid, reschedule=True):
         self.__add_to_watchlist(jobid, reschedule)
         self.__watchloop()
 
-    def __gethost(self, jobid=None):
-        if jobid is None:
-            jobid = self.lastsubmitted
-
+    def __gethost(self, jobid):
         logging.info("gethost for %s", jobid)
         root = self.getresultstree(jobid)
         recipe = root.find("recipeSet/recipe")
@@ -548,7 +539,6 @@ class BeakerRunner(Runner):
 
         logging.info("submitted jobid: %s", jobid)
         self.jobs.add(jobid)
-        self.lastsubmitted = jobid
 
         return jobid
 
