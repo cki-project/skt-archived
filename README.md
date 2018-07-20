@@ -26,11 +26,11 @@ Extra dependencies needed for running the testsuite:
 Run tests
 ---------
 
-For running all tests write down:
+To run all tests execute:
 
     python -m unittest discover tests
 
-For running some specific tests you can do this as following:
+To run some specific tests, you can execute a specific test like this:
 
     python -m unittest tests.test_publisher
 
