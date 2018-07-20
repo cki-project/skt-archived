@@ -304,10 +304,10 @@ def cmd_build(cfg):
             except OSError:
                 pass
 
-    report_string = ''
     build_result_path = os.path.join(cfg.get('workdir'), 'build.result')
     build_report_path = os.path.join(cfg.get('workdir'), 'build.report')
 
+    tgz = None
     builder = KernelBuilder(
         source_dir=cfg.get('workdir'),
         basecfg=cfg.get('baseconfig'),
@@ -328,17 +328,17 @@ def cmd_build(cfg):
         logging.error(exc)
         save_state(cfg, {'buildlog': builder.buildlog})
         retcode = 1
-        return
     except Exception:
         (exc, exc_type, trace) = sys.exc_info()
         raise exc, exc_type, trace
 
-    if cfg.get('buildhead'):
-        ttgz = "%s.tar.gz" % cfg.get('buildhead')
-    else:
-        ttgz = addtstamp(tgz, tstamp)
-    shutil.move(tgz, ttgz)
-    logging.info("tarball path: %s", ttgz)
+    if tgz:
+        if cfg.get('buildhead'):
+            ttgz = "%s.tar.gz" % cfg.get('buildhead')
+        else:
+            ttgz = addtstamp(tgz, tstamp)
+        shutil.move(tgz, ttgz)
+        logging.info("tarball path: %s", ttgz)
 
     tbuildinfo = None
     if cfg.get('buildinfo'):
@@ -363,6 +363,20 @@ def cmd_build(cfg):
     with os.fdopen(os.open(build_result_path, os.O_CREAT | os.O_WRONLY),
                    'w') as result_file:
         result_file.write('true' if not retcode else 'false')
+
+    report_string = '{} ({{{}}})'.format(
+        'The kernel was built with the attached configuration',
+        tconfig
+    )
+    if retcode:
+        report_string += '\n'.join([
+            '\nHowever, the build failed. We are attaching the build output '
+            'for',
+            'more information ({{{}}})'.format(
+                os.path.basename(builder.buildlog)
+            )
+        ])
+
     with os.fdopen(os.open(build_report_path, os.O_CREAT | os.O_WRONLY),
                    'w') as report_file:
         report_file.write(report_string)
