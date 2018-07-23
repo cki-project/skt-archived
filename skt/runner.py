@@ -20,6 +20,8 @@ import subprocess
 import time
 import xml.etree.ElementTree as etree
 
+from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+
 
 MAX_ABORTED = 3
 
@@ -262,9 +264,10 @@ class BeakerRunner(Runner):
             jobid: A Beaker job ID, in 'J:<id>' format.
 
         Returns:
-            A tuple (ret, result), where ret is 0 if the job ended with Pass,
-            1 if a test failure occurred and 2 if it aborted (infrastructure
-            failure); and result is the job result itself.
+            A tuple (ret, result), where ret is SKT_SUCCESS if the job ended
+            with Pass, SKT_FAIL if a test failure occurred and SKT_ERROR if it
+            aborted (infrastructure failure); and result is the job result
+            itself.
         """
         result = None
 
@@ -273,11 +276,11 @@ class BeakerRunner(Runner):
         status = root.attrib.get('status')
 
         if result == "Pass":
-            ret = 0
+            ret = SKT_SUCCESS
         elif result == 'Warn' and status == 'Aborted':
-            ret = 2
+            ret = SKT_ERROR
         else:
-            ret = 1
+            ret = SKT_FAIL
 
         logging.info("job result: %s [%d]", result, ret)
 
@@ -292,30 +295,31 @@ class BeakerRunner(Runner):
                    submitted jobs are checked.
 
         Returns:
-            0 if all jobs passed, 1 in case of failures and 2 in case of
-            infrastructure failures.
+            SKT_SUCCESS if all jobs passed,
+            SKT_FAIL in case of failures, and
+            SKT_ERROR in case of infrastructure failures.
         """
-        ret = 0
+        ret = SKT_SUCCESS
         fhosts = set()
         tfailures = 0
 
         if jobid:
             (ret, _) = self.__jobresult(jobid)
 
-        if not jobid or ret != 0:
+        if not jobid or ret != SKT_SUCCESS:
             if self.failures:
                 all_aborted = all([data[1] == ('Warn', 'Aborted')
                                    for data in self.failures.values()])
                 if all_aborted:
                     logging.warning('All jobs aborted, possible infrastructure'
                                     ' failure.')
-                    return 2
+                    return SKT_ERROR
 
                 job_cancelled = any(status == 'Cancelled'
                                     for data in self.failures.values()
                                     for _, status in data[1])
                 if job_cancelled:
-                    return 2
+                    return SKT_ERROR
             if self.aborted_count == MAX_ABORTED:
                 logging.error('Max count of aborted jobs achieved, please '
                               'check your infrastructure!')
@@ -333,7 +337,7 @@ class BeakerRunner(Runner):
                              else ": %s" % data[0][0])
 
                 fhosts = fhosts.union(set(data[0]))
-                ret = 1
+                ret = SKT_FAIL
 
         if ret and fhosts:
             msg = "unknown"
@@ -528,11 +532,11 @@ class BeakerRunner(Runner):
                         different host), False otherwise.
 
         Returns:
-            0 if everything passed
-            1 if testing failed
-            2 in case of infrastructure error (exceptions are logged)
+            SKT_SUCCESS if everything passed
+            SKT_FAIL if testing failed
+            SKT_ERROR in case of infrastructure error (exceptions are logged)
         """
-        ret = 0
+        ret = SKT_SUCCESS
         self.failures = {}
         self.recipes = set()
         self.watchlist = set()
@@ -563,7 +567,7 @@ class BeakerRunner(Runner):
                 ret = self.__getresults()
         except Exception as exc:
             logging.error(exc)
-            ret = 2
+            ret = SKT_ERROR
 
         return ret
 
