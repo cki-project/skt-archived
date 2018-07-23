@@ -140,27 +140,6 @@ class BeakerRunner(Runner):
                 'Unable to get Beaker job results for job %s' % jobid
             )
 
-    def __getconsolelog(self, jobid):
-        """
-        Retrieve console log URL from a Beaker job.
-
-        Args:
-            jobid: The Beaker job ID.
-
-        Returns:
-            The URL for console logs within the Beaker environment.
-        """
-        url = None
-
-        root = self.getresultstree(jobid, True)
-        console_log = root.find(
-            "recipeSet/recipe/logs/log[@name='console.log']"
-        )
-        if console_log is not None:
-            url = console_log.attrib.get("href")
-
-        return url
-
     def __forget_cid(self, cid):
         """
         Remove a job or recipe from the current list
