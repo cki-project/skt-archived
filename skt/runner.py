@@ -254,13 +254,6 @@ class BeakerRunner(Runner):
 
         return ltp_logs
 
-    def get_mfhost(self):
-        fhosts = list()
-        for data in self.failures.values():
-            fhosts += data[0]
-
-        return max(set(fhosts), key=fhosts.count)
-
     def __jobresult(self, jobid):
         """
         Get results for a specific job.

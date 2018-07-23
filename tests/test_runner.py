@@ -161,12 +161,6 @@ class TestRunner(unittest.TestCase):
         }
         self.assertDictEqual(result, expected_result)
 
-    def test_get_mfhost(self):
-        """Ensure get_mfhost() works."""
-        self.myrunner.failures = {'test': ['a', 'b']}
-        result = self.myrunner.get_mfhost()
-        self.assertEqual(result, 'a')
-
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     def test_jobresult(self, mock_getresultstree):
         """Ensure __jobresult() works."""
