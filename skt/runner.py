@@ -481,14 +481,6 @@ class BeakerRunner(Runner):
         self.__add_to_watchlist(jobid, reschedule)
         self.__watchloop()
 
-    def __gethost(self, jobid):
-        logging.info("gethost for %s", jobid)
-        root = self.getresultstree(jobid)
-        recipe = root.find("recipeSet/recipe")
-        logging.info("%s: %s", jobid, recipe.attrib.get("system"))
-
-        return recipe.attrib.get("system")
-
     def __jobsubmit(self, xml):
         jobid = None
         args = ["bkr", "job-submit"]
