@@ -449,6 +449,7 @@ class BeakerRunner(Runner):
                             logging.warning("%s failed before kernelinstall, "
                                             "resubmitting", cid)
                             self.__forget_cid(cid)
+                            self.aborted_count += 1
 
                             if self.aborted_count < MAX_ABORTED:
                                 newjob = self.__recipe_to_job(root, False)
@@ -458,7 +459,6 @@ class BeakerRunner(Runner):
                                 self.__add_to_watchlist(newjobid,
                                                         reschedule,
                                                         None)
-                                self.aborted_count += 1
                         else:
                             if origin is None:
                                 origin = cid
