@@ -19,6 +19,7 @@ import shutil
 import subprocess
 
 import skt
+from skt.misc import SKT_SUCCESS, SKT_FAIL
 
 
 class KernelTree(object):
@@ -321,9 +322,9 @@ class KernelTree(object):
             logging.warning("failed to merge '%s' from %s, skipping", ref,
                             remote_name)
             self.__git_cmd("reset", "--hard")
-            return (1, None)
+            return (SKT_FAIL, None)
 
-        return (0, head)
+        return (SKT_SUCCESS, head)
 
     def merge_patchwork_patch(self, uri):
         patch_content = skt.get_patch_mbox(uri)
