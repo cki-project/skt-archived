@@ -36,10 +36,11 @@ import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
+from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
-retcode = 0
+retcode = SKT_SUCCESS
 
 
 def full_path(path):
@@ -86,15 +87,16 @@ def junit(func):
     set to JSON representation of the configuration object after the function
     call has completed. The created test case is appended to the "_testcases"
     list in the configuration object after that. Sets the global "retcode" to
-    1 in case of test failure and 2 and above in case of infrastructure failure
-    or skt problem (eg. Beaker server is unreachable).
+    SKT_SUCCESS in case of test success, SKT_FAIL in case of test failure, and
+    SKT_ERROR and above in case of infrastructure failure or skt problem (eg.
+    Beaker server is unreachable).
 
     Args:
         func:   The function to call in the created function. Must accept
                 a configuration object as the argument. Return value would be
                 ignored. Can set the global "retcode" to indicate success
-                (zero), test failure (1) or infrastructure failure (2 and
-                above).
+                (SKT_SUCCESS), test failure (SKT_FAIL) or infrastructure
+                failure (SKT_ERROR and above).
 
     Return:
         The created function.
@@ -112,13 +114,13 @@ def junit(func):
                               "infrastructure failure or skt bug: %s",
                               traceback.format_exc())
                 testcase.add_error_info(traceback.format_exc())
-                retcode = 2
+                retcode = SKT_ERROR
 
-            if retcode == 1:
+            if retcode == SKT_FAIL:
                 # Tests failed
                 testcase.add_failure_info("Step finished with retcode: %d" %
                                           retcode)
-            elif retcode >= 2:
+            elif retcode >= SKT_ERROR:
                 testcase.add_error_info(
                     "Infrastructure issue or skt bug detected, retcode: %d" %
                     retcode
@@ -183,7 +185,7 @@ def cmd_merge(cfg):
 
                 utypes.append("[git]")
                 if retcode:
-                    if retcode != 2:
+                    if retcode != SKT_ERROR:
                         with os.fdopen(os.open(merge_result_path,
                                                os.O_CREAT | os.O_WRONLY),
                                        'w') as result_file:
@@ -229,7 +231,7 @@ def cmd_merge(cfg):
                 '  %s' % cfg.get('baserepo')
             ])
     except PatchApplicationError as patch_exc:
-        retcode = 1
+        retcode = SKT_FAIL
         logging.error(patch_exc)
         save_state(cfg, {'mergelog': ktree.mergelog})
 
@@ -328,7 +330,7 @@ def cmd_build(cfg):
             IOError) as exc:
         logging.error(exc)
         save_state(cfg, {'buildlog': builder.buildlog})
-        retcode = 1
+        retcode = SKT_FAIL
     except Exception:
         (exc, exc_type, trace) = sys.exc_info()
         raise exc, exc_type, trace
@@ -451,7 +453,7 @@ def cmd_run(cfg):
                 runner.dumpjunitresults(job, cfg.get('junit'))
             except Exception as exc:
                 logging.error(exc)
-                retcode = 2
+                retcode = SKT_ERROR
         save_state(cfg, {'jobid_%s' % (idx): job})
         idx += 1
 
@@ -459,7 +461,7 @@ def cmd_run(cfg):
 
     save_state(cfg, {'retcode': retcode})
 
-    if retcode != 2:
+    if retcode != SKT_ERROR:
         with os.fdopen(os.open(run_result_path, os.O_CREAT | os.O_WRONLY),
                        'w') as result_file:
             result_file.write('true' if retcode else 'false')
