@@ -241,7 +241,8 @@ def cmd_merge(cfg):
         with open(ktree.mergelog, 'r') as mergelog:
             for line in mergelog:
                 # Skip the useless part of the 'git am' output
-                if "The copy of the patch" in line:
+                if ("The copy of the patch" in line) \
+                        or ('see the failed patch' in line):
                     break
                 report_string += '    %s\n' % line.strip()
 

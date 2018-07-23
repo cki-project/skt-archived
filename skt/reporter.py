@@ -430,7 +430,8 @@ class Reporter(object):
         with open(self.cfg.get("mergelog"), 'r') as fileh:
             for line in fileh:
                 # Skip the useless part of the 'git am' output
-                if "The copy of the patch" in line:
+                if ("The copy of the patch" in line) \
+                        or ('see the failed patch' in line):
                     break
                 result.append('    ' + line.strip())
 
