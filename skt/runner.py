@@ -20,8 +20,10 @@ import subprocess
 import time
 import xml.etree.ElementTree as etree
 
-from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+import requests
 
+from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+import skt.reporter
 
 MAX_ABORTED = 3
 
@@ -560,11 +562,15 @@ class BeakerRunner(Runner):
                         different host), False otherwise.
 
         Returns:
-            SKT_SUCCESS if everything passed
-            SKT_FAIL if testing failed
-            SKT_ERROR in case of infrastructure error (exceptions are logged)
+            Tuple (ret, report_string) where ret can be
+                   SKT_SUCCESS if everything passed
+                   SKT_FAIL if testing failed
+                   SKT_ERROR in case of infrastructure error (exceptions are
+                                                              logged)
+            and report_string is a string describing tests and results.
         """
         ret = SKT_SUCCESS
+        report_string = ''
         self.failures = {}
         self.recipes = set()
         self.watchlist = set()
@@ -597,7 +603,91 @@ class BeakerRunner(Runner):
             logging.error(exc)
             ret = SKT_ERROR
 
-        return ret
+        if ret != 2:
+            all_results = self.getverboseresults(sorted(list(self.jobs)))
+            job_index = 1
+            hw_info_match = {}
+
+            for job_id, values in all_results.items():
+                job_result = values.get('result')
+                job_status = values.get('status')
+
+                if job_result == 'Warn' and job_status == 'Aborted':
+                    logging.info('Skipping aborted job %s', job_id)
+                    continue
+
+                for recipe_index, recipe in enumerate(
+                        [key for key in values if key.startswith('R:')]
+                ):
+                    (result, hostname, console_log_url,
+                     hw_info_url, _, test_list) = values[recipe]
+
+                    if not recipe_index:
+                        report_string += '\n\nWe ran the following tests:\n'
+                        for test_name in test_list:
+                            report_string += '  - %s\n' % test_name
+                        report_string += '{}\n\n'.format(
+                            'which produced the results below:'
+                        )
+
+                    console_log = skt.reporter.ConsoleLog(release,
+                                                          console_log_url)
+                    if not console_log.data and result != 'Pass':
+                        # The console wasn't logged. This isn't an issue if
+                        # everything went well, however reporting a failure
+                        # without any details is useless so skip it if nothing
+                        # besides boot test was run.
+                        if 'LTP lite' not in report_string:
+                            continue
+
+                    report_string += 'Test run #%d\n' % job_index
+                    report_string += 'Result: %s\n' % result
+
+                    if result != 'Pass':
+                        logging.info('Failure detected in recipe %s, attaching'
+                                     ' console log', recipe)
+                        traces = console_log.gettraces()
+                        if traces:
+                            report_string += '{}\n{}\n'.format(
+                                'This is the first call trace we found:',
+                                traces[0]
+                            )
+                        with open('%02d_console.log.gz' % job_index,
+                                  'w') as console_file:
+                            console_file.write(console_log.getfulllog())
+                        report_string += '\n\n{}\n{}\n'.format(
+                            'For more information about the failure, see '
+                            'attached console log',
+                            '(%02d_console.log.gz) and applicable test logs '
+                            'for each recipe:' % job_index
+                        )
+
+                        ltp_results = self.get_ltp_lite_logs(job_id)
+                        for ltp_recipe, ltp_logs in ltp_results.items():
+                            report_string += '\n  {}\n'.format(ltp_recipe)
+                            if not any(ltp_logs):
+                                report_string += '\n    N/A'
+                                continue
+                            for ltp_log in ltp_logs:
+                                if ltp_log:
+                                    report_string += '\n    {}'.format(ltp_log)
+
+                    if hw_info_url:
+                        if hostname not in hw_info_match:
+                            response = requests.get(hw_info_url)
+                            if response:
+                                report_string += '\n\nMachine info:\n'
+                                report_string += response.text
+                                hw_info_match[hostname] = job_index
+                        else:
+                            report_string += '\n\n{}{}\n'.format(
+                                'Machine info: same as test run #',
+                                hw_info_match[hostname]
+                            )
+
+                    job_index += 1
+
+        return (ret, report_string)
 
 
 def getrunner(rtype, rarg):

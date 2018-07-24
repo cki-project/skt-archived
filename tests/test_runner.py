@@ -249,7 +249,7 @@ class TestRunner(unittest.TestCase):
         mock_jobsubmit.return_value = "J:0001"
 
         result = self.myrunner.run(url, release, wait)
-        self.assertEqual(result, 0)
+        self.assertEqual(result, (0, ''))
 
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run_host(self, mock_jobsubmit):
@@ -262,7 +262,7 @@ class TestRunner(unittest.TestCase):
         mock_jobsubmit.return_value = "J:0001"
 
         result = self.myrunner.run(url, release, wait, host)
-        self.assertEqual(result, 0)
+        self.assertEqual(result, (0, ''))
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
@@ -280,4 +280,4 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
         result = self.myrunner.run(url, release, wait)
-        self.assertEqual(result, 0)
+        self.assertEqual(result, (0, ''))

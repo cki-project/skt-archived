@@ -425,9 +425,11 @@ def cmd_run(cfg):
     run_report_path = join_with_slash(cfg.get('output_dir'), 'run.report')
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
-    retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
-                         cfg.get('wait'), uid=cfg.get('uid'),
-                         arch=cfg.get("kernel_arch"))
+    retcode, report_string = runner.run(cfg.get('buildurl'),
+                                        cfg.get('krelease'),
+                                        cfg.get('wait'),
+                                        uid=cfg.get('uid'),
+                                        arch=cfg.get("kernel_arch"))
 
     idx = 0
     for job in runner.jobs:
