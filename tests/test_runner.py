@@ -153,7 +153,8 @@ class TestRunner(unittest.TestCase):
                     None,
                     'http://example.com/',
                     'http://example.com/machinedesc.log',
-                    'http://example.com/lshw.log'
+                    'http://example.com/lshw.log',
+                    []
                 ),
                 'result': 'Pass',
                 'status': 'Completed'
