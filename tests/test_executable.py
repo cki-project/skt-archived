@@ -129,7 +129,6 @@ class TestExecutable(unittest.TestCase):
             'workdir=/tmp/workdir',
             'merge_ref=master',
             'basecfg=.config',
-            'buildinfo=value',
             'buildconf=value',
             'tarpkg=value',
         ]

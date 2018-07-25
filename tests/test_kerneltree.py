@@ -99,22 +99,6 @@ class KernelTreeTest(unittest.TestCase):
             result = self.kerneltree.checkout()
             self.assertEqual("stdout", result)
 
-    def test_dumpinfo(self):
-        """Ensure dumpinfo() can dump data in a CSV format."""
-        self.kerneltree.info = [('test1', 'test2', 'test3')]
-        result = self.kerneltree.dumpinfo()
-        expected_filename = "{}/buildinfo.csv".format(self.tmpdir)
-
-        # Ensure a file was made and its path was returned
-        self.assertTrue(os.path.isfile(expected_filename))
-        self.assertEqual(result, expected_filename)
-
-        with open(expected_filename, 'r') as fileh:
-            file_contents = fileh.read()
-
-        # Ensure the csv file has the correct data.
-        self.assertEqual("test1,test2,test3\n", file_contents)
-
     def test_getpath(self):
         """Ensure that getpath() returns the workdir path."""
         result = self.kerneltree.getpath()
@@ -251,10 +235,6 @@ class KernelTreeTest(unittest.TestCase):
             result = self.kerneltree.merge_patchwork_patch('uri')
 
         self.assertIsNone(result)
-        self.assertTupleEqual(
-            ('patchwork', 'uri', 'patch_name'),
-            self.kerneltree.info[0]
-        )
 
     def test_merge_pw_patch_failure(self):
         """Ensure merge_patchwork_patch() handles patch failures properly."""
@@ -279,12 +259,9 @@ class KernelTreeTest(unittest.TestCase):
             fileh.write('dummy patch data')
 
         with mock_check_output:
-            self.kerneltree.merge_patch_file(patch_file)
+            result = self.kerneltree.merge_patch_file(patch_file)
 
-        self.assertTupleEqual(
-            ('patch', patch_file),
-            self.kerneltree.info[0]
-        )
+        self.assertIsNone(result)
 
     def test_merge_patch_file_failure(self):
         """Ensure merge_patch_file() handles a patch apply failure."""

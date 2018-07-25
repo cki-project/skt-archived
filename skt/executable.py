@@ -273,11 +273,9 @@ def cmd_merge(cfg):
         uid = " ".join(utypes)
 
     kpath = ktree.getpath()
-    buildinfo = ktree.dumpinfo()
     buildhead = ktree.get_commit_hash()
 
     save_state(cfg, {'workdir': kpath,
-                     'buildinfo': buildinfo,
                      'buildhead': buildhead,
                      'uid': uid})
 
@@ -347,22 +345,13 @@ def cmd_build(cfg):
         shutil.move(tgz, ttgz)
         logging.info("tarball path: %s", ttgz)
 
-    tbuildinfo = None
-    if cfg.get('buildinfo'):
-        if cfg.get('buildhead'):
-            tbuildinfo = "%s.csv" % cfg.get('buildhead')
-        else:
-            tbuildinfo = addtstamp(cfg.get('buildinfo'), tstamp)
-        shutil.move(cfg.get('buildinfo'), tbuildinfo)
-
-    tconfig = "%s.config" % tbuildinfo
+    tconfig = '%s.csv.config' % cfg.get('buildhead')
     shutil.copyfile(builder.get_cfgpath(), tconfig)
 
     krelease = builder.getrelease()
     kernel_arch = builder.build_arch
 
     save_state(cfg, {'tarpkg': ttgz,
-                     'buildinfo': tbuildinfo,
                      'buildconf': tconfig,
                      'krelease': krelease,
                      'kernel_arch': kernel_arch})
@@ -392,10 +381,9 @@ def cmd_build(cfg):
 @junit
 def cmd_publish(cfg):
     """
-    Publish (copy) the kernel tarball, configuration, and build information to
-    the specified location, generating their resulting URLs, using the
-    specified "publisher". Only "cp" and "scp" pusblishers are supported at the
-    moment.
+    Publish (copy) the kernel tarball and configuration to the specified
+    location, generating their resulting URLs, using the specified "publisher".
+    Only "cp" and "scp" pusblishers are supported at the moment.
 
     Args:
         cfg:    A dictionary of skt configuration.
@@ -405,21 +393,16 @@ def cmd_publish(cfg):
     if not cfg.get('tarpkg'):
         raise Exception("skt publish is missing \"--tarpkg <path>\" option")
 
-    infourl = None
     cfgurl = None
 
     url = publisher.publish(cfg.get('tarpkg'))
     logging.info("published url: %s", url)
 
-    if cfg.get('buildinfo'):
-        infourl = publisher.publish(cfg.get('buildinfo'))
-
     if cfg.get('buildconf'):
         cfgurl = publisher.publish(cfg.get('buildconf'))
 
     save_state(cfg, {'buildurl': url,
-                     'cfgurl': cfgurl,
-                     'infourl': infourl})
+                     'cfgurl': cfgurl})
 
 
 @junit
@@ -517,12 +500,6 @@ def cmd_cleanup(cfg):
         config.remove_section('state')
         with open(cfg.get('rc'), 'w') as fileh:
             config.write(fileh)
-
-    if cfg.get('buildinfo'):
-        try:
-            os.unlink(cfg.get('buildinfo'))
-        except OSError:
-            pass
 
     if cfg.get('tarpkg'):
         try:
@@ -726,11 +703,6 @@ def setup_parser():
         "--tarpkg",
         type=str,
         help="Path to tar pkg to publish"
-    )
-    parser_publish.add_argument(
-        "--buildinfo",
-        type=str,
-        help="Path to accompanying buildinfo"
     )
 
     # These arguments apply to the 'run' skt command
@@ -972,10 +944,6 @@ def load_config(args):
 
     # Get an absolute path for the configuration file
     cfg['rc'] = full_path(cfg.get('rc'))
-
-    # Get an absolute path for the buildinfo
-    if cfg.get('buildinfo'):
-        cfg['buildinfo'] = full_path(cfg.get('buildinfo'))
 
     # Get an absolute path for the buildconf
     if cfg.get('buildconf'):
