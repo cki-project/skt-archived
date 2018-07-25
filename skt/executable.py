@@ -159,12 +159,12 @@ def cmd_merge(cfg):
                      'commitdate': commitdate})
 
     # Remove existing results from previous runs (if any)
-    for filename in os.listdir(cfg.get('workdir')):
-        if filename.startswith('merge.'):
-            try:
+    try:
+        for filename in os.listdir(cfg.get('workdir')):
+            if filename.startswith('merge.'):
                 os.unlink(skt.join_with_slash(cfg.get('workdir'), filename))
-            except OSError:
-                pass
+    except OSError:
+        pass
 
     report_string = '\n'.join(['We cloned the git tree and checked out %s '
                                'from the repository at' % bhead[:12],
@@ -300,12 +300,12 @@ def cmd_build(cfg):
                                         "%Y%m%d%H%M%S")
 
     # Remove existing results from previous runs (if any)
-    for filename in os.listdir(cfg.get('workdir')):
-        if filename.startswith('build.'):
-            try:
+    try:
+        for filename in os.listdir(cfg.get('workdir')):
+            if filename.startswith('build.'):
                 os.unlink(skt.join_with_slash(cfg.get('workdir'), filename))
-            except OSError:
-                pass
+    except OSError:
+        pass
 
     build_result_path = skt.join_with_slash(cfg.get('workdir'),
                                             'build.result')
@@ -417,12 +417,12 @@ def cmd_run(cfg):
     global retcode
 
     # Remove existing results from previous runs (if any)
-    for filename in os.listdir(cfg.get('workdir')):
-        if filename.startswith('run.'):
-            try:
+    try:
+        for filename in os.listdir(cfg.get('workdir')):
+            if filename.startswith('run.'):
                 os.unlink(skt.join_with_slash(cfg.get('workdir'), filename))
-            except OSError:
-                pass
+    except OSError:
+        pass
 
     report_string = ''
     run_result_path = skt.join_with_slash(cfg.get('workdir'), 'run.result')
