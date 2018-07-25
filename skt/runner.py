@@ -205,11 +205,14 @@ class BeakerRunner(Runner):
                 if tmp is not None:
                     llshwurl = tmp.attrib.get("href")
 
+                test_list = self.get_recipe_test_list(recipe)
+
                 rdata = (recipe.attrib.get("result"),
                          recipe.attrib.get("system"),
                          clogurl,
                          slshwurl,
-                         llshwurl)
+                         llshwurl,
+                         test_list)
 
                 result[jobid][rid] = rdata
 
@@ -484,6 +487,30 @@ class BeakerRunner(Runner):
     def wait(self, jobid, reschedule=True):
         self.__add_to_watchlist(jobid, reschedule)
         self.__watchloop()
+
+    def get_recipe_test_list(self, recipe_node):
+        """
+        Retrieve the list of tests which ran for a particular recipe. All tasks
+        after kpkginstall are interpreted as ran tests.
+
+        Args:
+            recipe_node: ElementTree node representing the recipe, extracted
+                         from Beaker XML or result XML.
+
+        Returns:
+            List of test names that ran.
+        """
+        test_list = []
+        after_kpkg = False
+
+        for test_task in recipe_node.findall('task'):
+            if after_kpkg:
+                test_list.append(test_task.attrib.get('name'))
+
+            if 'kpkginstall' in test_task.attrib.get('name', ''):
+                after_kpkg = True
+
+        return test_list
 
     def __jobsubmit(self, xml):
         jobid = None

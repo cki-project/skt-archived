@@ -467,15 +467,7 @@ class Reporter(object):
         Returns:
             A list of lines representing results of test runs.
         """
-        # FIXME save the list of tests from beakerxml and read them from state
-        # instead of hardcoding
-        test_list = ['Boot test', 'LTP lite']
-        result = ['\n\nWe ran the following tests:']
-
-        for test in test_list:
-            result.append("  - %s" % test)
-
-        result += ['\nwhich produced the results below:']
+        result = []
 
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
         job_list = sorted(list(self.cfg.get("jobs", [])))
@@ -490,8 +482,16 @@ class Reporter(object):
                 logging.info('Skipping aborted job %s', jobid)
                 continue
 
-            for recipe in [key for key in values if key.startswith('R:')]:
-                (res, system, clogurl, slshwurl, _) = values[recipe]
+            for recipe_index, recipe in enumerate(
+                    [key for key in values if key.startswith('R:')]
+            ):
+                (res, system, clogurl, slshwurl, _, test_list) = values[recipe]
+
+                if not recipe_index:
+                    result += ['\n\nWe ran the following tests:']
+                    for test_name in test_list:
+                        result.append('  - %s' % test_name)
+                    result += ['\nwhich produced the results below:\n']
 
                 clog = ConsoleLog(self.cfg.get("krelease"), clogurl)
                 if not clog.data and res != 'Pass':
@@ -500,7 +500,7 @@ class Reporter(object):
                     # everything went well, however reporting a failure without
                     # any details is useless so skip it if nothing besides boot
                     # test was run.
-                    if 'LTP lite' not in test_list:
+                    if not test_list:
                         continue
 
                 result.append("Test run #%d" % jidx)
