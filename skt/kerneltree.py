@@ -50,7 +50,6 @@ class KernelTree(object):
         self.uri = uri
         # The remote reference to checkout
         self.ref = ref if ref is not None else "master"
-        self.info = []
         self.mergelog = skt.join_with_slash(self.wdir, "merge.log")
         self.fetch_depth = fetch_depth
 
@@ -153,25 +152,6 @@ class KernelTree(object):
             logging.debug("Adding missing remote 'origin': %s" % self.uri)
             self.__git_cmd("remote", "add", "origin", self.uri)
 
-    def dumpinfo(self, fname='buildinfo.csv'):
-        """
-        Write build information to the specified file in ad-hoc CSV format.
-        The order of the "columns" in the file depends on the order various
-        member functions were called in.
-
-        Args:
-            fname:  Name of the output file, relative to the workdir.
-                    Default is "buildinfo.csv".
-
-        Returns:
-            Full path to the written file.
-        """
-        fpath = skt.join_with_slash(self.wdir, fname)
-        with open(fpath, 'w') as fileh:
-            for iitem in self.info:
-                fileh.write(','.join(iitem) + "\n")
-        return fpath
-
     def get_commit_date(self, ref=None):
         """
         Get the committer date of the commit pointed at by the specified
@@ -257,7 +237,6 @@ class KernelTree(object):
         self.__git_cmd("reset", "--hard", dstref)
 
         head = self.get_commit_hash()
-        self.info.append(("base", self.uri, head))
         logging.info("baserepo %s: %s", self.ref, head)
         return str(head).rstrip()
 
@@ -320,7 +299,6 @@ class KernelTree(object):
 
             self.__git_cmd("merge", "--no-edit", dstref, **grargs)
             head = self.get_commit_hash(dstref)
-            self.info.append(("git", uri, head))
             logging.info("%s %s: %s", remote_name, ref, head)
         except subprocess.CalledProcessError:
             logging.warning("failed to merge '%s' from %s, skipping", ref,
@@ -355,12 +333,6 @@ class KernelTree(object):
                 os.path.basename(os.path.normpath(uri))
             )
 
-        patchname = skt.get_patch_name(patch_content)
-        # FIXME Do proper CSV escaping, or switch data format instead of
-        #       maiming subjects (ha-ha). See issue #119.
-        # Replace commas with semicolons to avoid clashes with CSV separator
-        self.info.append(("patchwork", uri, patchname.replace(',', ';')))
-
     def merge_patch_file(self, path):
         if not os.path.exists(path):
             raise Exception("Patch %s not found" % path)
@@ -380,8 +352,6 @@ class KernelTree(object):
                 fileh.write(exc.output)
 
             raise PatchApplicationError("Failed to apply patch %s" % path)
-
-        self.info.append(("patch", path))
 
 
 class PatchApplicationError(Exception):

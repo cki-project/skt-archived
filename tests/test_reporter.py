@@ -500,66 +500,6 @@ class TestStdioReporter(unittest.TestCase):
         for required_string in required_strings:
             self.assertIn(required_string, report)
 
-    @mock.patch('logging.warning')
-    @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    @responses.activate
-    def test_run_success_infourl(self, mock_grt, mock_log):
-        """Verify success output using infourl."""
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-
-        infourl_test_body = [
-            'base,{},{}'.format(
-                self.basecfg['baserepo'], self.basecfg['basehead']
-            ),
-            'git,{},{}'.format(
-                self.basecfg['baserepo'], self.basecfg['basehead']
-            ),
-            'bogus,this should not be here'
-        ]
-        responses.add(
-            responses.GET,
-            "http://example.com/infourl",
-            body='\n'.join(infourl_test_body)
-        )
-
-        url_base = "https://beaker.example.com/recipes/5273166"
-        responses.add(
-            responses.GET,
-            "{}/logs/console.log".format(url_base),
-            body="Linux version 3.10.0"
-        )
-        responses.add(
-            responses.GET,
-            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
-            body="Machine information from beaker goes here"
-        )
-        mock_grt.return_value = self.beaker_pass_results
-        self.basecfg['retcode'] = '0'
-        self.basecfg['infourl'] = "http://example.com/infourl"
-        self.basecfg['patchworks'] = []
-
-        testprint = StringIO.StringIO()
-        rptclass = reporter.StdioReporter(self.basecfg)
-        rptclass.report(printer=testprint)
-        report = testprint.getvalue().strip()
-
-        required_strings = [
-            'Subject: PASS: Report for kernel 3.10.0',
-            'We merged the following references into the tree:',
-            'commit {}'.format(self.basecfg['basehead']),
-            self.basecfg['baserepo'],
-            'Test run #1\nResult: Pass',
-            'Machine information from beaker goes here'
-        ]
-        for required_string in required_strings:
-            self.assertIn(required_string, report)
-
-        mock_log.assert_called()
-
     @responses.activate
     def test_run_success_no_runner(self):
         """Verify stdio report works without a runner.

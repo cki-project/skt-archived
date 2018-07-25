@@ -17,7 +17,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import gzip
 import logging
-import os
 import re
 import smtplib
 import sys
@@ -295,24 +294,6 @@ class Reporter(object):
         # multireporting
         self.multi_job_ids = []
 
-    def __infourldata(self, mergedata):
-        response = requests.get(self.cfg.get("infourl"))
-        for line in response.text.split('\n'):
-            if line:
-                idata = line.split(',')
-                if idata[0] == 'base':
-                    mergedata['base'] = (idata[1], idata[2])
-                elif idata[0] == 'git':
-                    mergedata['merge_git'].append((idata[1], idata[2]))
-                elif idata[0] == 'patch':
-                    mergedata['localpatch'].append(os.path.basename(idata[1]))
-                elif idata[0] == 'patchwork':
-                    mergedata['patchwork'].append((idata[1], idata[2]))
-                else:
-                    logging.warning("Unknown infotype: %s", idata[0])
-
-        return mergedata
-
     def __stateconfigdata(self, mergedata):
         mergedata['base'] = (self.cfg.get("baserepo"),
                              self.cfg.get("basehead"))
@@ -342,10 +323,7 @@ class Reporter(object):
             'config': None
         }
 
-        if self.cfg.get("infourl"):
-            mergedata = self.__infourldata(mergedata)
-        else:
-            mergedata = self.__stateconfigdata(mergedata)
+        mergedata = self.__stateconfigdata(mergedata)
 
         if not self.cfg.get('mergelog'):
             if self.cfg.get("cfgurl"):
