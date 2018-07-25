@@ -13,7 +13,6 @@
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for runner module."""
 import os
-import tempfile
 import unittest
 
 import xml.etree.ElementTree as etree
@@ -87,24 +86,6 @@ class TestRunner(unittest.TestCase):
         mock_popen.return_value.communicate.return_value = (test_xml, '')
         result = self.myrunner.getresultstree(jobid=0)
         self.assertEqual(next(x.text for x in result.iter('test')), 'TEST')
-
-    @mock.patch('subprocess.Popen')
-    def test_dumpjunitresults(self, mock_popen):
-        """Ensure dumpjunitresults() works."""
-        mock_popen.return_value.returncode = 0
-        mock_popen.return_value.communicate.return_value = (
-            'stdout',
-            'stderr'
-        )
-
-        junit_dir = tempfile.mkdtemp()
-        self.myrunner.dumpjunitresults("J:00001", junit_dir)
-        expected_file = "{}/j_00001.xml".format(junit_dir)
-        self.assertTrue(os.path.exists(expected_file))
-
-        # Clean up
-        os.unlink(expected_file)
-        os.rmdir(junit_dir)
 
     def test_forget_cid_withj(self):
         """Ensure __forget_cid() works with jobs."""

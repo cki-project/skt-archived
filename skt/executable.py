@@ -437,7 +437,9 @@ def cmd_run(cfg):
     for job in runner.jobs:
         if cfg.get('wait') and cfg.get('junit'):
             try:
-                runner.dumpjunitresults(job, cfg.get('junit'))
+                fname = "%s/%s.xml" % (cfg.get('junit'),
+                                       job.replace(":", "_").lower())
+                runner.dumpjunitresults(job, fname)
             except Exception as exc:
                 logging.error(exc)
                 retcode = SKT_ERROR

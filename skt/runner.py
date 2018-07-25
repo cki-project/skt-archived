@@ -122,18 +122,17 @@ class BeakerRunner(Runner):
         (stdout, _) = bkr.communicate()
         return etree.fromstring(stdout)
 
-    def dumpjunitresults(self, jobid, junit):
+    def dumpjunitresults(self, jobid, fname):
         """
         Retrieve junit XML from beaker and write it to a file
 
         Args:
             jobid: The beaker jobid
-            junit: The directory where the junit XML will be written
+            fname: The junit XML filename will be written
         """
         args = ["bkr", "job-results", "--format=junit-xml"]
         args.append(jobid)
 
-        fname = "%s/%s.xml" % (junit, jobid.replace(":", "_").lower())
         with open(fname, 'w') as fileh:
             bkr = subprocess.Popen(args, stdout=fileh)
             bkr.communicate()
