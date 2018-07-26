@@ -36,7 +36,8 @@ import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
-from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+from skt.misc import (join_with_slash, get_patch_name,
+                      SKT_SUCCESS, SKT_FAIL, SKT_ERROR)
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
@@ -232,7 +233,7 @@ def cmd_merge(cfg):
                 utypes.append("[patchwork]")
                 for patch in cfg.get('pw'):
                     save_state(cfg, {'patchwork_%02d' % idx: patch})
-                    report_string += '  - %s,\n' % skt.get_patch_name(
+                    report_string += '  - %s,\n' % get_patch_name(
                         skt.get_patch_mbox(patch)
                     )
                     report_string += '    grabbed from %s\n' % patch
