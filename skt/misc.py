@@ -17,6 +17,8 @@ import email.header
 import email.parser
 import re
 
+import requests
+
 
 """SKT Result"""
 SKT_SUCCESS = 0
@@ -74,3 +76,30 @@ def get_patch_name(content):
         return '<SUBJECT ENCODING INVALID>'
 
     return ''.join(decoded)
+
+
+def get_patch_mbox(url):
+    """
+    Retrieve a string representing mbox of the patch.
+
+    Args:
+        url: Patchwork URL of the patch to retrieve
+
+    Returns:
+        String representing body of the patch mbox
+
+    Raises:
+        Exception in case the URL is currently unavailable or invalid
+    """
+    mbox_url = join_with_slash(url, 'mbox')
+
+    try:
+        response = requests.get(mbox_url)
+    except requests.exceptions.RequestException as exc:
+        raise exc
+
+    if response.status_code != requests.codes.ok:
+        raise Exception('Failed to retrieve patch from %s, returned %d' %
+                        (url, response.status_code))
+
+    return response.content

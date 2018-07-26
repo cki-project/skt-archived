@@ -25,7 +25,7 @@ import StringIO
 import requests
 
 import skt
-from skt.misc import join_with_slash, get_patch_name
+from skt.misc import join_with_slash, get_patch_name, get_patch_mbox
 import skt.runner
 
 
@@ -332,7 +332,7 @@ class Reporter(object):
 
         if self.cfg.get("patchworks"):
             for purl in self.cfg.get("patchworks"):
-                patch_mbox = skt.get_patch_mbox(purl)
+                patch_mbox = get_patch_mbox(purl)
                 patchname = get_patch_name(patch_mbox)
                 mergedata['patchwork'].append((purl, patchname))
 

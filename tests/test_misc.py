@@ -16,6 +16,8 @@ from email.errors import HeaderParseError
 import unittest
 
 import mock
+import requests
+import responses
 
 import skt.misc
 
@@ -90,3 +92,41 @@ class TestIndependent(unittest.TestCase):
                      '==?=')
         self.assertEqual('If you can read this you understand the example.',
                          skt.misc.get_patch_name(mbox_body))
+
+    @responses.activate
+    def test_get_patch_mbox(self):
+        """Ensure get_patch_mbox() succeeds with a good request."""
+        responses.add(
+            responses.GET,
+            'http://patchwork.example.com/patch/1/mbox',
+            json={'result': 'good'},
+            status=200
+        )
+
+        resp = skt.misc.get_patch_mbox('http://patchwork.example.com/patch/1')
+        self.assertEqual('{"result": "good"}', resp)
+
+    @responses.activate
+    def test_get_patch_mbox_fail(self):
+        """Ensure get_patch_mbox() handles an exception from requests."""
+        responses.add(
+            responses.GET,
+            'http://patchwork.example.com/patch/1/mbox',
+            body=requests.exceptions.RequestException('Fail'),
+        )
+
+        with self.assertRaises(requests.exceptions.RequestException):
+            skt.misc.get_patch_mbox('http://patchwork.example.com/patch/1')
+
+    @responses.activate
+    def test_get_patch_mbox_bad_status(self):
+        """Ensure get_patch_mbox() handles a bad status code."""
+        responses.add(
+            responses.GET,
+            'http://patchwork.example.com/patch/1/mbox',
+            json={'error': 'failure'},
+            status=500
+        )
+
+        with self.assertRaises(Exception):
+            skt.misc.get_patch_mbox('http://patchwork.example.com/patch/1')
