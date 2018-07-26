@@ -18,8 +18,7 @@ import re
 import shutil
 import subprocess
 
-import skt
-from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL
+from skt.misc import join_with_slash, get_patch_mbox, SKT_SUCCESS, SKT_FAIL
 
 
 class KernelTree(object):
@@ -309,7 +308,7 @@ class KernelTree(object):
         return (SKT_SUCCESS, head)
 
     def merge_patchwork_patch(self, uri):
-        patch_content = skt.get_patch_mbox(uri)
+        patch_content = get_patch_mbox(uri)
 
         logging.info("Applying %s", uri)
 

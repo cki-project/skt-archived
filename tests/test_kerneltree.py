@@ -220,7 +220,7 @@ class KernelTreeTest(unittest.TestCase):
 
     def test_merge_pw_patch(self):
         """Ensure merge_patchwork_patch() handles patches properly."""
-        mock_gpm = mock.patch('skt.get_patch_mbox')
+        mock_gpm = mock.patch('skt.kerneltree.get_patch_mbox')
         mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
                                   '_KernelTree__git_cmd')
 
@@ -234,7 +234,7 @@ class KernelTreeTest(unittest.TestCase):
 
     def test_merge_pw_patch_failure(self):
         """Ensure merge_patchwork_patch() handles patch failures properly."""
-        mock_get_patch_mbox = mock.patch('skt.get_patch_mbox')
+        mock_get_patch_mbox = mock.patch('skt.kerneltree.get_patch_mbox')
         mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
                                   '_KernelTree__git_cmd')
 
