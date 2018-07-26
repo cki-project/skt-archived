@@ -160,18 +160,18 @@ def cmd_merge(cfg):
 
     # Remove existing results from previous runs (if any)
     try:
-        for filename in os.listdir(cfg.get('workdir')):
+        for filename in os.listdir(cfg.get('output_dir')):
             if filename.startswith('merge.'):
-                os.unlink(skt.join_with_slash(cfg.get('workdir'), filename))
+                os.unlink(skt.join_with_slash(cfg.get('output_dir'), filename))
     except OSError:
         pass
 
     report_string = '\n'.join(['We cloned the git tree and checked out %s '
                                'from the repository at' % bhead[:12],
                                '  %s' % cfg.get('baserepo')])
-    merge_result_path = skt.join_with_slash(cfg.get('workdir'),
+    merge_result_path = skt.join_with_slash(cfg.get('output_dir'),
                                             'merge.result')
-    merge_report_path = skt.join_with_slash(cfg.get('workdir'),
+    merge_report_path = skt.join_with_slash(cfg.get('output_dir'),
                                             'merge.report')
 
     try:
@@ -301,15 +301,15 @@ def cmd_build(cfg):
 
     # Remove existing results from previous runs (if any)
     try:
-        for filename in os.listdir(cfg.get('workdir')):
+        for filename in os.listdir(cfg.get('output_dir')):
             if filename.startswith('build.'):
-                os.unlink(skt.join_with_slash(cfg.get('workdir'), filename))
+                os.unlink(skt.join_with_slash(cfg.get('output_dir'), filename))
     except OSError:
         pass
 
-    build_result_path = skt.join_with_slash(cfg.get('workdir'),
+    build_result_path = skt.join_with_slash(cfg.get('output_dir'),
                                             'build.result')
-    build_report_path = skt.join_with_slash(cfg.get('workdir'),
+    build_report_path = skt.join_with_slash(cfg.get('output_dir'),
                                             'build.report')
 
     tgz = None
@@ -418,15 +418,15 @@ def cmd_run(cfg):
 
     # Remove existing results from previous runs (if any)
     try:
-        for filename in os.listdir(cfg.get('workdir')):
+        for filename in os.listdir(cfg.get('output_dir')):
             if filename.startswith('run.'):
-                os.unlink(skt.join_with_slash(cfg.get('workdir'), filename))
+                os.unlink(skt.join_with_slash(cfg.get('output_dir'), filename))
     except OSError:
         pass
 
     report_string = ''
-    run_result_path = skt.join_with_slash(cfg.get('workdir'), 'run.result')
-    run_report_path = skt.join_with_slash(cfg.get('workdir'), 'run.report')
+    run_result_path = skt.join_with_slash(cfg.get('output_dir'), 'run.result')
+    run_report_path = skt.join_with_slash(cfg.get('output_dir'), 'run.report')
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
@@ -963,6 +963,12 @@ def load_config(args):
             os.mkdir(full_path(cfg.get('junit')))
         except OSError:
             pass
+
+    # Preparation for output directory option
+    if os.access(cfg.get('workdir'), os.W_OK | os.X_OK):
+        cfg['output_dir'] = cfg.get('workdir')
+    else:
+        cfg['output_dir'] = os.getcwd()
 
     return cfg
 
