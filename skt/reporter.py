@@ -25,6 +25,7 @@ import StringIO
 import requests
 
 import skt
+from skt.misc import join_with_slash
 import skt.runner
 
 
@@ -354,8 +355,8 @@ class Reporter(object):
                 if response:
                     mergedata['config'] = response.text
             else:
-                with open(skt.join_with_slash(self.cfg.get("workdir"),
-                                              ".config"), "r") as fileh:
+                with open(join_with_slash(self.cfg.get("workdir"),
+                                          ".config"), "r") as fileh:
                     mergedata['config'] = fileh.read()
 
         self.mergedata = mergedata

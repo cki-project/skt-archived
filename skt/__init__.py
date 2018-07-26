@@ -19,25 +19,7 @@ import re
 
 import requests
 
-
-def join_with_slash(base, *suffix_tuple):
-    """
-    Join parts of URL or path by slashes. Trailing slash of base, and each
-    arg in suffix_tupple are removed. It only keeps trailing slash at the
-    end of the part if it is specified.
-
-    Args:
-        base:          Base URL or path.
-        *suffix_tuple: Tuple of suffixes
-
-    Returns:
-        The URL or path string
-    """
-    parts = [base.rstrip('/')]
-    for arg in suffix_tuple:
-        parts.append(arg.strip('/'))
-    ending = '/' if arg.endswith('/') else ''
-    return '/'.join(parts) + ending
+from skt.misc import join_with_slash
 
 
 def get_patch_mbox(url):

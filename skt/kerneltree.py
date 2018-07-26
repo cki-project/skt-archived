@@ -19,7 +19,7 @@ import shutil
 import subprocess
 
 import skt
-from skt.misc import SKT_SUCCESS, SKT_FAIL
+from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL
 
 
 class KernelTree(object):
@@ -45,12 +45,12 @@ class KernelTree(object):
         # The git "working directory" (the "checkout")
         self.wdir = wdir
         # The cloned git repository
-        self.gdir = skt.join_with_slash(self.wdir, ".git")
+        self.gdir = join_with_slash(self.wdir, ".git")
         # The origin remote's URL
         self.uri = uri
         # The remote reference to checkout
         self.ref = ref if ref is not None else "master"
-        self.mergelog = skt.join_with_slash(self.wdir, "merge.log")
+        self.mergelog = join_with_slash(self.wdir, "merge.log")
         self.fetch_depth = fetch_depth
 
         try:
@@ -216,8 +216,8 @@ class KernelTree(object):
         Returns:
             Full hash of the last commit.
         """
-        dstref = skt.join_with_slash("refs", "remotes", "origin",
-                                     self.ref.split('/')[-1])
+        dstref = join_with_slash("refs", "remotes", "origin",
+                                 self.ref.split('/')[-1])
         logging.info("fetching base repo")
         git_fetch_args = [
             "fetch", "origin",
@@ -284,10 +284,10 @@ class KernelTree(object):
         except subprocess.CalledProcessError:
             pass
 
-        dstref = skt.join_with_slash("refs",
-                                     "remotes",
-                                     remote_name,
-                                     ref.split('/')[-1])
+        dstref = join_with_slash("refs",
+                                 "remotes",
+                                 remote_name,
+                                 ref.split('/')[-1])
         logging.info("fetching %s", dstref)
         self.__git_cmd("fetch", remote_name,
                        "+%s:%s" % (ref, dstref))

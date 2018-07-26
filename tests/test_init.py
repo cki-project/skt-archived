@@ -26,34 +26,6 @@ import skt
 class TestIndependent(unittest.TestCase):
     """Test cases for independent functions in __init__.py."""
 
-    def test_join_with_slash(self):
-        """Ensure join_with_slash return a good url, path string."""
-        base = "path/to/dir"
-        suffix = "file"
-        self.assertEqual("path/to/dir/file",
-                         skt.join_with_slash(base, suffix))
-        base = "path/to/dir/"
-        suffix = "file"
-        self.assertEqual("path/to/dir/file",
-                         skt.join_with_slash(base, suffix))
-        base = "path/to/dir1/"
-        suffix = "dir2/"
-        self.assertEqual("path/to/dir1/dir2/",
-                         skt.join_with_slash(base, suffix))
-        base = "path/to/dir1/"
-        suffix1 = "dir2/"
-        suffix2 = "file"
-        self.assertEqual("path/to/dir1/dir2/file",
-                         skt.join_with_slash(base, suffix1, suffix2))
-        base = "http://url.com/"
-        suffix = "part"
-        self.assertEqual("http://url.com/part",
-                         skt.join_with_slash(base, suffix))
-        base = "http://url.com"
-        suffix = "part"
-        self.assertEqual("http://url.com/part",
-                         skt.join_with_slash(base, suffix))
-
     @responses.activate
     def test_get_patch_mbox(self):
         """Ensure get_patch_mbox() succeeds with a good request."""
