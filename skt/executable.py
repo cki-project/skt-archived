@@ -36,7 +36,7 @@ import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
-from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
@@ -180,17 +180,17 @@ def cmd_merge(cfg):
     try:
         for filename in os.listdir(cfg.get('output_dir')):
             if filename.startswith('merge.'):
-                os.unlink(skt.join_with_slash(cfg.get('output_dir'), filename))
+                os.unlink(join_with_slash(cfg.get('output_dir'), filename))
     except OSError:
         pass
 
     report_string = '\n'.join(['We cloned the git tree and checked out %s '
                                'from the repository at' % bhead[:12],
                                '  %s' % cfg.get('baserepo')])
-    merge_result_path = skt.join_with_slash(cfg.get('output_dir'),
-                                            'merge.result')
-    merge_report_path = skt.join_with_slash(cfg.get('output_dir'),
-                                            'merge.report')
+    merge_result_path = join_with_slash(cfg.get('output_dir'),
+                                        'merge.result')
+    merge_report_path = join_with_slash(cfg.get('output_dir'),
+                                        'merge.report')
 
     try:
         if cfg.get('merge_ref'):
@@ -306,14 +306,14 @@ def cmd_build(cfg):
     try:
         for filename in os.listdir(cfg.get('output_dir')):
             if filename.startswith('build.'):
-                os.unlink(skt.join_with_slash(cfg.get('output_dir'), filename))
+                os.unlink(join_with_slash(cfg.get('output_dir'), filename))
     except OSError:
         pass
 
-    build_result_path = skt.join_with_slash(cfg.get('output_dir'),
-                                            'build.result')
-    build_report_path = skt.join_with_slash(cfg.get('output_dir'),
-                                            'build.report')
+    build_result_path = join_with_slash(cfg.get('output_dir'),
+                                        'build.result')
+    build_report_path = join_with_slash(cfg.get('output_dir'),
+                                        'build.report')
 
     tgz = None
     builder = KernelBuilder(
@@ -415,13 +415,13 @@ def cmd_run(cfg):
     try:
         for filename in os.listdir(cfg.get('output_dir')):
             if filename.startswith('run.'):
-                os.unlink(skt.join_with_slash(cfg.get('output_dir'), filename))
+                os.unlink(join_with_slash(cfg.get('output_dir'), filename))
     except OSError:
         pass
 
     report_string = ''
-    run_result_path = skt.join_with_slash(cfg.get('output_dir'), 'run.result')
-    run_report_path = skt.join_with_slash(cfg.get('output_dir'), 'run.report')
+    run_result_path = join_with_slash(cfg.get('output_dir'), 'run.result')
+    run_report_path = join_with_slash(cfg.get('output_dir'), 'run.report')
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
     retcode = runner.run(cfg.get('buildurl'), cfg.get('krelease'),
@@ -530,8 +530,8 @@ def addtstamp(path, tstamp):
     Returns:
         New path with time stamp.
     """
-    return skt.join_with_slash(os.path.dirname(path),
-                               "%s-%s" % (tstamp, os.path.basename(path)))
+    return join_with_slash(os.path.dirname(path),
+                           "%s-%s" % (tstamp, os.path.basename(path)))
 
 
 def setup_logging(verbose):

@@ -17,3 +17,23 @@
 SKT_SUCCESS = 0
 SKT_FAIL = 1
 SKT_ERROR = 2
+
+
+def join_with_slash(base, *suffix_tuple):
+    """
+    Join parts of URL or path by slashes. Trailing slash of base, and each
+    arg in suffix_tupple are removed. It only keeps trailing slash at the
+    end of the part if it is specified.
+
+    Args:
+        base:          Base URL or path.
+        *suffix_tuple: Tuple of suffixes
+
+    Returns:
+        The URL or path string
+    """
+    parts = [base.rstrip('/')]
+    for arg in suffix_tuple:
+        parts.append(arg.strip('/'))
+    ending = '/' if arg.endswith('/') else ''
+    return '/'.join(parts) + ending

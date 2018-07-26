@@ -16,7 +16,8 @@ import logging
 import os
 import shutil
 import subprocess
-import skt
+
+from skt.misc import join_with_slash
 
 
 class Publisher(object):
@@ -50,7 +51,7 @@ class Publisher(object):
         Returns:
             Published URL corresponding to the specified source.
         """
-        return skt.join_with_slash(self.baseurl, os.path.basename(source))
+        return join_with_slash(self.baseurl, os.path.basename(source))
 
     # TODO Define abstract "publish" method.
 
