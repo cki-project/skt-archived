@@ -382,7 +382,7 @@ def cmd_publish(cfg):
     """
     Publish (copy) the kernel tarball and configuration to the specified
     location, generating their resulting URLs, using the specified "publisher".
-    Only "cp" and "scp" pusblishers are supported at the moment.
+    Only "cp", "scp" and "sftp" pusblishers are supported at the moment.
 
     Args:
         cfg:    A dictionary of skt configuration.
