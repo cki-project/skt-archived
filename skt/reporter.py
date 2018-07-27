@@ -152,26 +152,41 @@ class ConsoleLog(object):
         r"\[[\d\ \.]+\].*\[[0-9a-f<>]+\]",
         r"\[[\d\ \.]+\]\s+.+\s+[A-Z]\s[0-9a-fx ]+",
         r"\[[\d\ \.]+\]\s+[0-9a-fx ]+",
-        r"\[-- MARK --",
         r"Instruction dump",
         r"handlers:",
         r"Code: [0-9a-z]+",
         r"blocked for",
         r"Workqueue:",
         r"disables this message",
-        r"Call Trace",
+        r"Call (T|t)race",
         r"Hardware name",
-        r"task: [0-9a-f]+ ti: [0-9a-f]+ task\.ti: [0-9a-f]+",
+        r'Exception stack',
+        r"task: [0-9a-f]+.*task\.",
         r"^(Traceback)?[0-9a-f\s]+$",
         r"(\[[\d\ \.]+\]\s+)?([A-Z0-9]+: [0-9a-fx ]+)+",
         r"Stack:\s*$",
-        r"Modules linked in:"
+        r"Modules linked in:",
+        r'Oops:',
+        r'(PGD|EIP)',
+        r'pde.*pte',
+        r'stack backtrace:',
     ]
 
     # List of regular expression strings matching
     # lines ending a call trace output
     expend = [
-        r"\[ end (trace|Kernel panic)"
+        r"\[ end (trace|Kernel panic)",
+        r'\[[\d\ \.]+\]\s+\S{1,4}\s*$',
+        r'restraintd',
+        r'[0-9a-f]+:[0-9a-f]+:',
+        r'beah',
+        r'\[-- MARK --',
+    ]
+
+    # Patterns to exclude from the log
+    exclude = [
+        r'\sOK\s',
+        r'^\s*$'
     ]
 
     def __init__(self, kver, url):
@@ -186,9 +201,10 @@ class ConsoleLog(object):
         self.url = url
         self.kver = kver
         self.data = self.__fetchdata()
-        self.oopspattern = re.compile("(%s)" % "|".join(self.oopsmsg))
-        self.ctvpattern = re.compile("(%s)" % "|".join(self.ctvalid))
-        self.eendpattern = re.compile("(%s)" % "|".join(self.expend))
+        self.start_pattern = re.compile('|'.join(self.oopsmsg))
+        self.continue_pattern = re.compile('|'.join(self.ctvalid))
+        self.end_pattern = re.compile('|'.join(self.expend))
+        self.invalid_pattern = re.compile('|'.join(self.exclude), re.MULTILINE)
 
     def __fetchdata(self):
         """
@@ -222,38 +238,33 @@ class ConsoleLog(object):
 
     def gettraces(self):
         """
-        Get a list of oops and call stack outputs extracted from the kernel
-        console log.
+        Get a list of non-overlapping oops and call stack outputs extracted
+        from the kernel console log.
 
         Returns:
             A list of oops and call stack output strings.
         """
         result = []
-
-        insplat = False
-        inct = False
         tmpdata = []
-        # FIXME Check if line == True otherwise it adds an empty line at the
-        # end of the extracted trace.
+
         for line in self.data:
-            if self.oopspattern.search(line):
-                insplat = True
-            elif re.search("Call Trace:", line):
-                inct = True
-
-            if insplat and ((inct and not self.ctvpattern.search(line)) or
-                            self.eendpattern.search(line)):
-                tmpdata.append(line)
-                result.append("\n".join(tmpdata))
-                tmpdata = []
-                insplat = False
-                inct = False
-
-            if insplat:
-                tmpdata.append(line)
-
-        if tmpdata:
-            result.append("\n".join(tmpdata))
+            if self.invalid_pattern.search(line):
+                continue
+            if self.start_pattern.search(line):
+                tmpdata = [line]
+            elif tmpdata:
+                if self.end_pattern.search(line):
+                    tmpdata.append(line)
+                    result.append('\n'.join(tmpdata))
+                    tmpdata = []
+                    continue
+                if self.continue_pattern.search(line):
+                    # Only include lines that look relevant, in case the log
+                    # got flooded with a bunch of unrelated lines in the
+                    # meanwhile. Yes, this can drop some lines that are useful
+                    # too, but it's the best approach we currently have to
+                    # handle messy logs.
+                    tmpdata.append(line)
 
         return result
 
