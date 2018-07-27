@@ -143,7 +143,8 @@ class ConsoleLog(object):
         r"INFO: rcu_sched detected stalls on CPUs/tasks:",
         r"NMI watchdog: Watchdog detected hard LOCKUP",
         r"Kernel panic - not syncing: ",
-        r"Oops: Unrecoverable TM Unavailable Exception"
+        r"Oops: Unrecoverable TM Unavailable Exception",
+        r'\[\s+INFO:.*dependency detected.*\]'
     ]
 
     # List of regular expression strings matching
@@ -170,6 +171,13 @@ class ConsoleLog(object):
         r'(PGD|EIP)',
         r'pde.*pte',
         r'stack backtrace:',
+        r'->.*(lock|mutex)',
+        r'shortest dependencies between .*lock',
+        r'changed the state of lock',
+        r'other info that might help us debug this',
+        r'(acquire|holding) lock:',
+        r'already depends on the new lock',
+        r'existing dependency chain.*:'
     ]
 
     # List of regular expression strings matching
@@ -181,6 +189,7 @@ class ConsoleLog(object):
         r'[0-9a-f]+:[0-9a-f]+:',
         r'beah',
         r'\[-- MARK --',
+        r'LTP'
     ]
 
     # Patterns to exclude from the log
