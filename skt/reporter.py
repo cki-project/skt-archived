@@ -144,7 +144,8 @@ class ConsoleLog(object):
         r"NMI watchdog: Watchdog detected hard LOCKUP",
         r"Kernel panic - not syncing: ",
         r"Oops: Unrecoverable TM Unavailable Exception",
-        r'\[\s+INFO:.*dependency detected.*\]'
+        r'\[\s+INFO:.*dependency detected.*\]',
+        r'ERR: suspicious RCU usage'
     ]
 
     # List of regular expression strings matching
@@ -177,7 +178,9 @@ class ConsoleLog(object):
         r'other info that might help us debug this',
         r'(acquire|holding) lock:',
         r'already depends on the new lock',
-        r'existing dependency chain.*:'
+        r'existing dependency chain.*:',
+        r'RCU used illegally',
+        r'rcu_scheduler_active'
     ]
 
     # List of regular expression strings matching
