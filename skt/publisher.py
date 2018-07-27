@@ -90,6 +90,27 @@ class ScpPublisher(Publisher):
         return self.geturl(source)
 
 
+class SftpPublisher(Publisher):
+    TYPE = 'sftp'
+
+    def publish(self, source):
+        """
+        Copy the source file to public destination.
+
+        Args:
+            source: Source file path.
+
+        Returns:
+            Published URL corresponding to the specified source.
+        """
+        sp = subprocess.Popen(['sftp', self.destination],
+                              shell=False, stdin=subprocess.PIPE)
+        sp.stdin.write("put -r %s\n" % source)
+        sp.stdin.close()
+        sp.wait()
+        return self.geturl(source)
+
+
 def getpublisher(ptype, parg, pburl):
     """
     Create an instance of a "publisher" subclass with specified arguments.
