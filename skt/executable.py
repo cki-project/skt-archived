@@ -48,6 +48,24 @@ def full_path(path):
     return os.path.abspath(os.path.expanduser(path))
 
 
+def report_results(result_path, result_string, report_path, report_string):
+    """
+    Write report and results to the machine and human-readable forms.
+
+    Args:
+        result_path:    A full path of result log.
+        result_string:  The content of string result.
+        report_path:    A full path of report log.
+        report_string:  The content of string report.
+    """
+    with os.fdopen(os.open(result_path, os.O_CREAT | os.O_WRONLY),
+                   'w') as result_file:
+        result_file.write(result_string)
+    with os.fdopen(os.open(report_path, os.O_CREAT | os.O_WRONLY),
+                   'w') as report_file:
+        report_file.write(report_string)
+
+
 def save_state(cfg, state):
     """
     Merge state to cfg, and then save cfg.
@@ -188,14 +206,8 @@ def cmd_merge(cfg):
                 utypes.append("[git]")
                 if retcode:
                     if retcode != SKT_ERROR:
-                        with os.fdopen(os.open(merge_result_path,
-                                               os.O_CREAT | os.O_WRONLY),
-                                       'w') as result_file:
-                            result_file.write('false')
-                        with os.fdopen(os.open(merge_report_path,
-                                               os.O_CREAT | os.O_WRONLY),
-                                       'w') as report_file:
-                            report_file.write(report_string)
+                        report_results(merge_result_path, 'false',
+                                       merge_report_path, report_string)
 
                     return
 
@@ -255,13 +267,8 @@ def cmd_merge(cfg):
             ' they weren\'t',
             'applied because of the error message stated above.\n'
         ])
-
-        with os.fdopen(os.open(merge_result_path, os.O_CREAT | os.O_WRONLY),
-                       'w') as result_file:
-            result_file.write('false')
-        with os.fdopen(os.open(merge_report_path, os.O_CREAT | os.O_WRONLY),
-                       'w') as report_file:
-            report_file.write(report_string)
+        report_results(merge_result_path, 'false',
+                       merge_report_path, report_string)
 
         return
     except Exception:
@@ -279,12 +286,8 @@ def cmd_merge(cfg):
                      'buildhead': buildhead,
                      'uid': uid})
 
-    with os.fdopen(os.open(merge_result_path, os.O_CREAT | os.O_WRONLY),
-                   'w') as result_file:
-        result_file.write('true')
-    with os.fdopen(os.open(merge_report_path, os.O_CREAT | os.O_WRONLY),
-                   'w') as report_file:
-        report_file.write(report_string)
+    report_results(merge_result_path, 'true',
+                   merge_report_path, report_string)
 
 
 @junit
@@ -356,10 +359,6 @@ def cmd_build(cfg):
                      'krelease': krelease,
                      'kernel_arch': kernel_arch})
 
-    with os.fdopen(os.open(build_result_path, os.O_CREAT | os.O_WRONLY),
-                   'w') as result_file:
-        result_file.write('true' if not retcode else 'false')
-
     report_string = '{} ({{{}}})'.format(
         'The kernel was built with the attached configuration',
         tconfig
@@ -373,9 +372,8 @@ def cmd_build(cfg):
             )
         ])
 
-    with os.fdopen(os.open(build_report_path, os.O_CREAT | os.O_WRONLY),
-                   'w') as report_file:
-        report_file.write(report_string)
+    report_results(build_result_path, 'true' if not retcode else 'false',
+                   build_report_path, report_string)
 
 
 @junit
@@ -449,12 +447,8 @@ def cmd_run(cfg):
     save_state(cfg, {'retcode': retcode})
 
     if retcode != SKT_ERROR:
-        with os.fdopen(os.open(run_result_path, os.O_CREAT | os.O_WRONLY),
-                       'w') as result_file:
-            result_file.write('true' if retcode else 'false')
-        with os.fdopen(os.open(run_report_path, os.O_CREAT | os.O_WRONLY),
-                       'w') as report_file:
-            report_file.write(report_string)
+        report_results(run_result_path, 'true' if retcode else 'false',
+                       run_report_path, report_string)
 
 
 def cmd_report(cfg):
