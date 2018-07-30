@@ -223,15 +223,11 @@ class KernelTreeTest(unittest.TestCase):
         mock_gpm = mock.patch('skt.get_patch_mbox')
         mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
                                   '_KernelTree__git_cmd')
-        mock_gpn = mock.patch(
-            'skt.get_patch_name',
-            return_value="patch_name"
-        )
 
         self.m_popen_good.communicate = Mock(return_value=('stdout', None))
         self.m_popen_good.wait = Mock(return_value=0)
 
-        with mock_gpm, mock_git_cmd, mock_gpn, self.popen_good:
+        with mock_gpm, mock_git_cmd, self.popen_good:
             result = self.kerneltree.merge_patchwork_patch('uri')
 
         self.assertIsNone(result)
