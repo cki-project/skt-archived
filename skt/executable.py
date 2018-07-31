@@ -347,6 +347,7 @@ def cmd_build(cfg):
             ttgz = addtstamp(tgz, tstamp)
         shutil.move(tgz, ttgz)
         logging.info("tarball path: %s", ttgz)
+        save_state(cfg, {'tarpkg': ttgz})
 
     tconfig = '%s.csv.config' % cfg.get('buildhead')
     shutil.copyfile(builder.get_cfgpath(), tconfig)
@@ -354,8 +355,7 @@ def cmd_build(cfg):
     krelease = builder.getrelease()
     kernel_arch = builder.build_arch
 
-    save_state(cfg, {'tarpkg': ttgz,
-                     'buildconf': tconfig,
+    save_state(cfg, {'buildconf': tconfig,
                      'krelease': krelease,
                      'kernel_arch': kernel_arch})
 
