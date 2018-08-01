@@ -525,7 +525,11 @@ class Reporter(object):
                     ltp_results = runner.get_ltp_lite_logs(jobid)
                     for ltp_recipe, ltp_logs in ltp_results.items():
                         result += ['\n  ' + ltp_recipe]
-                        result += ['    ' + ltp_log for ltp_log in ltp_logs]
+                        if not any(ltp_logs):
+                            result += ['    N/A']
+                            continue
+                        result += ['    ' + ltp_log
+                                   for ltp_log in ltp_logs if ltp_log]
 
                 if slshwurl is not None:
                     if system not in minfo["short"]:
