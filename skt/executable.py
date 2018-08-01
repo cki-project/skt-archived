@@ -616,6 +616,7 @@ def setup_parser():
     parser_merge.add_argument(
         "--ref",
         type=str,
+        default="master",
         help="Base repo ref to which patches are applied (default: master)"
     )
     parser_merge.add_argument(
@@ -636,6 +637,7 @@ def setup_parser():
         "-m",
         "--merge-ref",
         action='append',
+        default=[],
         help="Merge ref format: 'url [ref]' "
              + "(use multiple times for multiple merge refs)"
     )
@@ -660,6 +662,7 @@ def setup_parser():
     parser_build.add_argument(
         "--cfgtype",
         type=str,
+        default="olddefconfig",
         help="How to process default config (default: olddefconfig)"
     )
     parser_build.add_argument(
@@ -913,9 +916,6 @@ def load_config(args):
     elif config.has_section('reporter'):
         # Use the reporter configuration from the configuration file
         cfg['reporter'] = config.items('reporter')
-
-    if not cfg.get('merge_ref'):
-        cfg['merge_ref'] = []
 
     for section in config.sections():
         if section.startswith("merge-"):
