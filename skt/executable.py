@@ -388,19 +388,16 @@ def cmd_publish(cfg):
     """
     publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
 
+    if cfg.get('buildconf'):
+        cfgurl = publisher.publish(cfg.get('buildconf'))
+        save_state(cfg, {'cfgurl': cfgurl})
+
     if not cfg.get('tarpkg'):
         raise Exception("skt publish is missing \"--tarpkg <path>\" option")
 
-    cfgurl = None
-
     url = publisher.publish(cfg.get('tarpkg'))
     logging.info("published url: %s", url)
-
-    if cfg.get('buildconf'):
-        cfgurl = publisher.publish(cfg.get('buildconf'))
-
-    save_state(cfg, {'buildurl': url,
-                     'cfgurl': cfgurl})
+    save_state(cfg, {'buildurl': url})
 
 
 @junit
