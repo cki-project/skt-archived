@@ -958,6 +958,13 @@ def load_config(args):
         except OSError:
             pass
 
+    # Get absolute path to blacklist file
+    if cfg.get('runner') and cfg['runner'][0] == 'beaker' and \
+            'blacklist' in cfg['runner'][1]:
+        cfg['runner'][1]['blacklist'] = full_path(
+            cfg['runner'][1]['blacklist']
+        )
+
     # Preparation for output directory option
     if os.access(cfg.get('workdir'), os.W_OK | os.X_OK):
         cfg['output_dir'] = cfg.get('workdir')

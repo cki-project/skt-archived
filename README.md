@@ -331,10 +331,19 @@ template. If you remove the `--wait` option, the command will return once the
 job was submitted. Otherwise it will wait for its completion and report the
 result.
 
-E.g. to run the tests from a job XML template named `beakerjob.xml`, execute:
+In case running on specific hosts is not desired, one can use a simple text
+file containing one hostname per line, and pass the file via `blacklist`
+parameter. Tests will not attempt to run on machines which names are specified
+in the file. This is useful for example as a temporary fix in case the hardware
+is buggy and the maintainer of the pool doesn't have time to exclude it from
+the pool.
+
+E.g. to run the tests from a job XML template named `beakerjob.xml` and exclude
+machines in `blacklist.txt` file execute:
 
     skt --rc skt-rc --state --workdir skt-workdir -vv run \
-        --runner beaker '{"jobtemplate": "beakerjob.xml"}' \
+        --runner beaker '{"jobtemplate": "beakerjob.xml", \
+	                  "blacklist": "blacklist.txt"}, \
         --wait
 
 ### Report
