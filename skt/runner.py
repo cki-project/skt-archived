@@ -326,6 +326,7 @@ class BeakerRunner(Runner):
             if self.aborted_count == MAX_ABORTED:
                 logging.error('Max count of aborted jobs achieved, please '
                               'check your infrastructure!')
+                return SKT_ERROR
 
             for (recipe, data) in self.failures.iteritems():
                 # Treat single failure as a fluke during normal run
