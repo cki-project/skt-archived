@@ -41,7 +41,7 @@ class BeakerRunner(Runner):
     """Beaker test runner"""
     TYPE = 'beaker'
 
-    def __init__(self, jobtemplate, jobowner=None):
+    def __init__(self, jobtemplate, jobowner=None, blacklist=None):
         """
         Initialize a runner executing tests on Beaker.
 
@@ -52,6 +52,8 @@ class BeakerRunner(Runner):
             jobowner:       Name of a Beaker user on whose behalf the job
                             should be submitted, or None, if the owner should
                             be the current user.
+            blacklist:      Path to file containing hostnames to blacklist from
+                            running on, one hostname per line.
         """
         # Beaker job template file path
         # FIXME Move expansion up the call stack, as this limits the class
@@ -60,6 +62,7 @@ class BeakerRunner(Runner):
         # Name of a Beaker user on whose behalf the job should be submitted,
         # or None, if the owner should be the current user.
         self.jobowner = jobowner
+        self.blacklisted = self.__load_blacklist(blacklist)
         # Delay between checks of Beaker job statuses, seconds
         self.watchdelay = 60
         # A set of Beaker jobs to watch, each a 3-tuple containing:
@@ -76,6 +79,24 @@ class BeakerRunner(Runner):
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
+
+    def __load_blacklist(self, filepath):
+        hostnames = []
+
+        try:
+            with open(filepath, 'r') as fileh:
+                for line in fileh:
+                    line = line.strip()
+                    if line:
+                        hostnames.append(line)
+        except (IOError, OSError) as exc:
+            logging.error('Can\'t access {}!'.format(filepath))
+            raise exc
+        except TypeError:
+            logging.info('No hostname blacklist file passed')
+
+        logging.info('Blacklisted hostnames: {}'.format(hostnames))
+        return hostnames
 
     def __getxml(self, replacements):
         """
@@ -357,6 +378,30 @@ class BeakerRunner(Runner):
 
         return ret
 
+    def __blacklist_hreq(self, host_requires):
+        """
+        Make sure recipe excludes blacklisted hosts.
+
+        Args:
+            host_requires: etree node representing "hostRequires" node from the
+                           recipe.
+
+        Returns:
+            Modified "hostRequires" etree node.
+        """
+        and_node = host_requires.find('and')
+        if and_node is None:
+            and_node = etree.Element('and')
+            host_requires.append(and_node)
+
+        for disabled in self.blacklisted:
+            hostname = etree.Element('hostname')
+            hostname.set('op', '!=')
+            hostname.set('value', disabled)
+            and_node.append(hostname)
+
+        return host_requires
+
     def __recipe_to_job(self, recipe, samehost=False):
         tmp = recipe.copy()
 
@@ -369,6 +414,10 @@ class BeakerRunner(Runner):
             hostname.set("op", "=")
             hostname.set("value", tmp.attrib.get("system"))
             hreq.append(hostname)
+        else:
+            new_hreq = self.__blacklist_hreq(hreq)
+            tmp.remove(hreq)
+            tmp.append(new_hreq)
 
         newrs = etree.Element("recipeSet")
         newrs.append(tmp)
@@ -587,7 +636,7 @@ class BeakerRunner(Runner):
             hostnametag = '<hostname op="=" value="%s"/>' % host
 
         try:
-            jobid = self.__jobsubmit(self.__getxml(
+            job_xml_tree = etree.fromstring(self.__getxml(
                 {'KVER': release,
                  'KPKG_URL': url,
                  'UID': uid,
@@ -595,6 +644,13 @@ class BeakerRunner(Runner):
                  'HOSTNAME': hostname,
                  'HOSTNAMETAG': hostnametag}
             ))
+            for recipe in job_xml_tree.findall('recipeSet/recipe'):
+                hreq = recipe.find('hostRequires')
+                new_hreq = self.__blacklist_hreq(hreq)
+                recipe.remove(hreq)
+                recipe.append(new_hreq)
+
+            jobid = self.__jobsubmit(etree.tostring(job_xml_tree))
 
             if wait:
                 self.wait(jobid, reschedule)
