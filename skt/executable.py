@@ -393,12 +393,12 @@ def cmd_publish(cfg):
         cfgurl = publisher.publish(cfg.get('buildconf'))
         save_state(cfg, {'cfgurl': cfgurl})
 
-    if not cfg.get('tarpkg'):
-        raise Exception("skt publish is missing \"--tarpkg <path>\" option")
-
-    url = publisher.publish(cfg.get('tarpkg'))
-    logging.info("published url: %s", url)
-    save_state(cfg, {'buildurl': url})
+    if cfg.get('tarpkg'):
+        url = publisher.publish(cfg.get('tarpkg'))
+        logging.info("published tarpkg url: %s", url)
+        save_state(cfg, {'buildurl': url})
+    else:
+        logging.debug('No kernel tarball to publish found!')
 
 
 @junit
