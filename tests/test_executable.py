@@ -161,11 +161,11 @@ class TestExecutable(unittest.TestCase):
 
         self.assertListEqual(
             ['http://example.com', 'master'],
-            cfg1['merge_ref'][0]
+            cfg1['merge_ref']
         )
         self.assertListEqual(
             ['http://example.com'],
-            cfg2['merge_ref'][0]
+            cfg2['merge_ref']
         )
 
     def test_load_config_reporter_args(self):
