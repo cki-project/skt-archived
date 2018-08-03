@@ -472,7 +472,9 @@ class BeakerRunner(Runner):
                             ".//task[@name='/distribution/kpkginstall']"
                         )
                         if tinst is not None and \
-                                tinst.attrib.get("result") != "Pass":
+                                tinst.attrib.get("result") not in [
+                                    'Pass', 'Panic'
+                                ]:
                             logging.warning("%s failed before kernelinstall, "
                                             "resubmitting", cid)
                             self.__forget_cid(cid)
