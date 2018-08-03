@@ -45,6 +45,15 @@ LOGGER = logging.getLogger()
 retcode = SKT_SUCCESS
 
 
+class AppendMergeArgument(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        if 'merge_queue' not in namespace:
+            setattr(namespace, 'merge_queue', [])
+        previous = namespace.merge_queue
+        previous.append((self.dest, values))
+        setattr(namespace, 'merge_queue', previous)
+
+
 def full_path(path):
     """Get an absolute path to a file."""
     return os.path.abspath(os.path.expanduser(path))
@@ -180,7 +189,12 @@ def cmd_merge(cfg):
         cfg:    A dictionary of skt configuration.
     """
     global retcode
-    idx = 0
+    # Counter merge patch following:
+    # id[0]:  counter of merge-ref option.
+    # idx[1]: counter of patch option.
+    # idx[2]: counter of pw option.
+    idx = [0, 0, 0]
+    previous_merge = ''
     ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
@@ -203,15 +217,15 @@ def cmd_merge(cfg):
     merge_report_path = join_with_slash(cfg.get('output_dir'),
                                         'merge.report')
 
-    try:
-        if cfg.get('merge_ref'):
-            report_string = '\n{}\n{}'.format(
-                report_string,
-                'We merged the following references into the tree:'
-            )
-            for mb in cfg.get('merge_ref'):
-                save_state(cfg, {'mergerepo_%02d' % idx: mb[0],
-                                 'mergehead_%02d' % idx: bhead})
+    for thing_to_merge in cfg.get('merge_queue', []):
+        try:
+            if thing_to_merge[0] == 'merge_ref':
+                if previous_merge != 'merge_ref':
+                    report_string += '\nWe merged the following references ' \
+                        'into the tree:'
+                mb = thing_to_merge[1].split()
+                save_state(cfg, {'mergerepo_%02d' % idx[0]: mb[0],
+                                 'mergehead_%02d' % idx[0]: bhead})
                 (retcode, bhead) = ktree.merge_git_ref(*mb)
 
                 if retcode:
@@ -220,68 +234,65 @@ def cmd_merge(cfg):
                                        merge_report_path, report_string)
 
                     return
-
                 report_string += '\n  - %s\n    into commit %s' % (mb[0],
                                                                    bhead[:12])
-                idx += 1
+                previous_merge = thing_to_merge[0]
+                idx[0] += 1
 
-        elif cfg.get('patch') or cfg.get('pw'):
-            report_string = 'We applied the following patch(es):'
-
-            if cfg.get('patch'):
-                for patch in cfg.get('patch'):
-                    patch = os.path.abspath(patch)
-                    save_state(cfg, {'localpatch_%02d' % idx: patch})
-                    report_string += '\n  - %s\n' % patch
+            else:
+                if previous_merge not in ['patch', 'pw']:
+                    report_string += '\nWe applied the following patch(es):'
+                if thing_to_merge[0] == 'patch':
+                    patch = os.path.abspath(thing_to_merge[1])
+                    save_state(cfg, {'localpatch_%02d' % idx[1]: patch})
+                    report_string += '\n  - %s' % patch
 
                     ktree.merge_patch_file(patch)
-                    idx += 1
+                    idx[1] += 1
 
-            elif cfg.get('pw'):
-                for patch in cfg.get('pw'):
-                    save_state(cfg, {'patchwork_%02d' % idx: patch})
+                elif thing_to_merge[0] == 'pw':
+                    patch = thing_to_merge[1]
+                    save_state(cfg, {'patchwork_%02d' % idx[2]: patch})
                     report_string += '\n  - %s,\n' % get_patch_name(
                         get_patch_mbox(patch)
                     )
                     report_string += '    grabbed from %s' % patch
 
                     ktree.merge_patchwork_patch(patch)
-                    idx += 1
+                    idx[2] += 1
+
+                previous_merge = thing_to_merge[0]
+
+        except PatchApplicationError as patch_exc:
+            retcode = SKT_FAIL
+            logging.error(patch_exc)
+            save_state(cfg, {'mergelog': ktree.mergelog})
 
             report_string += '\n'.join([
-                'on top of commit %s from the repository at' % bhead[:12],
-                '  %s' % cfg.get('baserepo')
+                '\nHowever, the application of the last patch above failed '
+                ' with the',
+                'following output:\n\n'
             ])
-    except PatchApplicationError as patch_exc:
-        retcode = SKT_FAIL
-        logging.error(patch_exc)
-        save_state(cfg, {'mergelog': ktree.mergelog})
+            with open(ktree.mergelog, 'r') as mergelog:
+                for line in mergelog:
+                    # Skip the useless part of the 'git am' output
+                    if ("The copy of the patch" in line) \
+                            or ('see the failed patch' in line):
+                        break
+                    report_string += '    %s\n' % line.strip()
 
-        report_string += '\n'.join([
-            '\nHowever, the application of the last patch above failed with'
-            ' the',
-            'following output:\n\n'
-        ])
-        with open(ktree.mergelog, 'r') as mergelog:
-            for line in mergelog:
-                # Skip the useless part of the 'git am' output
-                if ("The copy of the patch" in line) \
-                        or ('see the failed patch' in line):
-                    break
-                report_string += '    %s\n' % line.strip()
+            report_string += '\n'.join([
+                '\nPlease note that if there are subsequent patches in the'
+                'series, they weren\'t',
+                'applied because of the error message stated above.\n'
+            ])
+            report_results(merge_result_path, 'false',
+                           merge_report_path, report_string)
 
-        report_string += '\n'.join([
-            '\nPlease note that if there are subsequent patches in the series,'
-            ' they weren\'t',
-            'applied because of the error message stated above.\n'
-        ])
-        report_results(merge_result_path, 'false',
-                       merge_report_path, report_string)
-
-        return
-    except Exception:
-        (exc, exc_type, trace) = sys.exc_info()
-        raise exc, exc_type, trace
+            return
+        except Exception:
+            (exc, exc_type, trace) = sys.exc_info()
+            raise exc, exc_type, trace
 
     kpath = ktree.getpath()
     buildhead = ktree.get_commit_hash()
@@ -662,21 +673,21 @@ def setup_parser():
     parser_merge.add_argument(
         "--patch",
         type=str,
-        action='append',
+        action=AppendMergeArgument,
         help="Path to a local patch to apply "
              + "(use multiple times for multiple patches)"
     )
     parser_merge.add_argument(
         "--pw",
         type=str,
-        action='append',
+        action=AppendMergeArgument,
         help="URL to Patchwork patch to apply "
              + "(use multiple times for multiple patches)"
     )
     parser_merge.add_argument(
         "-m",
         "--merge-ref",
-        action='append',
+        action=AppendMergeArgument,
         help="Merge ref format: 'url [ref]' "
              + "(use multiple times for multiple merge refs)"
     )
@@ -977,19 +988,6 @@ def load_config(args):
         # Use the reporter configuration from the configuration file
         cfg['reporter'] = config.items('reporter')
 
-    if not cfg.get('merge_ref'):
-        cfg['merge_ref'] = []
-    else:
-        for index, to_merge in enumerate(cfg['merge_ref']):
-            cfg['merge_ref'][index] = to_merge.split()
-
-    for section in config.sections():
-        if section.startswith("merge-"):
-            mdesc = [config.get(section, 'url')]
-            if config.has_option(section, 'ref'):
-                mdesc.append(config.get(section, 'ref'))
-            cfg['merge_ref'].append(mdesc)
-
     # Get an absolute path for the work directory
     if cfg.get('workdir'):
         cfg['workdir'] = full_path(cfg.get('workdir'))
@@ -1060,13 +1058,6 @@ def check_args(parser, args):
     if (args._name == 'build' and args.cfgtype == 'rh-configs'
             and not args.rh_configs_glob):
         parser.error("--cfgtype rh-configs requires --rh-configs-glob to set")
-
-    # Don't allow a mix of --merge-ref, --patch and --pw options
-    if args._name == 'merge':
-        if (args.merge_ref and any([args.patch, args.pw])) \
-                or (args.patch and args.pw):
-            parser.error('--merge-ref, --patch and --pw options are mutually '
-                         'exclusive!')
 
     # Check required arguments for 'report'
     if args._name == 'report':

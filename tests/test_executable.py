@@ -121,6 +121,25 @@ class TestExecutable(unittest.TestCase):
         args = ['report', '--reporter', 'stdio']
         self.check_args_tester(args, expected_fail=False)
 
+    def test_merge_option(self):
+        """Test parsing of multiple different merge options."""
+        args = ['--workdir', '/tmp/workdir', '--state', 'merge',
+                '--patch', 'patch.txt',
+                '--pw', 'http://patchwork.example.com/patch/1',
+                '--merge-ref', 'git://example.com/repo1']
+        parser = executable.setup_parser()
+        args = parser.parse_args(args)
+        cfg = executable.load_config(args)
+        # Check that ordered mixture of merge arguments
+        self.assertEqual('patch', cfg['merge_queue'][0][0])
+        self.assertEqual('pw', cfg['merge_queue'][1][0])
+        self.assertEqual('merge_ref', cfg['merge_queue'][2][0])
+        # Check the content patch of ordered mixture merge arguments
+        self.assertEqual('patch.txt', cfg['merge_queue'][0][1])
+        self.assertEqual('http://patchwork.example.com/patch/1',
+                         cfg['merge_queue'][1][1])
+        self.assertEqual('git://example.com/repo1', cfg['merge_queue'][2][1])
+
     def test_load_config(self):
         """Test load_config() with some arguments."""
         config_file = [
@@ -140,33 +159,6 @@ class TestExecutable(unittest.TestCase):
         cfg = self.load_config_tester(config_file, args)
         self.assertEqual('bar', cfg['foo'])
         self.assertEqual('report', cfg['_name'])
-
-    def test_load_config_merge_ref(self):
-        """Test load_config() with a merge_ref section."""
-        config_file = [
-            '[config]',
-            'foo=bar',
-            'workdir=/tmp/workdir',
-            '[merge-01]',
-            'url=http://example.com',
-            'ref=master'
-        ]
-        args = ['--workdir', '/tmp/workdir', '--state', 'merge']
-        # Run with url + ref in merge_ref section
-        cfg1 = self.load_config_tester(config_file, args)
-
-        # Run with just url in merge_ref section
-        config_file.pop()
-        cfg2 = self.load_config_tester(config_file, args)
-
-        self.assertListEqual(
-            ['http://example.com', 'master'],
-            cfg1['merge_ref'][0]
-        )
-        self.assertListEqual(
-            ['http://example.com'],
-            cfg2['merge_ref'][0]
-        )
 
     def test_load_config_reporter_args(self):
         """Test load_config() with reporter arguments."""
