@@ -60,6 +60,15 @@ class CpPublisher(Publisher):
     TYPE = 'cp'
 
     def publish(self, source):
+        """
+        Copy the source file to public destination.
+
+        Args:
+            source: Source file path.
+
+        Returns:
+            Published URL corresponding to the specified source.
+        """
         shutil.copy(source, self.destination)
         return self.geturl(source)
 
@@ -68,6 +77,15 @@ class ScpPublisher(Publisher):
     TYPE = 'scp'
 
     def publish(self, source):
+        """
+        Copy the source file to public destination.
+
+        Args:
+            source: Source file path.
+
+        Returns:
+            Published URL corresponding to the specified source.
+        """
         subprocess.check_call(["scp", source, self.destination])
         return self.geturl(source)
 
