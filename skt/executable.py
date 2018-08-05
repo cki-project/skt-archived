@@ -67,6 +67,22 @@ def report_results(result_path, result_string, report_path, report_string):
         report_file.write(report_string)
 
 
+def remove_oldresult(output_dir, prefix_filename):
+    """
+    Remove existing results from previous runs.
+
+    Args:
+        output_dir:      Source directory stores existing result.
+        prefix_filename: Prefix of the existing result filename.
+    """
+    try:
+        for filename in os.listdir(output_dir):
+            if filename.startswith(prefix_filename):
+                os.unlink(join_with_slash(output_dir, filename))
+    except OSError:
+        pass
+
+
 def save_state(cfg, state):
     """
     Merge state to cfg, and then save cfg.
@@ -177,13 +193,7 @@ def cmd_merge(cfg):
                      'basehead': bhead,
                      'commitdate': commitdate})
 
-    # Remove existing results from previous runs (if any)
-    try:
-        for filename in os.listdir(cfg.get('output_dir')):
-            if filename.startswith('merge.'):
-                os.unlink(join_with_slash(cfg.get('output_dir'), filename))
-    except OSError:
-        pass
+    remove_oldresult(cfg.get('output_dir'), 'merge.')
 
     report_string = '\n'.join(['We cloned the git tree and checked out %s '
                                'from the repository at' % bhead[:12],
@@ -303,13 +313,7 @@ def cmd_build(cfg):
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
 
-    # Remove existing results from previous runs (if any)
-    try:
-        for filename in os.listdir(cfg.get('output_dir')):
-            if filename.startswith('build.'):
-                os.unlink(join_with_slash(cfg.get('output_dir'), filename))
-    except OSError:
-        pass
+    remove_oldresult(cfg.get('output_dir'), 'build.')
 
     build_result_path = join_with_slash(cfg.get('output_dir'),
                                         'build.result')
@@ -412,13 +416,7 @@ def cmd_run(cfg):
     """
     global retcode
 
-    # Remove existing results from previous runs (if any)
-    try:
-        for filename in os.listdir(cfg.get('output_dir')):
-            if filename.startswith('run.'):
-                os.unlink(join_with_slash(cfg.get('output_dir'), filename))
-    except OSError:
-        pass
+    remove_oldresult(cfg.get('output_dir'), 'run.')
 
     report_string = ''
     run_result_path = join_with_slash(cfg.get('output_dir'), 'run.result')
