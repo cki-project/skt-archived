@@ -15,7 +15,6 @@
 import logging
 import os
 import re
-import shutil
 import subprocess
 
 from skt.misc import join_with_slash, get_patch_mbox, SKT_SUCCESS, SKT_FAIL
@@ -238,10 +237,6 @@ class KernelTree(object):
         head = self.get_commit_hash()
         logging.info("baserepo %s: %s", self.ref, head)
         return str(head).rstrip()
-
-    def cleanup(self):
-        logging.info("cleaning up %s", self.wdir)
-        shutil.rmtree(self.wdir)
 
     def __get_remote_url(self, remote):
         rurl = None

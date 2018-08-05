@@ -76,11 +76,6 @@ class KernelTreeTest(unittest.TestCase):
         if os.path.isdir(self.tmpdir):
             shutil.rmtree(self.tmpdir)
 
-    def test_cleanup(self):
-        """Ensure cleanup() removes the workdir."""
-        ktree = self.kerneltree
-        ktree.cleanup()
-
     def test_checkout(self):
         """Ensure checkout() runs git commands to check out a ref."""
         self.m_popen_good.communicate = Mock(return_value=('stdout', None))
