@@ -661,7 +661,7 @@ class BeakerRunner(Runner):
             logging.error(exc)
             ret = SKT_ERROR
 
-        if ret != 2:
+        if ret != SKT_ERROR:
             all_results = self.getverboseresults(sorted(list(self.jobs)))
             job_index = 1
             hw_info_match = {}
