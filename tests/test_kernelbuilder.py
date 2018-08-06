@@ -96,17 +96,6 @@ class KBuilderTest(unittest.TestCase):
 
         self.assertEqual('s390x', result)
 
-    def test_adjust_config_option_bogus(self):
-        """Ensure __adjust_config_option() rejects bogus actions."""
-        # pylint: disable=W0212,E1101
-        with self.assertRaises(LookupError) as excmsg:
-            self.kbuilder._KernelBuilder__adjust_config_option('foo',
-                                                               'some option')
-            self.assertEqual(
-                excmsg,
-                "Only 'enable' and 'disable' are supported."
-            )
-
     def test_mktgz_timeout(self):
         """Ensure the build fails properly when it exceeds the timeout."""
         self.m_popen.poll = Mock(side_effect=[None, None, -15])
@@ -238,7 +227,7 @@ class KBuilderTest(unittest.TestCase):
         self.assertEqual(expected_args, check_call_args[0])
 
         mock_shutil.assert_called_once()
-        mock_adjust_cfg.assert_not_called()
+        mock_adjust_cfg.assert_called_once()
 
     @mock.patch('logging.error')
     @mock.patch('logging.info')
@@ -271,4 +260,4 @@ class KBuilderTest(unittest.TestCase):
         expected_args = self.kbuilder.make_argv_base + ['tinyconfig']
         self.assertEqual(expected_args, check_call_args[0])
 
-        mock_adjust_cfg.assert_called_once()
+        mock_adjust_cfg.assert_called()
