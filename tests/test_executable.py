@@ -127,10 +127,12 @@ class TestExecutable(unittest.TestCase):
             '[config]',
             'foo=bar',
             'workdir=/tmp/workdir',
-            'merge_ref=master',
             'basecfg=.config',
             'buildconf=value',
             'tarpkg=value',
+            '[merge-1]',
+            'url = repourl',
+            'ref = master'
         ]
         args = ['--rc', '/tmp/testing.ini', '--workdir', '/tmp/workdir',
                 '--state', '--junit', '/tmp/junit', 'report', '--reporter',

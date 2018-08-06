@@ -918,6 +918,9 @@ def load_config(args):
 
     if not cfg.get('merge_ref'):
         cfg['merge_ref'] = []
+    else:
+        for index, to_merge in enumerate(cfg['merge_ref']):
+            cfg['merge_ref'][index] = to_merge.split()
 
     for section in config.sections():
         if section.startswith("merge-"):
