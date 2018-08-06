@@ -96,6 +96,9 @@ class KernelBuilder(object):
         if not self.enable_debuginfo:
             self.__adjust_config_option('disable', 'debug_info')
 
+        # Set the CONFIG_LOCALVERSION to 'skt'
+        self.__adjust_config_option('set-str', 'LOCALVERSION', 'skt')
+
         self._ready = 1
 
     def __make_redhat_config(self):
