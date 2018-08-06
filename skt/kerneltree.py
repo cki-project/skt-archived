@@ -47,7 +47,7 @@ class KernelTree(object):
         # The origin remote's URL
         self.uri = uri
         # The remote reference to checkout
-        self.ref = ref if ref is not None else "master"
+        self.ref = ref
         self.mergelog = join_with_slash(self.wdir, "merge.log")
         self.fetch_depth = fetch_depth
 

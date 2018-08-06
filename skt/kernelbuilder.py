@@ -35,7 +35,7 @@ class KernelBuilder(object):
                  rh_configs_glob=None):
         self.source_dir = source_dir
         self.basecfg = basecfg
-        self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
+        self.cfgtype = cfgtype
         self._ready = 0
         self.buildlog = join_with_slash(self.source_dir, "build.log")
         self.make_argv_base = ["make", "-C", self.source_dir]
