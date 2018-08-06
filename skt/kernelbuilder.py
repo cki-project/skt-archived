@@ -52,18 +52,14 @@ class KernelBuilder(object):
         logging.info("basecfg: %s", self.basecfg)
         logging.info("cfgtype: %s", self.cfgtype)
 
-    def __adjust_config_option(self, action, option):
+    def __adjust_config_option(self, action, *options):
         """Adjust a kernel config option using kernel scripts."""
-        if action not in ['enable', 'disable']:
-            raise LookupError("Only 'enable' and 'disable' are supported.")
-
         args = [
             join_with_slash(self.source_dir, "scripts", "config"),
             "--file", self.get_cfgpath(),
-            "--{}".format(action),
-            option
-        ]
-        logging.info("%s config option '%s': %s", action, option, args)
+            "--{}".format(action)
+        ] + list(options)
+        logging.info("%s config option '%s': %s", action, options, args)
         subprocess.check_call(args)
 
     def clean_kernel_source(self):
