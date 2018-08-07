@@ -273,8 +273,7 @@ class KernelTree(object):
         head = None
 
         try:
-            self.__git_cmd("remote", "add", remote_name, uri,
-                           stderr=subprocess.PIPE)
+            self.__git_cmd("remote", "add", remote_name, uri)
         except subprocess.CalledProcessError:
             pass
 
