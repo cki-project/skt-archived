@@ -205,7 +205,7 @@ def cmd_merge(cfg):
 
     try:
         if cfg.get('merge_ref'):
-            report_string = '{}\n{}'.format(
+            report_string = '\n{}\n{}'.format(
                 report_string,
                 'We merged the following references into the tree:'
             )
@@ -222,19 +222,19 @@ def cmd_merge(cfg):
 
                     return
 
-                report_string += '  - %s\n    into commit %s' % (mb[0],
-                                                                 bhead[:12])
+                report_string += '\n  - %s\n    into commit %s' % (mb[0],
+                                                                   bhead[:12])
                 idx += 1
 
         elif cfg.get('patch') or cfg.get('pw'):
-            report_string = 'We applied the following patch(es):\n'
+            report_string = 'We applied the following patch(es):'
 
             if cfg.get('patch'):
                 utypes.append("[local patch]")
                 for patch in cfg.get('patch'):
                     patch = os.path.abspath(patch)
                     save_state(cfg, {'localpatch_%02d' % idx: patch})
-                    report_string += '  - %s\n' % patch
+                    report_string += '\n  - %s\n' % patch
 
                     ktree.merge_patch_file(patch)
                     idx += 1
@@ -243,10 +243,10 @@ def cmd_merge(cfg):
                 utypes.append("[patchwork]")
                 for patch in cfg.get('pw'):
                     save_state(cfg, {'patchwork_%02d' % idx: patch})
-                    report_string += '  - %s,\n' % get_patch_name(
+                    report_string += '\n  - %s,\n' % get_patch_name(
                         get_patch_mbox(patch)
                     )
-                    report_string += '    grabbed from %s\n' % patch
+                    report_string += '    grabbed from %s' % patch
 
                     ktree.merge_patchwork_patch(patch)
                     idx += 1
