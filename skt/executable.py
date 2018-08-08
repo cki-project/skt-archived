@@ -558,6 +558,12 @@ def setup_parser():
         help="Path to work dir"
     )
     parser.add_argument(
+        "-o",
+        "--output-dir",
+        type=str,
+        help="Path to output directory"
+    )
+    parser.add_argument(
         "-w",
         "--wipe",
         help=(
@@ -969,8 +975,14 @@ def load_config(args):
             cfg['runner'][1]['blacklist']
         )
 
-    # Preparation for output directory option
-    if os.access(cfg.get('workdir'), os.W_OK | os.X_OK):
+    # Create and get an absolute path for the output directory
+    if cfg.get('output_dir'):
+        cfg['output_dir'] = full_path(cfg.get('output_dir'))
+        try:
+            os.mkdir(cfg.get('output_dir'))
+        except OSError:
+            pass
+    elif os.access(cfg.get('workdir'), os.W_OK | os.X_OK):
         cfg['output_dir'] = cfg.get('workdir')
     else:
         cfg['output_dir'] = os.getcwd()

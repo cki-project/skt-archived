@@ -131,18 +131,18 @@ written to the `<JUNIT_DIR>` directory.
 
 To checkout a kernel tree run:
 
-    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
+    skt --rc <SKTRC> --state --workdir <WORKDIR> --output-dir <OUTDIR> -vv \
         merge --baserepo <REPO_URL> --ref <REPO_REF>
 
 Here `<SKTRC>` would be the configuration file to retrieve the configuration
 and the state from, and store the updated state in. `<WORKDIR>` would be the
-directory to clone and checkout the kernel repo to, `<REPO_URL>` would be the
-source kernel Git repo URL, and `<REPO_REF>` would be the reference to
-checkout.
+directory to clone and checkout the kernel repo to, `<OUTDIR>` would be
+directory to store output files, `<REPO_URL>` would be the source
+kernel Git repo URL, and `<REPO_REF>` would be the reference to checkout.
 
 E.g. to checkout "master" branch of the "net-next" repo:
 
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
+    skt --rc skt-rc --state --workdir skt-workdir --output-dir skt-outdir -vv \
         merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
               --ref master
 
