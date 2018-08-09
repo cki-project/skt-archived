@@ -145,26 +145,6 @@ class BeakerRunner(Runner):
         (stdout, _) = bkr.communicate()
         return etree.fromstring(stdout)
 
-    def dumpjunitresults(self, jobid, junit):
-        """
-        Retrieve junit XML from beaker and write it to a file
-
-        Args:
-            jobid: The beaker jobid
-            junit: The directory where the junit XML will be written
-        """
-        args = ["bkr", "job-results", "--format=junit-xml"]
-        args.append(jobid)
-
-        fname = "%s/%s.xml" % (junit, jobid.replace(":", "_").lower())
-        with open(fname, 'w') as fileh:
-            bkr = subprocess.Popen(args, stdout=fileh)
-            bkr.communicate()
-        if bkr.returncode != 0:
-            raise Exception(
-                'Unable to get Beaker job results for job %s' % jobid
-            )
-
     def __forget_cid(self, cid):
         """
         Remove a job or recipe from the current list

@@ -429,16 +429,8 @@ def cmd_run(cfg):
                                         uid=cfg.get('uid'),
                                         arch=cfg.get("kernel_arch"))
 
-    idx = 0
-    for job in runner.jobs:
-        if cfg.get('wait') and cfg.get('junit'):
-            try:
-                runner.dumpjunitresults(job, cfg.get('junit'))
-            except Exception as exc:
-                logging.error(exc)
-                retcode = SKT_ERROR
-        save_state(cfg, {'jobid_%s' % (idx): job})
-        idx += 1
+    for index, job in enumerate(runner.jobs):
+        save_state(cfg, {'jobid_%s' % (index): job})
 
     cfg['jobs'] = runner.jobs
 
