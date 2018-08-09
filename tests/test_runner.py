@@ -39,6 +39,8 @@ class TestRunner(unittest.TestCase):
         with open('{}/assets/test.xml'.format(SCRIPT_PATH), 'r') as fileh:
             self.test_xml = fileh.read()
 
+        self.max_aborted = 3
+
     def test_getrunner(self):
         """Ensure getrunner() can create a runner subclass."""
         result = runner.getrunner('beaker', {'jobtemplate': 'test'})
@@ -229,7 +231,7 @@ class TestRunner(unittest.TestCase):
 
         mock_jobsubmit.return_value = "J:0001"
 
-        result = self.myrunner.run(url, release, wait)
+        result = self.myrunner.run(url, self.max_aborted, release, wait)
         self.assertEqual(result, (0, ''))
 
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
@@ -242,7 +244,7 @@ class TestRunner(unittest.TestCase):
 
         mock_jobsubmit.return_value = "J:0001"
 
-        result = self.myrunner.run(url, release, wait, host)
+        result = self.myrunner.run(url, self.max_aborted, release, wait, host)
         self.assertEqual(result, (0, ''))
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
@@ -260,5 +262,5 @@ class TestRunner(unittest.TestCase):
         # no need to wait 60 seconds
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
-        result = self.myrunner.run(url, release, wait)
+        result = self.myrunner.run(url, self.max_aborted, release, wait)
         self.assertEqual(result, (0, ''))
