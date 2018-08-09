@@ -447,7 +447,18 @@ class BeakerRunner(Runner):
                                              'jobs')
                         return
 
-                    if result != 'Pass':
+                    if result == 'Warn' and status == 'Aborted':
+                        logging.warning('%s aborted!' % cid)
+                        self.__forget_cid(cid)
+                        self.aborted_count += 1
+
+                        if self.aborted_count < self.max_aborted:
+                            logging.warning('Resubmitting aborted %s' % cid)
+                            newjob = self.__recipe_to_job(root, False)
+                            newjobid = self.__jobsubmit(etree.tostring(newjob))
+                            self.__add_to_watchlist(newjobid, reschedule, None)
+
+                    elif result != 'Pass':
                         tinst = root.find(
                             ".//task[@name='/distribution/kpkginstall']"
                         )
