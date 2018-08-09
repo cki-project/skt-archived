@@ -25,8 +25,6 @@ import requests
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 import skt.reporter
 
-MAX_ABORTED = 3
-
 
 class Runner(object):
     """An abstract test runner"""
@@ -76,6 +74,8 @@ class BeakerRunner(Runner):
         self.jobs = set()
         self.j2r = dict()
         self.aborted_count = 0
+        # Set up the default, allowing for overrides with each run
+        self.max_aborted = 3
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -326,7 +326,7 @@ class BeakerRunner(Runner):
                                     for _, status in data[1])
                 if job_cancelled:
                     return SKT_ERROR
-            if self.aborted_count == MAX_ABORTED:
+            if self.max_aborted and self.aborted_count == self.max_aborted:
                 logging.error('Max count of aborted jobs achieved, please '
                               'check your infrastructure!')
                 return SKT_ERROR
@@ -460,7 +460,7 @@ class BeakerRunner(Runner):
                             self.__forget_cid(cid)
                             self.aborted_count += 1
 
-                            if self.aborted_count < MAX_ABORTED:
+                            if self.aborted_count < self.max_aborted:
                                 newjob = self.__recipe_to_job(root, False)
                                 newjobid = self.__jobsubmit(
                                     etree.tostring(newjob)
@@ -571,26 +571,28 @@ class BeakerRunner(Runner):
 
         return jobid
 
-    def run(self, url, release, wait=False, host=None, uid="",
+    def run(self, url, max_aborted, release, wait=False, host=None, uid="",
             arch=platform.machine(), reschedule=True):
         """
         Run tests in Beaker.
 
         Args:
-            url:        URL pointing to kernel tarball.
-            release:    NVR of the tested kernel.
-            wait:       False if skt should exit after submitting the jobs,
-                        True if it should wait for them to finish.
-            host:       Force testing on a machine with provided hostname.
-            uid:        Username jobs should be submitted under. Can be
-                        retrieved by running `bkr whoami`.
-            arch:       Architecture of the machine the tests should run on, in
-                        a format accepted by Beaker. Defaults to architecture
-                        of the current machine skt is running on if not
-                        specified.
-            reschedule: True to try to rule out infrastructure / host-specific
-                        failures by resubmitting the job (on both the same and
-                        different host), False otherwise.
+            url:         URL pointing to kernel tarball.
+            max_aborted: Maximum number of allowed aborted jobs. Abort the
+                         whole stage if the number is reached.
+            release:     NVR of the tested kernel.
+            wait:        False if skt should exit after submitting the jobs,
+                         True if it should wait for them to finish.
+            host:        Force testing on a machine with provided hostname.
+            uid:         Username jobs should be submitted under. Can be
+                         retrieved by running `bkr whoami`.
+            arch:        Architecture of the machine the tests should run on,
+                         in a format accepted by Beaker. Defaults to
+                         architecture of the current machine skt is running on
+                         if not specified.
+            reschedule:  True to try to rule out infrastructure / host-specific
+                         failures by resubmitting the job (on both the same and
+                         different host), False otherwise.
 
         Returns:
             Tuple (ret, report_string) where ret can be
@@ -606,6 +608,7 @@ class BeakerRunner(Runner):
         self.recipes = set()
         self.watchlist = set()
         self.aborted_count = 0
+        self.max_aborted = max_aborted
 
         # FIXME Pass or retrieve this explicitly
         uid += " %s" % url.split('/')[-1]

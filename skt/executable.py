@@ -424,6 +424,7 @@ def cmd_run(cfg):
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
     retcode, report_string = runner.run(cfg.get('buildurl'),
+                                        cfg.get('max_aborted_count'),
                                         cfg.get('krelease'),
                                         cfg.get('wait'),
                                         uid=cfg.get('uid'),
@@ -709,6 +710,12 @@ def setup_parser():
         help="Kernel release version of the build"
     )
     parser_run.add_argument(
+        '--max-aborted-count',
+        type=int,
+        help='Ignore <count> aborted jobs to work around temporary '
+             + 'infrastructure issues. Defaults to 3.'
+    )
+    parser_run.add_argument(
         "--wait",
         action="store_true",
         default=False,
@@ -950,6 +957,10 @@ def load_config(args):
             os.mkdir(full_path(cfg.get('junit')))
         except OSError:
             pass
+
+    # Assign default max aborted count if it's not defined in config file
+    if not cfg.get('max_aborted_count'):
+        cfg['max_aborted_count'] = 3
 
     # Get absolute path to blacklist file
     if cfg.get('runner') and cfg['runner'][0] == 'beaker' and \
