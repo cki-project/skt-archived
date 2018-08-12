@@ -492,8 +492,11 @@ def cmd_cleanup(cfg):
         except OSError:
             pass
 
-    if cfg.get('wipe') and cfg.get('workdir'):
-        shutil.rmtree(cfg.get('workdir'))
+    if cfg.get('wipe'):
+        if cfg.get('workdir'):
+            shutil.rmtree(cfg.get('workdir'))
+        if cfg.get('output_dir'):
+            shutil.rmtree(cfg.get('output_dir'))
 
 
 def cmd_all(cfg):
