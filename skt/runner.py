@@ -22,8 +22,8 @@ import xml.etree.ElementTree as etree
 
 import requests
 
+from skt.console import ConsoleLog
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
-import skt.reporter
 
 
 class Runner(object):
@@ -628,8 +628,7 @@ class BeakerRunner(Runner):
                             'which produced the results below:'
                         )
 
-                    console_log = skt.reporter.ConsoleLog(release,
-                                                          console_log_url)
+                    console_log = ConsoleLog(release, console_log_url)
                     if not console_log.data and result != 'Pass':
                         # The console wasn't logged. This isn't an issue if
                         # everything went well, however reporting a failure
