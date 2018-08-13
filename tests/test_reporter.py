@@ -13,22 +13,17 @@
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for reporter module."""
 import StringIO
-import gzip
 import os
-import re
 import shutil
 import tempfile
 import unittest
 
-from contextlib import contextmanager
 import xml.etree.ElementTree as etree
 
 import mock
 import responses
 
 from skt import reporter
-
-from tests import misc
 
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -101,103 +96,6 @@ class TestReporterFunctions(unittest.TestCase):
         }
         self.assertDictEqual(expected_cfg, cfg)
         mock_log.assert_called_once()
-
-
-class TestConsoleLog(unittest.TestCase):
-    """Test cases for reporter.ConsoleLog class."""
-
-    @staticmethod
-    @contextmanager
-    def request_get_mocked(filename):
-        """Mock request.get to allow feeding ConsoleLog with known inputs.
-
-        When request.get is called, it "fetches" the content of the asset
-        passed as parameter.
-
-        Args:
-            filename: Asset's filename.
-        """
-        get_mocked = mock.Mock()
-
-        def remove_nt_marker(line):
-            """Filter function for removing the 'nt ' markers on assets."""
-            return not re.match(r'^nt ', line)
-        get_mocked.text = filter(remove_nt_marker,
-                                 misc.get_asset_content(filename))
-        with mock.patch('requests.get', mock.Mock(return_value=get_mocked)):
-            yield
-
-    @staticmethod
-    def get_expected_traces(filename):
-        """Return expected traces from an asset.
-
-        Each line started with 'nt ' is discarded.
-
-        Args:
-            filename: Asset's filename.
-        Returns:
-            A list where every member is a trace.
-
-        """
-        expected_traces = []
-        tmp_trace = []
-        for line in misc.get_asset_content(filename).splitlines()[1:]:
-            if line.startswith('nt '):
-                if tmp_trace:
-                    expected_traces.append('\n'.join(tmp_trace))
-                    tmp_trace = []
-            else:
-                tmp_trace.append(line)
-        expected_traces.append('\n'.join(tmp_trace))
-        return expected_traces
-
-    def test_fetchdata(self):
-        """Ensure __fetchdata() returns an empty list with no URL."""
-        # pylint: disable=W0212,E1101
-        consolelog = reporter.ConsoleLog(kver='4-4', url=None)
-        result = consolelog._ConsoleLog__fetchdata()
-        self.assertItemsEqual([], result)
-
-    def test_getfulllog(self):
-        """Ensure getfulllog() returns gzipped data."""
-        consolelog = reporter.ConsoleLog(kver='4-4', url=None)
-        consolelog.data = ['foo']
-        result = consolelog.getfulllog()
-
-        # Decompress the string and make sure it matches our test data
-        tstr = StringIO.StringIO(result)
-        with gzip.GzipFile(fileobj=tstr, mode="r") as fileh:
-            data_test = fileh.read()
-
-        self.assertEqual(data_test, consolelog.data[0])
-
-    def test_kernel_version_unmatch(self):
-        """Ensure gettraces() doesn't catch trace when kver doesn't match."""
-        with self.request_get_mocked('x86_one_trace.txt'):
-            consolelog = reporter.ConsoleLog('4-4', 'someurl')
-            traces = consolelog.gettraces()
-        self.assertListEqual(traces, [])
-
-    def test_match_one_trace(self):
-        """Check one trace can be extracted from a console log."""
-        with self.request_get_mocked('x86_one_trace.txt'):
-            consolelog = reporter.ConsoleLog('4-5-fake', 'someurl')
-            traces = consolelog.gettraces()
-            self.assertEqual(len(traces), 1)
-        expected_trace = self.get_expected_traces('x86_one_trace.txt')[0]
-        self.assertEqual(expected_trace, traces[0])
-
-    def test_match_three_traces(self):
-        """Check three traces can be extracted from a console log."""
-        with self.request_get_mocked('x86_three_traces.txt'):
-            consolelog = reporter.ConsoleLog('4.16-fake', 'someurl')
-            traces = consolelog.gettraces()
-            self.assertEqual(len(traces), 3)
-        expected_traces = self.get_expected_traces('x86_three_traces.txt')
-        for idx, trace in enumerate(traces):
-            msg = ("Trace_{} doesn't match.\n"
-                   "{!r} != {!r}").format(idx, trace, expected_traces[idx])
-            self.assertEqual(trace, expected_traces[idx], msg=msg)
 
 
 class TestStdioReporter(unittest.TestCase):
