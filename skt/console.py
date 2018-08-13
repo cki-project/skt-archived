@@ -125,16 +125,17 @@ class ConsoleLog(object):
         r'^\s*$'
     ]
 
-    def __init__(self, kver, url):
+    def __init__(self, kver, url_or_path):
         """
         Initialize a console log parser
 
         Args:
-            kver:   Kernel version string to use to find the beginning of the
-                    kernel log.
-            url:    URL of the console log file to fetch and parse.
+            kver:        Kernel version string to use to find the beginning of
+                         the kernel log.
+            url_or_path: URL or path to the console log file to fetch and
+                         parse. Local files may be gzipped.
         """
-        self.url = url
+        self.url_or_path = url_or_path
         self.kver = kver
         self.data = self.__fetchdata()
         self.start_pattern = re.compile('|'.join(self.oopsmsg))
@@ -149,14 +150,22 @@ class ConsoleLog(object):
         Returns:
             List of console log lines related to tested kernel
         """
-        if not self.url:
+        if not self.url_or_path:
             return []
 
-        response = requests.get(self.url)
+        try:
+            console_text = requests.get(self.url_or_path).text
+        except requests.exceptions.MissingSchema:  # We got a file path
+            if self.url_or_path.endswith('.gz'):
+                with gzip.open(self.url_or_path, 'rb') as gz_file:
+                    console_text = gz_file.read()
+            else:
+                with open(self.url_or_path, 'r') as text_file:
+                    console_text = text_file.read()
 
         try:
-            str_data = response.text[
-                response.text.index("Linux version %s" % self.kver):
+            str_data = console_text[
+                console_text.index("Linux version %s" % self.kver):
             ]
         except ValueError:
             # Targeted kernel didn't even start booting

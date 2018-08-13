@@ -75,13 +75,13 @@ class TestConsoleLog(unittest.TestCase):
     def test_fetchdata(self):
         """Ensure __fetchdata() returns an empty list with no URL."""
         # pylint: disable=W0212,E1101
-        consolelog = console.ConsoleLog(kver='4-4', url=None)
+        consolelog = console.ConsoleLog(kver='4-4', url_or_path=None)
         result = consolelog._ConsoleLog__fetchdata()
         self.assertItemsEqual([], result)
 
     def test_getfulllog(self):
         """Ensure getfulllog() returns gzipped data."""
-        consolelog = console.ConsoleLog(kver='4-4', url=None)
+        consolelog = console.ConsoleLog(kver='4-4', url_or_path=None)
         consolelog.data = ['foo']
         result = consolelog.getfulllog()
 
