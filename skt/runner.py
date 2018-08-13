@@ -643,12 +643,6 @@ class BeakerRunner(Runner):
                     if result != 'Pass':
                         logging.info('Failure detected in recipe %s, attaching'
                                      ' console log', recipe)
-                        traces = console_log.gettraces()
-                        if traces:
-                            report_string += '{}\n{}\n'.format(
-                                'This is the first call trace we found:',
-                                traces[0]
-                            )
                         with open('%02d_console.log.gz' % job_index,
                                   'w') as console_file:
                             console_file.write(console_log.getfulllog())
