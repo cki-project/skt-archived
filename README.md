@@ -106,6 +106,9 @@ The following commands are supported by `skt`:
     - Report build and/or test results using the specified "reporter".
       Currently results can be reported by e-mail or printed to stdout. This
       command expects `run` command to have completed.
+* `console-check`
+    - Check the specified console logs for any traces, and report the first
+      trace found for each console log.
 * `cleanup`
     - Remove the build information file, kernel tarball. Remove state
       information from the configuration file, if saving state was enabled
@@ -413,6 +416,19 @@ Using the previous example of mail report command and state files
         --mail-to developer@example.com --mail-to dev2@example.com \
         --mail-from skt@example.com \
         --result ./state_x86 --result ./state_s390x
+
+### Console check
+
+The console checker is not a part of the default flow, but allows parsing
+console logs to detect any call traces. A kernel release string is needed (can
+be grabbed from state file), and URL or file path to one or more console logs
+can be specified. Local files can be gzipped.
+
+Example of the command to check console log present at given URL, when the
+kernel release string is parsed out of state file:
+
+    skt --rc skt-rc --state --workdir skt-workdir -vv \
+        console-check --console http://beaker.example.com/skt-logs/console.log
 
 ### Cleanup
 

@@ -31,6 +31,7 @@ import traceback
 import junit_xml
 
 import skt
+import skt.console
 import skt.publisher
 import skt.reporter
 import skt.runner
@@ -460,6 +461,52 @@ def cmd_report(cfg):
     reporter.report()
 
 
+def cmd_console_check(cfg):
+    """
+    Check the console logs for any traces.
+
+    Args:
+        cfg: A dictionary of skt configuration.
+    """
+    remove_oldresult(cfg.get('output_dir'), 'console_check.')
+    console_result_path = join_with_slash(cfg.get('output_dir'),
+                                          'console_check.result')
+    console_report_path = join_with_slash(cfg.get('output_dir'),
+                                          'console_check.report')
+
+    if not cfg.get('krelease') or not cfg.get('console'):
+        raise Exception('<krelease> or <console-url> parameter missing!')
+
+    trace_list_list = []
+
+    for console_path_or_url in cfg.get('console'):
+        console_log = skt.console.ConsoleLog(cfg.get('krelease'),
+                                             console_path_or_url)
+
+        trace_list_list.append(console_log.gettraces())
+
+    if any(trace_list_list):
+        report_string = ''
+
+        for trace_list in trace_list_list:
+            if trace_list:
+                report_string += '{}\n{}:\n\n{}\n\n'.format(
+                    'This is the first trace we found in ',
+                    # Get the path/URL that belongs to the found trace. The
+                    # order of passed console logs and traces is the same, so
+                    # we get the index of the trace and retrieve the log on the
+                    # same position.
+                    cfg.get('console')[trace_list_list.index(trace_list)],
+                    trace_list[0]
+                )
+
+        report_results(console_result_path, 'false',
+                       console_report_path, report_string)
+    else:
+        report_results(console_result_path, 'true',
+                       console_report_path, 'No call traces were detected.')
+
+
 def cmd_cleanup(cfg):
     """
     Remove the build information file, kernel tarball. Remove state information
@@ -767,6 +814,22 @@ def setup_parser():
     parser_report.set_defaults(func=cmd_report)
     parser_report.set_defaults(_name="report")
 
+    parser_console = subparsers.add_parser('console-check', add_help=False)
+    parser_console.add_argument(
+        '--krelease',
+        type=str,
+        help='Release version string of the kernel to search for'
+    )
+    parser_console.add_argument(
+        '--console',
+        type=str,
+        action='append',
+        default=[],
+        help='URL or path to console log to parse, local file may be gzipped. '
+             + 'Can be specified multiple times to parse more logs with the '
+             + 'same krelease.'
+    )
+
     parser_cleanup = subparsers.add_parser("cleanup", add_help=False)
 
     parser_all = subparsers.add_parser(
@@ -811,6 +874,12 @@ def setup_parser():
         help="Report sub-command help",
         action="help"
     )
+    parser_console.add_argument(
+        '-h',
+        '--help',
+        help='Console sub-command help',
+        action='help'
+    )
 
     parser_merge.set_defaults(func=cmd_merge)
     parser_merge.set_defaults(_name="merge")
@@ -820,6 +889,8 @@ def setup_parser():
     parser_publish.set_defaults(_name="publish")
     parser_run.set_defaults(func=cmd_run)
     parser_run.set_defaults(_name="run")
+    parser_console.set_defaults(func=cmd_console_check)
+    parser_console.set_defaults(_name='console_check')
     parser_cleanup.set_defaults(func=cmd_cleanup)
     parser_cleanup.set_defaults(_name="cleanup")
     parser_all.set_defaults(func=cmd_all)
