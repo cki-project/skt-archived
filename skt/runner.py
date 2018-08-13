@@ -634,7 +634,7 @@ class BeakerRunner(Runner):
                         # everything went well, however reporting a failure
                         # without any details is useless so skip it if nothing
                         # besides boot test was run.
-                        if 'LTP lite' not in report_string:
+                        if not test_list:
                             continue
 
                     report_string += 'Test run #%d\n' % job_index
