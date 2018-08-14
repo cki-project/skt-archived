@@ -262,43 +262,9 @@ class BeakerRunner(Runner):
 
         return ltp_logs
 
-    def __jobresult(self, jobid):
-        """
-        Get results for a specific job.
-
-        Args:
-            jobid: A Beaker job ID, in 'J:<id>' format.
-
-        Returns:
-            A tuple (ret, result), where ret is SKT_SUCCESS if the job ended
-            with Pass, SKT_FAIL if a test failure occurred and SKT_ERROR if it
-            aborted (infrastructure failure); and result is the job result
-            itself.
-        """
-        result = None
-
-        root = self.getresultstree(jobid)
-        result = root.attrib.get("result")
-        status = root.attrib.get('status')
-
-        if result == "Pass":
-            ret = SKT_SUCCESS
-        elif result == 'Warn' and status == 'Aborted':
-            ret = SKT_ERROR
-        else:
-            ret = SKT_FAIL
-
-        logging.info("job result: %s [%d]", result, ret)
-
-        return (ret, result)
-
-    def __getresults(self, jobid=None):
+    def __getresults(self):
         """
         Get return code based on the job results.
-
-        Args:
-            jobid: Beaker job ID in format 'J:<id>'. If not passed, all
-                   submitted jobs are checked.
 
         Returns:
             SKT_SUCCESS if all jobs passed,
@@ -309,42 +275,38 @@ class BeakerRunner(Runner):
         fhosts = set()
         tfailures = 0
 
-        if jobid:
-            (ret, _) = self.__jobresult(jobid)
-
-        if not jobid or ret != SKT_SUCCESS:
-            if self.failures:
-                all_aborted = all([data[1] == ('Warn', 'Aborted')
-                                   for data in self.failures.values()])
-                if all_aborted:
-                    logging.warning('All jobs aborted, possible infrastructure'
-                                    ' failure.')
-                    return SKT_ERROR
-
-                job_cancelled = any(status == 'Cancelled'
-                                    for data in self.failures.values()
-                                    for _, status in data[1])
-                if job_cancelled:
-                    return SKT_ERROR
-            if self.max_aborted and self.aborted_count == self.max_aborted:
-                logging.error('Max count of aborted jobs achieved, please '
-                              'check your infrastructure!')
+        if self.failures:
+            all_aborted = all([data[1] == ('Warn', 'Aborted')
+                               for data in self.failures.values()])
+            if all_aborted:
+                logging.warning('All jobs aborted, possible infrastructure'
+                                ' failure.')
                 return SKT_ERROR
 
-            for (recipe, data) in self.failures.iteritems():
-                # Treat single failure as a fluke during normal run
-                if data[2] >= 3 and len(data[0]) < 2:
-                    continue
-                tfailures += len(data[0])
-                logging.info("%s failed %d/%d (%s)%s", recipe, len(data[0]),
-                             data[2], ', '.join([result for (result, _)  # noqa
-                                                 in data[1]]),
-                             ""
-                             if len(set(data[0])) > 1
-                             else ": %s" % data[0][0])
+            job_cancelled = any(status == 'Cancelled'
+                                for data in self.failures.values()
+                                for _, status in data[1])
+            if job_cancelled:
+                return SKT_ERROR
+        if self.max_aborted and self.aborted_count == self.max_aborted:
+            logging.error('Max count of aborted jobs achieved, please '
+                          'check your infrastructure!')
+            return SKT_ERROR
 
-                fhosts = fhosts.union(set(data[0]))
-                ret = SKT_FAIL
+        for (recipe, data) in self.failures.iteritems():
+            # Treat single failure as a fluke during normal run
+            if data[2] >= 3 and len(data[0]) < 2:
+                continue
+            tfailures += len(data[0])
+            logging.info("%s failed %d/%d (%s)%s", recipe, len(data[0]),
+                         data[2], ', '.join([result for (result, _)  # noqa
+                                             in data[1]]),
+                         ""
+                         if len(set(data[0])) > 1
+                         else ": %s" % data[0][0])
+
+            fhosts = fhosts.union(set(data[0]))
+            ret = SKT_FAIL
 
         if ret and fhosts:
             msg = "unknown"
