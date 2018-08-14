@@ -145,67 +145,37 @@ class TestRunner(unittest.TestCase):
         }
         self.assertDictEqual(result, expected_result)
 
-    @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    def test_jobresult(self, mock_getresultstree):
-        """Ensure __jobresult() works."""
-        # beaker_xml up a beaker XML reply
-        # pylint: disable=W0212,E1101
-        beaker_xml = misc.get_asset_content('beaker_results.xml')
-        mock_getresultstree.return_value = etree.fromstring(beaker_xml)
-
-        result = self.myrunner._BeakerRunner__jobresult("J:00001")
-        self.assertTupleEqual(result, (0, 'Pass'))
-
-    @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    def test_jobresult_failure(self, mock_getresultstree):
-        """Ensure __jobresult() handles a job failure."""
-        # Mock up a beaker XML reply
-        # pylint: disable=W0212,E1101
-        beaker_xml = misc.get_asset_content('beaker_fail_results.xml')
-        mock_getresultstree.return_value = etree.fromstring(beaker_xml)
-
-        result = self.myrunner._BeakerRunner__jobresult("J:00001")
-        self.assertTupleEqual(result, (1, 'Fail'))
-
-    @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    def test_getresults(self, mock_getresultstree):
+    def test_getresults(self):
         """Ensure __getresults() works."""
-        # Mock up a beaker XML reply
         # pylint: disable=W0212,E1101
-        beaker_xml = misc.get_asset_content('beaker_results.xml')
-        mock_getresultstree.return_value = etree.fromstring(beaker_xml)
-
-        result = self.myrunner._BeakerRunner__getresults("J:00001")
+        result = self.myrunner._BeakerRunner__getresults()
         self.assertEqual(result, 0)
 
     @mock.patch('logging.warning')
-    @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    def test_getresults_failure(self, mock_getresultstree, mock_logging):
+    def test_getresults_failure(self, mock_logging):
         """Ensure __getresults() handles a job failure."""
-        # Mock up a beaker XML reply
         # pylint: disable=W0212,E1101
-        beaker_xml = misc.get_asset_content('beaker_fail_results.xml')
-        mock_getresultstree.return_value = etree.fromstring(beaker_xml)
 
-        # Ensure that the failure loop hits 'continue'
+        # Ensure that the failure loop hits 'continue' which doesn't change
+        # the result
         self.myrunner.failures = {
             'test': ['A', set(), 4]
         }
-        result = self.myrunner._BeakerRunner__getresults("J:00001")
-        self.assertEqual(result, 1)
+        result = self.myrunner._BeakerRunner__getresults()
+        self.assertEqual(result, 0)
 
         # Go through the failure loop with one failed host
         self.myrunner.failures = {
             'test': [['A'], set([('result', 'status')]), 1]
         }
-        result = self.myrunner._BeakerRunner__getresults("J:00001")
+        result = self.myrunner._BeakerRunner__getresults()
         self.assertEqual(result, 1)
 
         # Go through the failure loop with multiple failed hosts
         self.myrunner.failures = {
             'test': [['A', 'B'], set([('result', 'status')]), 1]
         }
-        result = self.myrunner._BeakerRunner__getresults("J:00001")
+        result = self.myrunner._BeakerRunner__getresults()
         self.assertEqual(result, 1)
         mock_logging.assert_called()
 
