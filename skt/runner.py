@@ -68,7 +68,7 @@ class BeakerRunner(Runner):
         # * True if the job should be rescheduled when failing, false if not
         # * Taskspec of the origin job - the job this job is a resubmission of
         self.watchlist = set()
-        self.whiteboard = None
+        self.whiteboard = ''
         self.failures = {}
         self.recipes = set()
         self.jobs = set()
@@ -516,7 +516,7 @@ class BeakerRunner(Runner):
     def __add_to_watchlist(self, jobid, reschedule=True, origin=None):
         root = self.getresultstree(jobid)
 
-        if self.whiteboard is None:
+        if not self.whiteboard:
             self.whiteboard = root.find("whiteboard").text
 
         self.j2r[jobid] = set()
