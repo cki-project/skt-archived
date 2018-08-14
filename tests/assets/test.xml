@@ -1,5 +1,5 @@
 <job>
-  <whiteboard>skt ##KVER## ##UID## ##HOSTNAME##[noavc] [noselinux]</whiteboard>
+  <whiteboard>skt ##KVER## ##HOSTNAME##[noavc] [noselinux]</whiteboard>
   <recipeSet>
     <recipe ks_meta="harness='restraint-rhts beakerlib-redhat'" kernel_options="selinux=0" whiteboard="##KVER##">
       <distroRequires>

@@ -582,7 +582,7 @@ class BeakerRunner(Runner):
 
         return jobid
 
-    def run(self, url, max_aborted, release, wait=False, host=None, uid="",
+    def run(self, url, max_aborted, release, wait=False, host=None,
             arch=platform.machine(), reschedule=True):
         """
         Run tests in Beaker.
@@ -595,8 +595,6 @@ class BeakerRunner(Runner):
             wait:        False if skt should exit after submitting the jobs,
                          True if it should wait for them to finish.
             host:        Force testing on a machine with provided hostname.
-            uid:         Username jobs should be submitted under. Can be
-                         retrieved by running `bkr whoami`.
             arch:        Architecture of the machine the tests should run on,
                          in a format accepted by Beaker. Defaults to
                          architecture of the current machine skt is running on
@@ -621,9 +619,6 @@ class BeakerRunner(Runner):
         self.aborted_count = 0
         self.max_aborted = max_aborted
 
-        # FIXME Pass or retrieve this explicitly
-        uid += " %s" % url.split('/')[-1]
-
         if host is None:
             hostname = ""
             hostnametag = ""
@@ -635,7 +630,6 @@ class BeakerRunner(Runner):
             job_xml_tree = etree.fromstring(self.__getxml(
                 {'KVER': release,
                  'KPKG_URL': url,
-                 'UID': uid,
                  'ARCH': arch,
                  'HOSTNAME': hostname,
                  'HOSTNAMETAG': hostnametag}
