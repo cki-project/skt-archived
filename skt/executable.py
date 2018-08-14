@@ -179,7 +179,6 @@ def cmd_merge(cfg):
         cfg:    A dictionary of skt configuration.
     """
     global retcode
-    utypes = []
     idx = 0
     ktree = KernelTree(
         cfg.get('baserepo'),
@@ -214,7 +213,6 @@ def cmd_merge(cfg):
                                  'mergehead_%02d' % idx: bhead})
                 (retcode, bhead) = ktree.merge_git_ref(*mb)
 
-                utypes.append("[git]")
                 if retcode:
                     if retcode != SKT_ERROR:
                         report_results(merge_result_path, 'false',
@@ -230,7 +228,6 @@ def cmd_merge(cfg):
             report_string = 'We applied the following patch(es):'
 
             if cfg.get('patch'):
-                utypes.append("[local patch]")
                 for patch in cfg.get('patch'):
                     patch = os.path.abspath(patch)
                     save_state(cfg, {'localpatch_%02d' % idx: patch})
@@ -240,7 +237,6 @@ def cmd_merge(cfg):
                     idx += 1
 
             elif cfg.get('pw'):
-                utypes.append("[patchwork]")
                 for patch in cfg.get('pw'):
                     save_state(cfg, {'patchwork_%02d' % idx: patch})
                     report_string += '\n  - %s,\n' % get_patch_name(
@@ -286,16 +282,11 @@ def cmd_merge(cfg):
         (exc, exc_type, trace) = sys.exc_info()
         raise exc, exc_type, trace
 
-    uid = "[baseline]"
-    if utypes:
-        uid = " ".join(utypes)
-
     kpath = ktree.getpath()
     buildhead = ktree.get_commit_hash()
 
     save_state(cfg, {'workdir': kpath,
-                     'buildhead': buildhead,
-                     'uid': uid})
+                     'buildhead': buildhead})
 
     report_results(merge_result_path, 'true',
                    merge_report_path, report_string)
@@ -427,7 +418,6 @@ def cmd_run(cfg):
                                         cfg.get('max_aborted_count'),
                                         cfg.get('krelease'),
                                         cfg.get('wait'),
-                                        uid=cfg.get('uid'),
                                         arch=cfg.get("kernel_arch"))
 
     for index, job in enumerate(runner.jobs):
