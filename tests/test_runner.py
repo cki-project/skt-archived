@@ -234,19 +234,6 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner.run(url, self.max_aborted, release, wait)
         self.assertEqual(result, (0, ''))
 
-    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_run_host(self, mock_jobsubmit):
-        """Ensure BeakerRunner.run works."""
-        url = "http://machine1.example.com/builds/1234567890.tar.gz"
-        release = "4.17.0-rc1"
-        wait = False
-        host = "somemachine.com"
-
-        mock_jobsubmit.return_value = "J:0001"
-
-        result = self.myrunner.run(url, self.max_aborted, release, wait, host)
-        self.assertEqual(result, (0, ''))
-
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run_wait(self, mock_jobsubmit, mock_getresultstree):

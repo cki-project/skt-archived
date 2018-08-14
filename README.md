@@ -273,18 +273,12 @@ the job XML to Beaker:
 * `##KPKG_URL##`
     - The URL of the kernel tarball, generated and published to with
       `publish`.
-* `##HOSTNAME##`
-    - A decorated name of the host the job runs on, or empty string if no
-      specific host was picked. For use in `<whiteboard>`.
-* `##HOSTNAMETAG##`
-    - An XML fragment limiting the job to a specific host, or empty string if
-      no specific host was picked. For use in `<hostRequires>`.
 
 Below is an example of a superficial template. Note that it won't work as is.
 
 ```XML
 <job>
-  <whiteboard>skt ##KVER## ##HOSTNAME##</whiteboard>
+  <whiteboard>skt ##KVER##</whiteboard>
   <recipeSet>
     <recipe whiteboard="##KVER##">
       <distroRequires>
@@ -298,7 +292,6 @@ Below is an example of a superficial template. Note that it won't work as is.
       <hostRequires>
         <and>
           <arch op="=" value="x86_64"/>
-          ##HOSTNAMETAG##
         </and>
       </hostRequires>
       <repos/>

@@ -582,7 +582,7 @@ class BeakerRunner(Runner):
 
         return jobid
 
-    def run(self, url, max_aborted, release, wait=False, host=None,
+    def run(self, url, max_aborted, release, wait=False,
             arch=platform.machine(), reschedule=True):
         """
         Run tests in Beaker.
@@ -594,7 +594,6 @@ class BeakerRunner(Runner):
             release:     NVR of the tested kernel.
             wait:        False if skt should exit after submitting the jobs,
                          True if it should wait for them to finish.
-            host:        Force testing on a machine with provided hostname.
             arch:        Architecture of the machine the tests should run on,
                          in a format accepted by Beaker. Defaults to
                          architecture of the current machine skt is running on
@@ -619,20 +618,11 @@ class BeakerRunner(Runner):
         self.aborted_count = 0
         self.max_aborted = max_aborted
 
-        if host is None:
-            hostname = ""
-            hostnametag = ""
-        else:
-            hostname = "(%s) " % host
-            hostnametag = '<hostname op="=" value="%s"/>' % host
-
         try:
             job_xml_tree = etree.fromstring(self.__getxml(
                 {'KVER': release,
                  'KPKG_URL': url,
-                 'ARCH': arch,
-                 'HOSTNAME': hostname,
-                 'HOSTNAMETAG': hostnametag}
+                 'ARCH': arch}
             ))
             for recipe in job_xml_tree.findall('recipeSet/recipe'):
                 hreq = recipe.find('hostRequires')
