@@ -491,8 +491,8 @@ class BeakerRunner(Runner):
                 self.failures[origin][2] += 1
             logging.info("added %s to watchlist", cid)
 
-    def wait(self, jobid, reschedule=True):
-        self.__add_to_watchlist(jobid, reschedule)
+    def wait(self, jobid):
+        self.__add_to_watchlist(jobid, reschedule=True)
         self.__watchloop()
 
     def get_recipe_test_list(self, recipe_node):
@@ -545,7 +545,7 @@ class BeakerRunner(Runner):
         return jobid
 
     def run(self, url, max_aborted, release, wait=False,
-            arch=platform.machine(), reschedule=True):
+            arch=platform.machine()):
         """
         Run tests in Beaker.
 
@@ -560,9 +560,6 @@ class BeakerRunner(Runner):
                          in a format accepted by Beaker. Defaults to
                          architecture of the current machine skt is running on
                          if not specified.
-            reschedule:  True to try to rule out infrastructure / host-specific
-                         failures by resubmitting the job (on both the same and
-                         different host), False otherwise.
 
         Returns:
             Tuple (ret, report_string) where ret can be
@@ -595,7 +592,7 @@ class BeakerRunner(Runner):
             jobid = self.__jobsubmit(etree.tostring(job_xml_tree))
 
             if wait:
-                self.wait(jobid, reschedule)
+                self.wait(jobid)
                 ret = self.__getresults()
         except Exception as exc:
             logging.error(exc)
