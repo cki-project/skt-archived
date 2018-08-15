@@ -1,13 +1,11 @@
-<xml result='Pass' status='Completed'>
+<job id='101010' result='Pass' status='Completed'>
   <whiteboard>
     skt 4.17.0-rc1+ 1234567890.tar.gz [noavc] [noselinux]
   </whiteboard>
-  <hostRequires>
-    <hostname>
-    </hostname>
-  </hostRequires>
   <recipeSet>
-    <recipe>
+    <recipe system='machine.beaker.org'>
+      <hostRequires>
+      </hostRequires>
       <logs>
         <log name='console.log' href="http://example.com/">
           TEST RESULT
@@ -23,4 +21,4 @@
       </task>
     </recipe>
   </recipeSet>
-</xml>
+</job>

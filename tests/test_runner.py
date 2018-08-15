@@ -129,7 +129,7 @@ class TestRunner(unittest.TestCase):
             'R:00001': {
                 'R:None': (
                     None,
-                    None,
+                    'machine.beaker.org',
                     'http://example.com/',
                     'http://example.com/machinedesc.log',
                     'http://example.com/lshw.log',
