@@ -175,17 +175,17 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(result, 1)
         mock_logging.assert_called()
 
-    def test_recipe_to_job(self):
-        """Ensure __recipe_to_job() works."""
+    def test_recipe_set_to_job(self):
+        """Ensure __recipe_set_to_job() works."""
         # pylint: disable=W0212,E1101
-        beaker_xml = misc.get_asset_content('beaker_recipe_results.xml')
+        beaker_xml = misc.get_asset_content('beaker_recipe_set_results.xml')
         xml_parsed = etree.fromstring(beaker_xml)
 
-        result = self.myrunner._BeakerRunner__recipe_to_job(xml_parsed)
+        result = self.myrunner._BeakerRunner__recipe_set_to_job(xml_parsed)
         self.assertEqual(result.tag, 'job')
 
-        result = self.myrunner._BeakerRunner__recipe_to_job(xml_parsed,
-                                                            samehost=True)
+        result = self.myrunner._BeakerRunner__recipe_set_to_job(xml_parsed,
+                                                                samehost=True)
         self.assertEqual(result.tag, 'job')
 
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
