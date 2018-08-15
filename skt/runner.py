@@ -70,7 +70,6 @@ class BeakerRunner(Runner):
         self.watchlist = set()
         self.whiteboard = ''
         self.failures = {}
-        self.recipes = set()
         self.jobs = set()
         self.job_to_recipe_map = {}
         self.aborted_count = 0
@@ -154,10 +153,8 @@ class BeakerRunner(Runner):
         """
         if cid.startswith("J:"):
             self.jobs.remove(cid)
-            for rid in self.job_to_recipe_map[cid]:
-                self.recipes.remove(rid)
+            del self.job_to_recipe_map[cid]
         elif cid.startswith("R:"):
-            self.recipes.remove(cid)
             deljids = set()
             for (jid, rset) in self.job_to_recipe_map.iteritems():
                 if cid in rset:
@@ -315,8 +312,7 @@ class BeakerRunner(Runner):
             elif len(fhosts) == 1:
                 msg = "a single host: %s" % fhosts.pop()
 
-            logging.warning("FAILED %s/%s on %s", tfailures,
-                            len(self.recipes), msg)
+            logging.warning("FAILED %s times on %s", tfailures, msg)
 
         return ret
 
@@ -486,7 +482,6 @@ class BeakerRunner(Runner):
             cid = "R:%s" % recipe.attrib.get("id")
             self.job_to_recipe_map[jobid].add(cid)
             self.watchlist.add((cid, reschedule, origin))
-            self.recipes.add(cid)
             if origin is not None:
                 self.failures[origin][2] += 1
             logging.info("added %s to watchlist", cid)
@@ -572,7 +567,6 @@ class BeakerRunner(Runner):
         ret = SKT_SUCCESS
         report_string = ''
         self.failures = {}
-        self.recipes = set()
         self.watchlist = set()
         self.aborted_count = 0
         self.max_aborted = max_aborted
