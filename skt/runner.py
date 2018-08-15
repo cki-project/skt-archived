@@ -340,35 +340,30 @@ class BeakerRunner(Runner):
 
         return host_requires
 
-    def __recipe_to_job(self, recipe, samehost=False):
-        tmp = recipe.copy()
+    def __recipe_set_to_job(self, recipe_set, samehost=False):
+        tmp = recipe_set.copy()
 
-        hreq = tmp.find("hostRequires")
-        hostname = hreq.find('hostname')
-        if hostname is not None:
-            hreq.remove(hostname)
-        if samehost:
-            hostname = etree.Element("hostname")
-            hostname.set("op", "=")
-            hostname.set("value", tmp.attrib.get("system"))
-            hreq.append(hostname)
-        else:
-            new_hreq = self.__blacklist_hreq(hreq)
-            tmp.remove(hreq)
-            tmp.append(new_hreq)
-
-        newrs = etree.Element("recipeSet")
-        newrs.append(tmp)
+        for recipe in tmp.findall('recipe'):
+            hreq = recipe.find("hostRequires")
+            hostname = hreq.find('hostname')
+            if hostname is not None:
+                hreq.remove(hostname)
+            if samehost:
+                hostname = etree.Element("hostname")
+                hostname.set("op", "=")
+                hostname.set("value", recipe.attrib.get("system"))
+                hreq.append(hostname)
+            else:
+                new_hreq = self.__blacklist_hreq(hreq)
+                recipe.remove(hreq)
+                recipe.append(new_hreq)
 
         newwb = etree.Element("whiteboard")
-        newwb.text = "%s [R:%s]" % (self.whiteboard, tmp.attrib.get("id"))
-
-        if samehost:
-            newwb.text += " (%s)" % tmp.attrib.get("system")
+        newwb.text = "%s [RS:%s]" % (self.whiteboard, tmp.attrib.get("id"))
 
         newroot = etree.Element("job")
         newroot.append(newwb)
-        newroot.append(newrs)
+        newroot.append(tmp)
 
         return newroot
 
@@ -412,7 +407,7 @@ class BeakerRunner(Runner):
 
                         if self.aborted_count < self.max_aborted:
                             logging.warning('Resubmitting aborted %s' % cid)
-                            newjob = self.__recipe_to_job(root, False)
+                            newjob = self.__recipe_set_to_job(root, False)
                             newjobid = self.__jobsubmit(etree.tostring(newjob))
                             self.__add_to_watchlist(newjobid, reschedule, None)
 
@@ -430,7 +425,7 @@ class BeakerRunner(Runner):
                             self.aborted_count += 1
 
                             if self.aborted_count < self.max_aborted:
-                                newjob = self.__recipe_to_job(root, False)
+                                newjob = self.__recipe_set_to_job(root, False)
                                 newjobid = self.__jobsubmit(
                                     etree.tostring(newjob)
                                 )
@@ -453,7 +448,7 @@ class BeakerRunner(Runner):
                                 logging.info("%s -> '%s', resubmitting",
                                              cid, result)
 
-                                newjob = self.__recipe_to_job(root, False)
+                                newjob = self.__recipe_set_to_job(root, False)
                                 newjobid = self.__jobsubmit(etree.tostring(
                                     newjob
                                 ))
@@ -461,7 +456,7 @@ class BeakerRunner(Runner):
                                                         False,
                                                         origin)
 
-                                newjob = self.__recipe_to_job(root, True)
+                                newjob = self.__recipe_set_to_job(root, True)
                                 newjobid = self.__jobsubmit(etree.tostring(
                                     newjob
                                 ))
@@ -478,13 +473,13 @@ class BeakerRunner(Runner):
             self.whiteboard = root.find("whiteboard").text
 
         self.job_to_recipe_map[jobid] = set()
-        for recipe in root.findall("recipeSet/recipe"):
-            cid = "R:%s" % recipe.attrib.get("id")
-            self.job_to_recipe_map[jobid].add(cid)
-            self.watchlist.add((cid, reschedule, origin))
+        for recipe_set in root.findall("recipeSet"):
+            set_id = "RS:%s" % recipe_set.attrib.get("id")
+            self.job_to_recipe_map[jobid].add(set_id)
+            self.watchlist.add((set_id, reschedule, origin))
             if origin is not None:
                 self.failures[origin][2] += 1
-            logging.info("added %s to watchlist", cid)
+            logging.info("added %s to watchlist", set_id)
 
     def wait(self, jobid):
         self.__add_to_watchlist(jobid, reschedule=True)

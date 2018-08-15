@@ -1,0 +1,19 @@
+<recipeSet>
+  <recipe system='machine.beaker.org'>
+    <hostRequires>
+    </hostRequires>
+    <logs>
+      <log name='console.log' href="http://example.com/">
+        TEST RESULT
+      </log>
+    </logs>
+    <task name='/test/misc/machineinfo'>
+      <logs>
+        <log name='machinedesc.log' href="http://example.com/machinedesc.log">
+        </log>
+        <log name='lshw.log' href="http://example.com/lshw.log">
+        </log>
+      </logs>
+    </task>
+  </recipe>
+</recipeSet>
