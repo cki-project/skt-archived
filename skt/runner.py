@@ -529,6 +529,9 @@ class BeakerRunner(Runner):
                 jobid = m.group(1)
                 break
 
+        if not jobid:
+            raise Exception('Unable to submit the job!')
+
         logging.info("submitted jobid: %s", jobid)
         self.jobs.add(jobid)
 
