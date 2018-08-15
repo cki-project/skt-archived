@@ -178,7 +178,7 @@ class TestRunner(unittest.TestCase):
     def test_recipe_to_job(self):
         """Ensure __recipe_to_job() works."""
         # pylint: disable=W0212,E1101
-        beaker_xml = misc.get_asset_content('beaker_results.xml')
+        beaker_xml = misc.get_asset_content('beaker_recipe_results.xml')
         xml_parsed = etree.fromstring(beaker_xml)
 
         result = self.myrunner._BeakerRunner__recipe_to_job(xml_parsed)
