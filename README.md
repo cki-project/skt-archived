@@ -95,9 +95,9 @@ The following commands are supported by `skt`:
 * `publish`
     - Publish (copy) the kernel tarball, configuration, and build information
       to the specified location, generating their resulting URLs, using the
-      specified "publisher". Only "cp" and "scp" publishers are supported at
-      the moment. This command expects `build` command to have completed
-      succesfully.
+      specified "publisher". Only "cp", "scp", and "sftp" publishers are
+      supported at the moment. This command expects `build` command to have
+      completed succesfully.
 * `run`
     - Run tests on a built kernel using the specified "runner". Only
       "Beaker" runner is currently supported. This command expects `publish`
