@@ -69,7 +69,8 @@ class CpPublisher(Publisher):
         Returns:
             Published URL corresponding to the specified source.
         """
-        shutil.copy(source, self.destination)
+        destination = join_with_slash(self.destination, "")
+        shutil.copy(source, destination)
         return self.geturl(source)
 
 
@@ -86,7 +87,8 @@ class ScpPublisher(Publisher):
         Returns:
             Published URL corresponding to the specified source.
         """
-        subprocess.check_call(["scp", source, self.destination])
+        destination = join_with_slash(self.destination, "")
+        subprocess.check_call(["scp", source, destination])
         return self.geturl(source)
 
 
