@@ -70,7 +70,6 @@ class BeakerRunner(Runner):
         self.watchlist = set()
         self.whiteboard = ''
         self.failures = {}
-        self.jobs = set()
         self.job_to_recipe_map = {}
         self.aborted_count = 0
         # Set up the default, allowing for overrides with each run
@@ -152,7 +151,6 @@ class BeakerRunner(Runner):
             cid: The job (J:xxxxx) or recipe (R:xxxxx) id
         """
         if cid.startswith("J:"):
-            self.jobs.remove(cid)
             del self.job_to_recipe_map[cid]
         elif cid.startswith("R:"):
             deljids = set()
@@ -163,7 +161,6 @@ class BeakerRunner(Runner):
                         deljids.add(jid)
             for jid in deljids:
                 del self.job_to_recipe_map[jid]
-                self.jobs.remove(jid)
         else:
             raise ValueError("Unknown cid type: %s" % cid)
 
@@ -529,7 +526,6 @@ class BeakerRunner(Runner):
             raise Exception('Unable to submit the job!')
 
         logging.info("submitted jobid: %s", jobid)
-        self.jobs.add(jobid)
 
         return jobid
 
@@ -587,7 +583,9 @@ class BeakerRunner(Runner):
             ret = SKT_ERROR
 
         if ret != SKT_ERROR:
-            all_results = self.getverboseresults(sorted(list(self.jobs)))
+            all_results = self.getverboseresults(
+                sorted(self.job_to_recipe_map.keys())
+            )
             job_index = 1
             hw_info_match = {}
 

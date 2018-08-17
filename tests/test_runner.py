@@ -92,19 +92,18 @@ class TestRunner(unittest.TestCase):
     def test_forget_cid_withj(self):
         """Ensure __forget_cid() works with jobs."""
         # pylint: disable=protected-access,E1101
-        self.myrunner.jobs = ["J:00001"]
         self.myrunner.job_to_recipe_map = {"J:00001": ["R:00001"]}
         result = self.myrunner._BeakerRunner__forget_cid("J:00001")
         self.assertIsNone(result)
-        self.assertEqual(self.myrunner.jobs, [])
+        self.assertEqual(self.myrunner.job_to_recipe_map, {})
 
     def test_forget_cid_withr(self):
         """Ensure __forget_cid() works with recipes."""
         # pylint: disable=protected-access,E1101
-        self.myrunner.jobs = ["J:00001"]
         self.myrunner.job_to_recipe_map = {"J:00001": ["R:00001"]}
         result = self.myrunner._BeakerRunner__forget_cid("R:00001")
         self.assertIsNone(result)
+        self.assertEqual(self.myrunner.job_to_recipe_map, {})
 
     def test_forget_cid_bad_job(self):
         """Ensure __forget_cid() fails with an invalid taskspec."""
@@ -200,9 +199,11 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner.run(url, self.max_aborted, release, wait)
         self.assertEqual(result, (0, ''))
 
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__add_to_watchlist')
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_run_wait(self, mock_jobsubmit, mock_getresultstree):
+    def test_run_wait(self, mock_jobsubmit, mock_getresultstree,
+                      mock_watchlist):
         """Ensure BeakerRunner.run works."""
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
         release = "4.17.0-rc1"
@@ -216,4 +217,7 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
         result = self.myrunner.run(url, self.max_aborted, release, wait)
+        # Mock the watchlist to avoid having to compare report strings. Make
+        # sure the __add_to_watchlist is actually called as it should.
+        mock_watchlist.assert_called()
         self.assertEqual(result, (0, ''))
