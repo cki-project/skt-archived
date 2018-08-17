@@ -368,10 +368,8 @@ class BeakerRunner(Runner):
         return newroot
 
     def __watchloop(self):
-        iteration = 0
         while self.watchlist:
-            if iteration:
-                time.sleep(self.watchdelay)
+            time.sleep(self.watchdelay)
 
             for (cid, reschedule, origin) in self.watchlist.copy():
                 root = self.getresultstree(cid)
@@ -463,8 +461,6 @@ class BeakerRunner(Runner):
                                 self.__add_to_watchlist(newjobid,
                                                         False,
                                                         origin)
-
-            iteration += 1
 
     def __add_to_watchlist(self, jobid, reschedule=True, origin=None):
         root = self.getresultstree(jobid)
