@@ -421,10 +421,10 @@ def cmd_run(cfg):
                                         cfg.get('wait'),
                                         arch=cfg.get("kernel_arch"))
 
-    for index, job in enumerate(runner.jobs):
+    for index, job in enumerate(runner.job_to_recipe_map.keys()):
         save_state(cfg, {'jobid_%s' % (index): job})
 
-    cfg['jobs'] = runner.jobs
+    cfg['jobs'] = runner.job_to_recipe_map.keys()
 
     save_state(cfg, {'retcode': retcode})
 
