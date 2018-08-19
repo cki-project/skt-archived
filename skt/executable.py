@@ -17,6 +17,7 @@ import ConfigParser
 import argparse
 import ast
 import datetime
+import fnmatch
 import importlib
 import json
 import logging
@@ -48,9 +49,16 @@ class AppendMergeArgument(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         if 'merge_queue' not in namespace:
             setattr(namespace, 'merge_queue', [])
-        previous = namespace.merge_queue
-        previous.append((self.dest, values))
-        setattr(namespace, 'merge_queue', previous)
+        if len(values) == 1:
+            previous = namespace.merge_queue
+            previous.append((self.dest, values[0]))
+            setattr(namespace, 'merge_queue', previous)
+        else:
+            for patch_file in values:
+                if fnmatch.fnmatch(patch_file, '*.patch'):
+                    previous = namespace.merge_queue
+                    previous.append((self.dest, patch_file))
+                    setattr(namespace, 'merge_queue', previous)
         setattr(namespace, self.dest, values)
 
 
@@ -626,6 +634,7 @@ def setup_parser():
         "--patch",
         type=str,
         action=AppendMergeArgument,
+        nargs='*',
         help="Path to a local patch to apply "
              + "(use multiple times for multiple patches)"
     )
@@ -633,6 +642,7 @@ def setup_parser():
         "--pw",
         type=str,
         action=AppendMergeArgument,
+        nargs='*',
         help="URL to Patchwork patch to apply "
              + "(use multiple times for multiple patches)"
     )
@@ -640,6 +650,7 @@ def setup_parser():
         "-m",
         "--merge-ref",
         action=AppendMergeArgument,
+        nargs='*',
         help="Merge ref format: 'url [ref]' "
              + "(use multiple times for multiple merge refs)"
     )
