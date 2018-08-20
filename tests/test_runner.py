@@ -93,7 +93,7 @@ class TestRunner(unittest.TestCase):
         """Ensure __forget_cid() works with jobs."""
         # pylint: disable=protected-access,E1101
         self.myrunner.jobs = ["J:00001"]
-        self.myrunner.j2r = {"J:00001": ["R:00001"]}
+        self.myrunner.job_to_recipe_map = {"J:00001": ["R:00001"]}
         self.myrunner.recipes = ["R:00001"]
         result = self.myrunner._BeakerRunner__forget_cid("J:00001")
         self.assertIsNone(result)
@@ -104,7 +104,7 @@ class TestRunner(unittest.TestCase):
         """Ensure __forget_cid() works with recipes."""
         # pylint: disable=protected-access,E1101
         self.myrunner.jobs = ["J:00001"]
-        self.myrunner.j2r = {"J:00001": ["R:00001"]}
+        self.myrunner.job_to_recipe_map = {"J:00001": ["R:00001"]}
         self.myrunner.recipes = ["R:00001"]
         result = self.myrunner._BeakerRunner__forget_cid("R:00001")
         self.assertIsNone(result)

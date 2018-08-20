@@ -72,7 +72,7 @@ class BeakerRunner(Runner):
         self.failures = {}
         self.recipes = set()
         self.jobs = set()
-        self.j2r = dict()
+        self.job_to_recipe_map = {}
         self.aborted_count = 0
         # Set up the default, allowing for overrides with each run
         self.max_aborted = 3
@@ -154,18 +154,18 @@ class BeakerRunner(Runner):
         """
         if cid.startswith("J:"):
             self.jobs.remove(cid)
-            for rid in self.j2r[cid]:
+            for rid in self.job_to_recipe_map[cid]:
                 self.recipes.remove(rid)
         elif cid.startswith("R:"):
             self.recipes.remove(cid)
             deljids = set()
-            for (jid, rset) in self.j2r.iteritems():
+            for (jid, rset) in self.job_to_recipe_map.iteritems():
                 if cid in rset:
                     rset.remove(cid)
                     if not rset:
                         deljids.add(jid)
             for jid in deljids:
-                del self.j2r[jid]
+                del self.job_to_recipe_map[jid]
                 self.jobs.remove(jid)
         else:
             raise ValueError("Unknown cid type: %s" % cid)
@@ -481,10 +481,10 @@ class BeakerRunner(Runner):
         if not self.whiteboard:
             self.whiteboard = root.find("whiteboard").text
 
-        self.j2r[jobid] = set()
+        self.job_to_recipe_map[jobid] = set()
         for recipe in root.findall("recipeSet/recipe"):
             cid = "R:%s" % recipe.attrib.get("id")
-            self.j2r[jobid].add(cid)
+            self.job_to_recipe_map[jobid].add(cid)
             self.watchlist.add((cid, reschedule, origin))
             self.recipes.add(cid)
             if origin is not None:
