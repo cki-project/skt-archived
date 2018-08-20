@@ -121,23 +121,23 @@ class BeakerRunner(Runner):
 
         return xml
 
-    def getresultstree(self, jobid, logs=False):
+    def getresultstree(self, cid, logs=False):
         """
-        Retrieve Beaker job results in Beaker's native XML format.
+        Retrieve Beaker results for cid in Beaker's native XML format.
 
         Args:
-            jobid: The Beaker job ID.
+            cid:   ID of the job, recipe or recipe set.
             logs:  Set to 'True' to retrieve logs from Beaker as part of the
-                   job results. The default is 'False', which excludes logs
-                   from the Beaker job results.
+                   results. The default is 'False', which excludes logs from
+                   the Beaker results.
 
         Returns:
-            The job results XML text with job logs (if logs==True).
+            The results XML text with logs (if logs==True).
         """
         args = ["bkr", "job-results"]
         if not logs:
             args.append("--no-logs")
-        args.append(jobid)
+        args.append(cid)
 
         bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, _) = bkr.communicate()
