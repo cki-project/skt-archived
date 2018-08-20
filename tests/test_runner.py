@@ -92,16 +92,16 @@ class TestRunner(unittest.TestCase):
     def test_forget_cid_withj(self):
         """Ensure __forget_cid() works with jobs."""
         # pylint: disable=protected-access,E1101
-        self.myrunner.job_to_recipe_map = {"J:00001": ["R:00001"]}
+        self.myrunner.job_to_recipe_map = {"J:00001": ["RS:00001"]}
         result = self.myrunner._BeakerRunner__forget_cid("J:00001")
         self.assertIsNone(result)
         self.assertEqual(self.myrunner.job_to_recipe_map, {})
 
     def test_forget_cid_withr(self):
-        """Ensure __forget_cid() works with recipes."""
+        """Ensure __forget_cid() works with recipe sets."""
         # pylint: disable=protected-access,E1101
-        self.myrunner.job_to_recipe_map = {"J:00001": ["R:00001"]}
-        result = self.myrunner._BeakerRunner__forget_cid("R:00001")
+        self.myrunner.job_to_recipe_map = {"J:00001": ["RS:00001"]}
+        result = self.myrunner._BeakerRunner__forget_cid("RS:00001")
         self.assertIsNone(result)
         self.assertEqual(self.myrunner.job_to_recipe_map, {})
 

@@ -145,14 +145,14 @@ class BeakerRunner(Runner):
 
     def __forget_cid(self, cid):
         """
-        Remove a job or recipe from the current list
+        Remove a job or recipe set from self.job_to_recipe_map.
 
         Args:
-            cid: The job (J:xxxxx) or recipe (R:xxxxx) id
+            cid: The job (J:xxxxx) or recipe set (RS:xxxxx) ID.
         """
         if cid.startswith("J:"):
             del self.job_to_recipe_map[cid]
-        elif cid.startswith("R:"):
+        elif cid.startswith("RS:"):
             deljids = set()
             for (jid, rset) in self.job_to_recipe_map.iteritems():
                 if cid in rset:
