@@ -111,16 +111,10 @@ class TestStdioReporter(unittest.TestCase):
 
         # Load our sample Beaker XML files
         self.beaker_pass_results = etree.fromstring(
-            read_asset("beaker_job_pass_results_full.xml")
-        )
-        self.beaker_pass_ltp_results = etree.fromstring(
-            read_asset("beaker_job_pass_ltp_results_full.xml")
+            read_asset("beaker_recipe_set_results.xml")
         )
         self.beaker_fail_results = etree.fromstring(
-            read_asset("beaker_job_fail_results_full.xml")
-        )
-        self.beaker_fail_ltp_results = etree.fromstring(
-            read_asset("beaker_job_fail_ltp_results_full.xml")
+            read_asset("beaker_recipe_set_fail_results.xml")
         )
 
         # Set up a base config dictionary that we can adjust and use for tests
@@ -134,6 +128,7 @@ class TestStdioReporter(unittest.TestCase):
                 'http://patchwork.example.com/patch/2'
             ],
             'jobs': ['J:2547021'],
+            'recipe_sets': ['RS:123456'],
             'runner': (
                 'beaker', {
                     'jobtemplate': 'foo',
@@ -280,15 +275,12 @@ class TestStdioReporter(unittest.TestCase):
             "http://patchwork.example.com/patch/2/mbox",
             body="Subject: Patch #2"
         )
-        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(responses.GET,
+                      'http://example.com',
+                      body="Linux version 3.10.0")
         responses.add(
             responses.GET,
-            "{}/logs/console.log".format(url_base),
-            body="Linux version 3.10.0"
-        )
-        responses.add(
-            responses.GET,
-            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            "http://example.com/machinedesc.log",
             body="Machine information from beaker goes here"
         )
         mock_grt.return_value = self.beaker_fail_results
@@ -302,10 +294,9 @@ class TestStdioReporter(unittest.TestCase):
             'Subject: FAIL: Report for kernel 3.10.0',
             'commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
-            'Test run #1\nResult: Fail',
-            'see attached console log',
-            '01_console.log.gz',
-            'Machine information from beaker goes here'
+            'Test results for recipe R:None',
+            'None_console.log.gz',
+            'test/we/ran: FAIL'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -325,18 +316,15 @@ class TestStdioReporter(unittest.TestCase):
             "http://patchwork.example.com/patch/2/mbox",
             body="Subject: Patch #2"
         )
-        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(responses.GET,
+                      'http://example.com/',
+                      body="Linux version 3.10.0")
         responses.add(
             responses.GET,
-            "{}/logs/console.log".format(url_base),
-            body="Linux version 3.10.0"
-        )
-
-        responses.add(
-            responses.GET,
-            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            "http://example.com/machinedesc.log",
             body="Machine information from beaker goes here"
         )
+
         mock_grt.return_value = self.beaker_pass_results
         self.basecfg['retcode'] = '0'
 
@@ -350,8 +338,8 @@ class TestStdioReporter(unittest.TestCase):
             'We applied the following patches:',
             'commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
-            'Test run #1\nResult: Pass',
-            'Machine information from beaker goes here'
+            'Test results for recipe R:None',
+            'We ran the following tests'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -365,16 +353,12 @@ class TestStdioReporter(unittest.TestCase):
             "http://patchwork.example.com/patch/1/mbox",
             body="Subject: Patch #1"
         )
-
-        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(responses.GET,
+                      'http://example.com',
+                      body="Linux version 3.10.0")
         responses.add(
             responses.GET,
-            "{}/logs/console.log".format(url_base),
-            body="Linux version 3.10.0"
-        )
-        responses.add(
-            responses.GET,
-            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            "http://example.com/machinedesc.log",
             body="Machine information from beaker goes here"
         )
         mock_grt.return_value = self.beaker_pass_results
@@ -392,8 +376,8 @@ class TestStdioReporter(unittest.TestCase):
             'We applied the following patch:',
             'commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
-            'Test run #1\nResult: Pass',
-            'Machine information from beaker goes here'
+            'Test results for recipe R:None',
+            'We ran the following tests'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -445,15 +429,12 @@ class TestStdioReporter(unittest.TestCase):
     @responses.activate
     def test_baseline_success(self, mock_grt):
         """Verify stdio report works with a successful baseline run."""
-        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(responses.GET,
+                      'http://example.com',
+                      body="Linux version 3.10.0")
         responses.add(
             responses.GET,
-            "{}/logs/console.log".format(url_base),
-            body="Linux version 3.10.0"
-        )
-        responses.add(
-            responses.GET,
-            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            "http://example.com/machinedesc.log",
             body="Machine information from beaker goes here"
         )
         mock_grt.return_value = self.beaker_pass_results
@@ -470,8 +451,8 @@ class TestStdioReporter(unittest.TestCase):
             'Subject: PASS: Report for kernel 3.10.0',
             'checked out {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
-            'Test run #1\nResult: Pass',
-            'Machine information from beaker goes here'
+            'We ran the following tests:',
+            'test/we/ran: PASS'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -491,15 +472,12 @@ class TestStdioReporter(unittest.TestCase):
             "http://patchwork.example.com/patch/2/mbox",
             body="Subject: Patch #2"
         )
-        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(responses.GET,
+                      'http://example.com',
+                      body="Linux version 3.10.0")
         responses.add(
             responses.GET,
-            "{}/logs/console.log".format(url_base),
-            body="Linux version 3.10.0"
-        )
-        responses.add(
-            responses.GET,
-            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            "http://example.com/machinedesc.log",
             body="Machine information from beaker goes here"
         )
         mock_grt.return_value = self.beaker_pass_results
@@ -528,8 +506,9 @@ class TestStdioReporter(unittest.TestCase):
             self.basecfg['baserepo'],
             'results for s390x architecture',
             'results for x86_64 architecture',
-            'Test run #1\nResult: Pass',
-            'Machine information from beaker goes here'
+            'Test results for recipe R:None',
+            'We ran the following tests',
+            'test/we/ran: PASS'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -549,18 +528,15 @@ class TestStdioReporter(unittest.TestCase):
             "http://patchwork.example.com/patch/2/mbox",
             body="Subject: Patch #2"
         )
-        url_base = "https://beaker.example.com/recipes/5290731"
+        responses.add(responses.GET,
+                      'http://example.com',
+                      body="Linux version 3.10.0")
         responses.add(
             responses.GET,
-            "{}/logs/console.log".format(url_base),
-            body="Linux version 3.10.0"
-        )
-        responses.add(
-            responses.GET,
-            "{}/tasks/74019100/logs/machinedesc.log".format(url_base),
+            "http://example.com/machinedesc.log",
             body="Machine information from beaker goes here"
         )
-        mock_grt.return_value = self.beaker_fail_ltp_results
+        mock_grt.return_value = self.beaker_fail_results
 
         self.basecfg['retcode'] = '1'
         self.basecfg['result'] = ['state1', 'state2']
@@ -586,13 +562,8 @@ class TestStdioReporter(unittest.TestCase):
             self.basecfg['baserepo'],
             'results for s390x architecture',
             'results for x86_64 architecture',
-            'Test run #1\nResult: Fail',
-            'Machine information from beaker goes here',
-            'R:5290731',
-            'https://beaker.example.com/recipes/5290731/tasks/74019102/'
-            'logs/RHELKT1LITE.FILTERED.run.log',
-            'https://beaker.example.com/recipes/5290731/tasks/74019102/'
-            'results/358727247/logs/resultoutputfile.log',
+            'Test results for recipe R:None',
+            'test/we/ran: FAIL'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -613,15 +584,12 @@ class TestStdioReporter(unittest.TestCase):
             "http://patchwork.example.com/patch/2/mbox",
             body="Subject: Patch #2"
         )
-        url_base = "https://beaker.example.com/recipes/5273166"
+        responses.add(responses.GET,
+                      'http://example.com',
+                      body="Linux version 3.10.0")
         responses.add(
             responses.GET,
-            "{}/logs/console.log".format(url_base),
-            body="Linux version 3.10.0"
-        )
-        responses.add(
-            responses.GET,
-            "{}/tasks/73795444/logs/machinedesc.log".format(url_base),
+            "http://example.com/machinedesc.log",
             body="Machine information from beaker goes here"
         )
         mock_grt.side_effect = [
@@ -655,13 +623,11 @@ class TestStdioReporter(unittest.TestCase):
             self.basecfg['baserepo'],
             'results for s390x architecture',
             'results for x86_64 architecture',
-            'Test run #1\nResult: Pass',
-            'Test run #1\nResult: Fail',
-            'Machine information from beaker goes here',
+            'test/we/ran: FAIL',
+            'Test results for recipe R:None',
             'config_s390x.gz',
             'config_x86_64.gz',
-            'see attached console log',
-            '01_console.log.gz'
+            'None_console.log.gz'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)

@@ -421,10 +421,15 @@ def cmd_run(cfg):
                                         cfg.get('wait'),
                                         arch=cfg.get("kernel_arch"))
 
-    for index, job in enumerate(runner.job_to_recipe_map.keys()):
+    recipe_set_index = 0
+    for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
         save_state(cfg, {'jobid_%s' % (index): job})
+        for recipe_set in runner.job_to_recipe_set_map[job]:
+            save_state(cfg,
+                       {'recipesetid_%s' % (recipe_set_index): recipe_set})
+            recipe_set_index += 1
 
-    cfg['jobs'] = runner.job_to_recipe_map.keys()
+    cfg['jobs'] = runner.job_to_recipe_set_map.keys()
 
     save_state(cfg, {'retcode': retcode})
 
@@ -928,6 +933,10 @@ def load_config(args):
                     if "jobs" not in cfg:
                         cfg["jobs"] = set()
                     cfg["jobs"].add(value)
+                if name.startswith('recipesetid_'):
+                    if 'recipe_sets' not in cfg:
+                        cfg['recipe_sets'] = set()
+                    cfg['recipe_setss'].add(value)
                 elif name.startswith("mergerepo_"):
                     if "mergerepos" not in cfg:
                         cfg["mergerepos"] = list()

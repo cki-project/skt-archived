@@ -86,24 +86,24 @@ class TestRunner(unittest.TestCase):
         test_xml = "<xml><test>TEST</test></xml>"
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = (test_xml, '')
-        result = self.myrunner.getresultstree(jobid=0)
+        result = self.myrunner.getresultstree('RS:123')
         self.assertEqual(next(x.text for x in result.iter('test')), 'TEST')
 
     def test_forget_cid_withj(self):
         """Ensure __forget_cid() works with jobs."""
         # pylint: disable=protected-access,E1101
-        self.myrunner.job_to_recipe_map = {"J:00001": ["RS:00001"]}
+        self.myrunner.job_to_recipe_set_map = {"J:00001": ["RS:00001"]}
         result = self.myrunner._BeakerRunner__forget_cid("J:00001")
         self.assertIsNone(result)
-        self.assertEqual(self.myrunner.job_to_recipe_map, {})
+        self.assertEqual(self.myrunner.job_to_recipe_set_map, {})
 
     def test_forget_cid_withr(self):
         """Ensure __forget_cid() works with recipe sets."""
         # pylint: disable=protected-access,E1101
-        self.myrunner.job_to_recipe_map = {"J:00001": ["RS:00001"]}
+        self.myrunner.job_to_recipe_set_map = {"J:00001": ["RS:00001"]}
         result = self.myrunner._BeakerRunner__forget_cid("RS:00001")
         self.assertIsNone(result)
-        self.assertEqual(self.myrunner.job_to_recipe_map, {})
+        self.assertEqual(self.myrunner.job_to_recipe_set_map, {})
 
     def test_forget_cid_bad_job(self):
         """Ensure __forget_cid() fails with an invalid taskspec."""
@@ -116,60 +116,36 @@ class TestRunner(unittest.TestCase):
             context.exception
         )
 
-    @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    def test_getverboseresults(self, mock_getresultstree):
-        """Ensure getverboseresults() works"""
-        # Mock up a beaker XML reply
-        mocked_xml = misc.get_asset_content('beaker_results.xml')
-        mock_getresultstree.return_value = etree.fromstring(mocked_xml)
-
-        result = self.myrunner.getverboseresults(["R:00001"])
-        expected_result = {
-            'R:00001': {
-                'R:None': (
-                    None,
-                    'machine.beaker.org',
-                    'http://example.com/',
-                    'http://example.com/machinedesc.log',
-                    'http://example.com/lshw.log',
-                    []
-                ),
-                'result': 'Pass',
-                'status': 'Completed'
-            }
-        }
-        self.assertDictEqual(result, expected_result)
-
-    def test_getresults(self):
+    @mock.patch('logging.info')
+    def test_getresults_pass(self, mock_logging):
         """Ensure __getresults() works."""
         # pylint: disable=W0212,E1101
+        self.myrunner.job_to_recipe_set_map = {'jobid': set(['recipeset'])}
+        self.myrunner.recipe_set_results['recipeset'] = etree.fromstring(
+            misc.get_asset_content('beaker_recipe_set_results.xml')
+        )
+
         result = self.myrunner._BeakerRunner__getresults()
         self.assertEqual(result, 0)
+        mock_logging.assert_called()
 
-    @mock.patch('logging.warning')
+    @mock.patch('logging.error')
+    def test_getresults_aborted(self, mock_logging):
+        """Ensure __getresults() handles all aborted / cancelled jobs."""
+        # pylint: disable=W0212,E1101
+        result = self.myrunner._BeakerRunner__getresults()
+        self.assertEqual(result, 2)
+        mock_logging.assert_called()
+
+    @mock.patch('logging.info')
     def test_getresults_failure(self, mock_logging):
         """Ensure __getresults() handles a job failure."""
         # pylint: disable=W0212,E1101
+        self.myrunner.job_to_recipe_set_map = {'jobid': set(['recipeset'])}
+        self.myrunner.recipe_set_results['recipeset'] = etree.fromstring(
+            misc.get_asset_content('beaker_fail_results.xml')
+        )
 
-        # Ensure that the failure loop hits 'continue' which doesn't change
-        # the result
-        self.myrunner.failures = {
-            'test': ['A', set(), 4]
-        }
-        result = self.myrunner._BeakerRunner__getresults()
-        self.assertEqual(result, 0)
-
-        # Go through the failure loop with one failed host
-        self.myrunner.failures = {
-            'test': [['A'], set([('result', 'status')]), 1]
-        }
-        result = self.myrunner._BeakerRunner__getresults()
-        self.assertEqual(result, 1)
-
-        # Go through the failure loop with multiple failed hosts
-        self.myrunner.failures = {
-            'test': [['A', 'B'], set([('result', 'status')]), 1]
-        }
         result = self.myrunner._BeakerRunner__getresults()
         self.assertEqual(result, 1)
         mock_logging.assert_called()
@@ -197,17 +173,16 @@ class TestRunner(unittest.TestCase):
         mock_jobsubmit.return_value = "J:0001"
 
         result = self.myrunner.run(url, self.max_aborted, release, wait)
-        self.assertEqual(result, (0, ''))
+        self.assertEqual(result, (0, '\nSuccessfully submitted test job!'))
 
-    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__add_to_watchlist')
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_run_wait(self, mock_jobsubmit, mock_getresultstree,
-                      mock_watchlist):
+    def test_run_wait(self, mock_jobsubmit, mock_getresultstree):
         """Ensure BeakerRunner.run works."""
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
         release = "4.17.0-rc1"
         wait = True
+        self.myrunner.whiteboard = 'test'
 
         beaker_xml = misc.get_asset_content('beaker_pass_results.xml')
         mock_getresultstree.return_value = etree.fromstring(beaker_xml)
@@ -217,7 +192,5 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
         result = self.myrunner.run(url, self.max_aborted, release, wait)
-        # Mock the watchlist to avoid having to compare report strings. Make
-        # sure the __add_to_watchlist is actually called as it should.
-        mock_watchlist.assert_called()
-        self.assertEqual(result, (0, ''))
+        # Don't compare the report strings
+        self.assertEqual(result[0], 0)

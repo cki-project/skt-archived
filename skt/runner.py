@@ -22,7 +22,6 @@ import xml.etree.ElementTree as etree
 
 import requests
 
-from skt.console import ConsoleLog
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 
 
@@ -63,14 +62,13 @@ class BeakerRunner(Runner):
         self.blacklisted = self.__load_blacklist(blacklist)
         # Delay between checks of Beaker job statuses, seconds
         self.watchdelay = 60
-        # A set of Beaker jobs to watch, each a 3-tuple containing:
-        # * Taskspec (universal ID) of the job
-        # * True if the job should be rescheduled when failing, false if not
-        # * Taskspec of the origin job - the job this job is a resubmission of
+        # Set of recipe sets that didn't complete yet
         self.watchlist = set()
         self.whiteboard = ''
-        self.failures = {}
-        self.job_to_recipe_map = {}
+        self.job_to_recipe_set_map = {}
+        self.recipe_set_results = {}
+        # Keep a set of completed recipes per set so we don't check them again
+        self.completed_recipes = {}
         self.aborted_count = 0
         # Set up the default, allowing for overrides with each run
         self.max_aborted = 3
@@ -121,23 +119,17 @@ class BeakerRunner(Runner):
 
         return xml
 
-    def getresultstree(self, cid, logs=False):
+    def getresultstree(self, cid):
         """
         Retrieve Beaker results for cid in Beaker's native XML format.
 
         Args:
             cid:   ID of the job, recipe or recipe set.
-            logs:  Set to 'True' to retrieve logs from Beaker as part of the
-                   results. The default is 'False', which excludes logs from
-                   the Beaker results.
 
         Returns:
-            The results XML text with logs (if logs==True).
+            etree node representing the results.
         """
-        args = ["bkr", "job-results"]
-        if not logs:
-            args.append("--no-logs")
-        args.append(cid)
+        args = ["bkr", "job-results", cid]
 
         bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, _) = bkr.communicate()
@@ -145,116 +137,26 @@ class BeakerRunner(Runner):
 
     def __forget_cid(self, cid):
         """
-        Remove a job or recipe set from self.job_to_recipe_map.
+        Remove a job or recipe set from self.job_to_recipe_set_map, and recipe
+        set from self.watchlist if applicable.
 
         Args:
             cid: The job (J:xxxxx) or recipe set (RS:xxxxx) ID.
         """
         if cid.startswith("J:"):
-            del self.job_to_recipe_map[cid]
+            del self.job_to_recipe_set_map[cid]
         elif cid.startswith("RS:"):
+            self.watchlist.discard(cid)
             deljids = set()
-            for (jid, rset) in self.job_to_recipe_map.iteritems():
+            for (jid, rset) in self.job_to_recipe_set_map.iteritems():
                 if cid in rset:
                     rset.remove(cid)
                     if not rset:
                         deljids.add(jid)
             for jid in deljids:
-                del self.job_to_recipe_map[jid]
+                del self.job_to_recipe_set_map[jid]
         else:
             raise ValueError("Unknown cid type: %s" % cid)
-
-    def getverboseresults(self, joblist):
-        """
-        Retrieve verbose results for a list of beaker jobs
-
-        Args:
-            joblist: A list of beaker jobs
-
-        Returns:
-            A dictionary with the jobid as a key and job results as the value
-        """
-        result = dict()
-        for jobid in joblist:
-            result[jobid] = dict()
-            root = self.getresultstree(jobid, True)
-
-            result[jobid]['result'] = root.attrib.get("result")
-            result[jobid]['status'] = root.attrib.get('status')
-
-            for recipe in root.findall("recipeSet/recipe"):
-                rid = "R:%s" % recipe.attrib.get("id")
-                clogurl = None
-                slshwurl = None
-                llshwurl = None
-
-                tmp = recipe.find("logs/log[@name='console.log']")
-                if tmp is not None:
-                    clogurl = tmp.attrib.get("href")
-
-                tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/"
-                                  "log[@name='machinedesc.log']")
-                if tmp is not None:
-                    slshwurl = tmp.attrib.get("href")
-
-                tmp = recipe.find("task[@name='/test/misc/machineinfo']/logs/"
-                                  "log[@name='lshw.log']")
-                if tmp is not None:
-                    llshwurl = tmp.attrib.get("href")
-
-                test_list = self.get_recipe_test_list(recipe)
-
-                rdata = (recipe.attrib.get("result"),
-                         recipe.attrib.get("system"),
-                         clogurl,
-                         slshwurl,
-                         llshwurl,
-                         test_list)
-
-                result[jobid][rid] = rdata
-
-        return result
-
-    def get_ltp_lite_logs(self, job_id):
-        """
-        Get logs produces by LTP lite, for each recipe in specified job.
-
-        Args:
-            job_id: ID of the job for which to retrieve the logs.
-
-        Returns:
-            A dictionary in format
-              R:<recipe_id>: (<link_to_full_run_log>, <link_to_results>),
-            for each recipe in the job.
-        """
-        job_results = self.getresultstree(job_id, True)
-        ltp_logs = {}
-
-        for recipe in job_results.findall('recipeSet/recipe'):
-            recipe_id = 'R:%s' % recipe.attrib.get('id')
-
-            ltp_node = recipe.find(
-                "task[@name='/kernel/distribution/ltp/lite']"
-            )
-            if ltp_node is None:
-                continue
-
-            ltp_results = ltp_node.find(
-                "results/result[@path='RHELKT1LITE.FILTERED']/logs/"
-                "log[@name='resultoutputfile.log']"
-            )
-            if ltp_results is not None:
-                ltp_results = ltp_results.attrib.get('href')
-
-            run_log = ltp_node.find(
-                "logs/log[@name='RHELKT1LITE.FILTERED.run.log']"
-            )
-            if run_log is not None:
-                run_log = run_log.attrib.get('href')
-
-            ltp_logs[recipe_id] = (ltp_results, run_log)
-
-        return ltp_logs
 
     def __getresults(self):
         """
@@ -265,53 +167,21 @@ class BeakerRunner(Runner):
             SKT_FAIL in case of failures, and
             SKT_ERROR in case of infrastructure failures.
         """
-        ret = SKT_SUCCESS
-        fhosts = set()
-        tfailures = 0
-
-        if self.failures:
-            all_aborted = all([data[1] == ('Warn', 'Aborted')
-                               for data in self.failures.values()])
-            if all_aborted:
-                logging.warning('All jobs aborted, possible infrastructure'
-                                ' failure.')
-                return SKT_ERROR
-
-            job_cancelled = any(status == 'Cancelled'
-                                for data in self.failures.values()
-                                for _, status in data[1])
-            if job_cancelled:
-                return SKT_ERROR
-        if self.max_aborted and self.aborted_count == self.max_aborted:
-            logging.error('Max count of aborted jobs achieved, please '
-                          'check your infrastructure!')
+        if not self.job_to_recipe_set_map:
+            # We forgot every job / recipe set
+            logging.error('All test sets aborted or were cancelled!')
             return SKT_ERROR
 
-        for (recipe, data) in self.failures.iteritems():
-            # Treat single failure as a fluke during normal run
-            if data[2] >= 3 and len(data[0]) < 2:
-                continue
-            tfailures += len(data[0])
-            logging.info("%s failed %d/%d (%s)%s", recipe, len(data[0]),
-                         data[2], ', '.join([result for (result, _)  # noqa
-                                             in data[1]]),
-                         ""
-                         if len(set(data[0])) > 1
-                         else ": %s" % data[0][0])
+        for job, recipe_sets in self.job_to_recipe_set_map.items():
+            for recipe_set_id in recipe_sets:
+                results = self.recipe_set_results[recipe_set_id]
+                for recipe_result in results.findall('recipe'):
+                    if recipe_result.attrib.get('result') != 'Pass':
+                        logging.info('Failure in a recipe detected!')
+                        return SKT_FAIL
 
-            fhosts = fhosts.union(set(data[0]))
-            ret = SKT_FAIL
-
-        if ret and fhosts:
-            msg = "unknown"
-            if len(fhosts) > 1:
-                msg = "multiple hosts"
-            elif len(fhosts) == 1:
-                msg = "a single host: %s" % fhosts.pop()
-
-            logging.warning("FAILED %s times on %s", tfailures, msg)
-
-        return ret
+        logging.info('Testing passed!')
+        return SKT_SUCCESS
 
     def __blacklist_hreq(self, host_requires):
         """
@@ -364,118 +234,111 @@ class BeakerRunner(Runner):
 
         return newroot
 
+    def cancel_pending_jobs(self):
+        """
+        Cancel all recipe sets from self.watchlist and remove their IDs from
+        self.job_to_recipe_set_map.
+        """
+        sets_to_cancel = [recipe_set for recipe_set in self.watchlist.copy()]
+        if sets_to_cancel:
+            ret = subprocess.call(['bkr', 'job-cancel'] + sets_to_cancel)
+            if ret:
+                logging.info('Failed to cancel the remaining recipe sets!')
+
+        for job_id in self.job_to_recipe_set_map.keys():
+            self.__forget_cid(job_id)
+
     def __watchloop(self):
         while self.watchlist:
             time.sleep(self.watchdelay)
 
-            for (cid, reschedule, origin) in self.watchlist.copy():
-                root = self.getresultstree(cid)
+            if self.max_aborted == self.aborted_count:
+                # Remove / cancel all the remaining recipe set IDs and abort
+                self.cancel_pending_jobs()
 
-                result = root.attrib.get('result')
-                status = root.attrib.get('status')
-                if status in ['Completed', 'Aborted', 'Cancelled']:
-                    logging.info("%s status changed to '%s', "
-                                 "removing from watchlist",
-                                 cid, root.attrib.get("status"))
-                    self.watchlist.remove((cid, reschedule, origin))
+            for recipe_set_id in self.watchlist.copy():
+                root = self.getresultstree(recipe_set_id)
+                recipes = root.findall('recipe')
+
+                for recipe in recipes:
+                    result = recipe.attrib.get('result')
+                    status = recipe.attrib.get('status')
+                    recipe_id = 'R:' + recipe.attrib.get('id')
+                    if status not in ['Completed', 'Aborted', 'Cancelled'] or \
+                            recipe_id in self.completed_recipes[recipe_set_id]:
+                        continue
+
+                    logging.info("%s status changed to %s", recipe_id, status)
+                    self.completed_recipes[recipe_set_id].add(recipe_id)
+                    if len(self.completed_recipes[recipe_set_id]) == \
+                            len(recipes):
+                        self.watchlist.remove(recipe_set_id)
+                        self.recipe_set_results[recipe_set_id] = root
+
+                    if result == 'Pass':
+                        continue
 
                     if status == 'Cancelled':
-                        logging.error('Cancelled job detected! Cancelling the'
-                                      ' rest of running jobs and aborting!')
-                        self.failures[cid] = [[root.attrib.get('system')],
-                                              set([(result, status)]),
-                                              1]
-                        jobs_to_cancel = [job for (job, _, _)
-                                          in self.watchlist.copy()]
-                        if jobs_to_cancel:
-                            ret = subprocess.call(['bkr', 'job-cancel']
-                                                  + jobs_to_cancel)
-                            if ret:
-                                logging.info('Failed to cancel the remaining '
-                                             'jobs')
+                        logging.error('Cancelled run detected! Cancelling the '
+                                      'rest of runs and aborting!')
+                        self.cancel_pending_jobs()
                         return
 
                     if result == 'Warn' and status == 'Aborted':
-                        logging.warning('%s aborted!' % cid)
-                        self.__forget_cid(cid)
+                        logging.warning('%s from %s aborted!',
+                                        recipe_id,
+                                        recipe_set_id)
+                        self.__forget_cid(recipe_set_id)
                         self.aborted_count += 1
 
                         if self.aborted_count < self.max_aborted:
-                            logging.warning('Resubmitting aborted %s' % cid)
-                            newjob = self.__recipe_set_to_job(root, False)
+                            logging.warning('Resubmitting aborted %s',
+                                            recipe_set_id)
+                            newjob = self.__recipe_set_to_job(root)
                             newjobid = self.__jobsubmit(etree.tostring(newjob))
-                            self.__add_to_watchlist(newjobid, reschedule, None)
+                            self.__add_to_watchlist(newjobid)
+                        continue
 
-                    elif result != 'Pass':
-                        tinst = root.find(
-                            ".//task[@name='/distribution/kpkginstall']"
-                        )
-                        if tinst is not None and \
-                                tinst.attrib.get("result") not in [
-                                    'Pass', 'Panic'
-                                ]:
-                            logging.warning("%s failed before kernelinstall, "
-                                            "resubmitting", cid)
-                            self.__forget_cid(cid)
-                            self.aborted_count += 1
+                    # Something in the recipe set really reported failure
+                    test_failure = False
+                    for task in recipe.findall('task'):
+                        if 'kpkginstall' in task.attrib.get('name', ''):
+                            if task.attrib.get('result') in ['Pass', 'Panic']:
+                                test_failure = True
+                            else:
+                                break
+                        elif task.attrib.get('result') != 'Pass':
+                            break
 
-                            if self.aborted_count < self.max_aborted:
-                                newjob = self.__recipe_set_to_job(root, False)
-                                newjobid = self.__jobsubmit(
-                                    etree.tostring(newjob)
-                                )
-                                self.__add_to_watchlist(newjobid,
-                                                        reschedule,
-                                                        None)
-                        else:
-                            if origin is None:
-                                origin = cid
+                    if not test_failure:
+                        # Recipe failed before the tested kernel was installed
+                        self.__forget_cid(recipe_set_id)
+                        self.aborted_count += 1
 
-                            if origin not in self.failures:
-                                self.failures[origin] = [[], set(), 1]
+                        if self.aborted_count < self.max_aborted:
+                            logging.warning('Infrastructure-related problem '
+                                            'found, resubmitting %s',
+                                            recipe_set_id)
+                            newjob = self.__recipe_set_to_job(root)
+                            newjobid = self.__jobsubmit(etree.tostring(newjob))
+                            self.__add_to_watchlist(newjobid)
 
-                            self.failures[origin][0].append(root.attrib.get(
-                                "system"
-                            ))
-                            self.failures[origin][1].add((result, status))
-
-                            if reschedule:
-                                logging.info("%s -> '%s', resubmitting",
-                                             cid, result)
-
-                                newjob = self.__recipe_set_to_job(root, False)
-                                newjobid = self.__jobsubmit(etree.tostring(
-                                    newjob
-                                ))
-                                self.__add_to_watchlist(newjobid,
-                                                        False,
-                                                        origin)
-
-                                newjob = self.__recipe_set_to_job(root, True)
-                                newjobid = self.__jobsubmit(etree.tostring(
-                                    newjob
-                                ))
-                                self.__add_to_watchlist(newjobid,
-                                                        False,
-                                                        origin)
-
-    def __add_to_watchlist(self, jobid, reschedule=True, origin=None):
+    def __add_to_watchlist(self, jobid):
         root = self.getresultstree(jobid)
 
         if not self.whiteboard:
             self.whiteboard = root.find("whiteboard").text
 
-        self.job_to_recipe_map[jobid] = set()
+        self.job_to_recipe_set_map[jobid] = set()
         for recipe_set in root.findall("recipeSet"):
             set_id = "RS:%s" % recipe_set.attrib.get("id")
-            self.job_to_recipe_map[jobid].add(set_id)
-            self.watchlist.add((set_id, reschedule, origin))
-            if origin is not None:
-                self.failures[origin][2] += 1
+            self.job_to_recipe_set_map[jobid].add(set_id)
+            self.watchlist.add(set_id)
+            self.completed_recipes[set_id] = set()
             logging.info("added %s to watchlist", set_id)
 
     def wait(self, jobid):
-        self.__add_to_watchlist(jobid, reschedule=True)
+        self.__add_to_watchlist(jobid)
         self.__watchloop()
 
     def get_recipe_test_list(self, recipe_node):
@@ -556,8 +419,10 @@ class BeakerRunner(Runner):
         """
         ret = SKT_SUCCESS
         report_string = ''
-        self.failures = {}
         self.watchlist = set()
+        self.job_to_recipe_set_map = {}
+        self.recipe_set_results = {}
+        self.completed_recipes = {}
         self.aborted_count = 0
         self.max_aborted = max_aborted
 
@@ -582,84 +447,77 @@ class BeakerRunner(Runner):
             logging.error(exc)
             ret = SKT_ERROR
 
-        if ret != SKT_ERROR:
-            all_results = self.getverboseresults(
-                sorted(self.job_to_recipe_map.keys())
-            )
-            job_index = 1
-            hw_info_match = {}
+        if ret == SKT_ERROR:
+            return (ret, report_string)
+        if not wait:
+            return (ret, '\nSuccessfully submitted test job!')
 
-            for job_id, values in all_results.items():
-                job_result = values.get('result')
-                job_status = values.get('status')
+        recipe_set_ids = set.union(*self.job_to_recipe_set_map.values())
+        for recipe_set_id in recipe_set_ids:
+            recipe_set_result = self.recipe_set_results[recipe_set_id]
+            for recipe in recipe_set_result.findall('recipe'):
+                failed_tasks = []
+                recipe_result = recipe.attrib.get('result')
 
-                if job_result == 'Warn' and job_status == 'Aborted':
-                    logging.info('Skipping aborted job %s', job_id)
-                    continue
+                report_string += '\n\n{} R:{} ({} arch): {}\n\n'.format(
+                    'Test result for recipe',
+                    recipe.attrib.get('id'),
+                    recipe.find('hostRequires/and/arch').attrib.get('value'),
+                    recipe_result.upper()
+                )
 
-                for recipe_index, recipe in enumerate(
-                        [key for key in values if key.startswith('R:')]
-                ):
-                    (result, hostname, console_log_url,
-                     hw_info_url, _, test_list) = values[recipe]
-
-                    if not recipe_index:
-                        report_string += '\n\nWe ran the following tests:\n'
-                        for test_name in test_list:
-                            report_string += '  - %s\n' % test_name
-                        report_string += '{}\n\n'.format(
-                            'which produced the results below:'
+                kpkginstall_task = recipe.find(
+                    "task[@name='/distribution/kpkginstall']"
+                )
+                if kpkginstall_task.attrib.get('result') != 'Pass':
+                    report_string += 'Kernel failed to boot!\n\n'
+                    failed_tasks.append('/distribution/kpkginstall')
+                else:
+                    recipe_tests = self.get_recipe_test_list(recipe)
+                    report_string += 'We ran the following tests:\n'
+                    for test_name in recipe_tests:
+                        test_result = recipe.find(
+                            "task[@name='{}']".format(test_name)
+                        ).attrib.get('result')
+                        report_string += '  - {}: {}\n'.format(
+                            test_name, test_result.upper()
                         )
+                        if test_result != 'Pass':
+                            failed_tasks.append(test_name)
 
-                    console_log = ConsoleLog(release, console_log_url)
-                    if not console_log.data and result != 'Pass':
-                        # The console wasn't logged. This isn't an issue if
-                        # everything went well, however reporting a failure
-                        # without any details is useless so skip it if nothing
-                        # besides boot test was run.
-                        if not test_list:
-                            continue
-
-                    report_string += 'Test run #%d\n' % job_index
-                    report_string += 'Result: %s\n' % result
-
-                    if result != 'Pass':
-                        logging.info('Failure detected in recipe %s, attaching'
-                                     ' console log', recipe)
-                        with open('%02d_console.log.gz' % job_index,
-                                  'w') as console_file:
-                            console_file.write(console_log.getfulllog())
-                        report_string += '\n\n{}\n{}\n'.format(
-                            'For more information about the failure, see '
-                            'attached console log',
-                            '(%02d_console.log.gz) and applicable test logs '
-                            'for each recipe:' % job_index
+                if failed_tasks:
+                    report_string += '\n{}\n{}\n'.format(
+                        'For more information about the failures, here are '
+                        'links for the logs of',
+                        'failed tests and their subtasks:'
+                    )
+                for failed_task in failed_tasks:
+                    task_node = recipe.find(
+                        "task[@name='{}']".format(failed_task)
+                    )
+                    report_string += '- {}\n'.format(failed_task)
+                    for log in task_node.findall('logs/log'):
+                        report_string += '  {}\n'.format(
+                            log.attrib.get('href')
                         )
+                    for subtask_log in task_node.findall(
+                            'results/result/logs/log'
+                    ):
+                        report_string += '  {}\n'.format(
+                            subtask_log.attrib.get('href')
+                        )
+                    report_string += '\n'
 
-                        ltp_results = self.get_ltp_lite_logs(job_id)
-                        for ltp_recipe, ltp_logs in ltp_results.items():
-                            report_string += '\n  {}\n'.format(ltp_recipe)
-                            if not any(ltp_logs):
-                                report_string += '\n    N/A'
-                                continue
-                            for ltp_log in ltp_logs:
-                                if ltp_log:
-                                    report_string += '\n    {}'.format(ltp_log)
-
-                    if hw_info_url:
-                        if hostname not in hw_info_match:
-                            response = requests.get(hw_info_url)
-                            if response:
-                                report_string += '\n\nMachine info:\n'
-                                report_string += response.text
-                                hw_info_match[hostname] = job_index
-                        else:
-                            report_string += '\n\n{}{}\n'.format(
-                                'Machine info: same as test run #',
-                                hw_info_match[hostname]
-                            )
-
-                    job_index += 1
+                machinedesc_url = recipe.find(
+                    "task[@name='/test/misc/machineinfo']/logs/"
+                    "log[@name='machinedesc.log']"
+                ).attrib.get('href')
+                machinedesc = requests.get(machinedesc_url).text
+                report_string += '\n{}\n\n{}\n\n'.format(
+                    'Testing was performed on a machine with following '
+                    'parameters:',
+                    machinedesc
+                )
 
         return (ret, report_string)
 

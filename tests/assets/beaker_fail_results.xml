@@ -1,24 +1,19 @@
-<xml result='Fail' status='Failed'>
-  <whiteboard>
-    Hey, it's a whiteboard!
-  </whiteboard>
-  <recipeSet>
-    <recipe>
+<recipeSet>
+  <recipe result='Fail' status='Completed'>
+    <logs>
+      <log name='console.log' href="http://example.com/">
+        TEST RESULT
+      </log>
+    </logs>
+    <task name='/test/misc/machineinfo'>
       <logs>
-        <log name='console.log' href="http://example.com/">
-          TEST RESULT
+        <log name='machinedesc.log' href="http://example.com/machinedesc.log">
+        </log>
+        <log name='lshw.log' href="http://example.com/lshw.log">
         </log>
       </logs>
-      <task name='/test/misc/machineinfo'>
-        <logs>
-          <log name='machinedesc.log' href="http://example.com/machinedesc.log">
-          </log>
-          <log name='lshw.log' href="http://example.com/lshw.log">
-          </log>
-        </logs>
-      </task>
-      <task name='/distribution/install' result='Fail'>
-      </task>
-    </recipe>
-  </recipeSet>
-</xml>
+    </task>
+    <task name='/distribution/install' result='Fail'>
+    </task>
+  </recipe>
+</recipeSet>
