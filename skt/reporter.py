@@ -57,6 +57,10 @@ def load_state_cfg(statefile):
                 if 'jobs' not in cfg:
                     cfg['jobs'] = set()
                 cfg['jobs'].add(value)
+            if name.startswith('recipesetid_'):
+                if 'recipe_sets' not in cfg:
+                    cfg['recipe_sets'] = set()
+                cfg['recipe_sets'].add(value)
             elif name.startswith('mergerepo_'):
                 if 'mergerepos' not in cfg:
                     cfg['mergerepos'] = list()
@@ -227,13 +231,6 @@ class Reporter(object):
         return ['\nThe kernel was built with the attached configuration '
                 '(%s).' % cfgname]
 
-    def _getjobids(self):
-        jobids = []
-        if self.cfg.get("jobs"):
-            for jobid in sorted(self.cfg.get("jobs")):
-                jobids.append(jobid)
-        return jobids
-
     def __getmergefailure(self):
         result = ['\nHowever, the application of the last patch above '
                   'failed with the',
@@ -282,83 +279,93 @@ class Reporter(object):
         result = []
 
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
-        job_list = sorted(list(self.cfg.get("jobs", [])))
-        vresults = runner.getverboseresults(job_list)
+        recipe_set_list = self.cfg.get('recipe_sets', [])
 
-        minfo = {"short": {}, "long": {}}
-        jidx = 1
-        for jobid, values in vresults.items():
-            job_result = values.get('result')
-            job_status = values.get('status')
-            if job_result == 'Warn' and job_status == 'Aborted':
-                logging.info('Skipping aborted job %s', jobid)
-                continue
+        for recipe_set_id in recipe_set_list:
+            recipe_set_result = runner.getresultstree(recipe_set_id)
+            for recipe in recipe_set_result.findall('recipe'):
+                failed_tasks = []
+                recipe_result = recipe.attrib.get('result')
 
-            for recipe_index, recipe in enumerate(
-                    [key for key in values if key.startswith('R:')]
-            ):
-                (res, system, clogurl, slshwurl, _, test_list) = values[recipe]
+                result += ['\n\n{}{} ({} arch): {}\n'.format(
+                    'Test results for recipe R:',
+                    recipe.attrib.get('id'),
+                    recipe.find('hostRequires/and/arch').attrib.get('value'),
+                    recipe_result.upper()
+                )]
 
-                if not recipe_index:
-                    result += ['\n\nWe ran the following tests:']
-                    for test_name in test_list:
-                        result.append('  - %s' % test_name)
-                    result += ['\nwhich produced the results below:\n']
+                kpkginstall_task = recipe.find(
+                    "task[@name='/distribution/kpkginstall']"
+                )
+                if kpkginstall_task.attrib.get('result') != 'Pass':
+                    result += ['Kernel failed to boot!\n']
+                    failed_tasks.append('/distribution/kpkginstall')
+                else:
+                    recipe_tests = runner.get_recipe_test_list(recipe)
+                    result += ['We ran the following tests:']
+                    for test_name in recipe_tests:
+                        test_result = recipe.find(
+                            "task[@name='{}']".format(test_name)
+                        ).attrib.get('result')
+                        result += ['  - {}: {}'.format(test_name,
+                                                       test_result.upper())]
+                        if test_result != 'Pass':
+                            failed_tasks.append(test_name)
 
-                clog = ConsoleLog(self.cfg.get("krelease"), clogurl)
-                if not clog.data and res != 'Pass':
-                    # The targeted kernel either didn't start booting or the
-                    # console wasn't logged. The second one isn't an issue if
-                    # everything went well, however reporting a failure without
-                    # any details is useless so skip it if nothing besides boot
-                    # test was run.
-                    if not test_list:
-                        continue
+                if failed_tasks:
+                    result += [
+                        '\nFor more information about the failures, here are '
+                        'links for the logs of',
+                        'failed tests and their subtasks:'
+                    ]
 
-                result.append("Test run #%d" % jidx)
-                result.append("Result: %s" % res)
+                    console_node = recipe.find("logs/log[@name='console.log']")
+                    if console_node is not None:
+                        console_log = ConsoleLog(
+                            self.cfg.get("krelease"),
+                            console_node.attrib.get('href')
+                        )
+                        if console_log.data:
+                            console_name = '{}_console.log.gz'.format(
+                                recipe.attrib.get('id')
+                            )
+                            self.attach.append(
+                                (console_name, console_log.getfulllog())
+                            )
+                            result += ['- console log ({}) is attached'.format(
+                                console_name
+                            )]
+                for failed_task in failed_tasks:
+                    task_node = recipe.find(
+                        "task[@name='{}']".format(failed_task)
+                    )
+                    result += ['- {}'.format(failed_task)]
+                    for log in task_node.findall('logs/log'):
+                        result += ['  {}'.format(log.attrib.get('href'))]
+                    for subtask_log in task_node.findall(
+                            'results/result/logs/log'
+                    ):
+                        result += [
+                            '  {}'.format(subtask_log.attrib.get('href'))
+                        ]
 
-                if res != "Pass":
-                    logging.info("Failure detected in recipe %s, attaching "
-                                 "console log", recipe)
-                    ctraces = clog.gettraces()
-                    if ctraces:
-                        result.append("This is the first call trace we found:")
-                        result.append(ctraces[0])
+                machinedesc_url = recipe.find(
+                    "task[@name='/test/misc/machineinfo']/logs/"
+                    "log[@name='machinedesc.log']"
+                ).attrib.get('href')
+                machinedesc = requests.get(machinedesc_url).text
+                result += [
+                    '',
+                    'Testing was performed on a machine with following '
+                    'parameters:',
+                    '',
+                    machinedesc,
+                    ''
+                ]
 
-                    clfname = "%02d_console.log.gz" % jidx
-                    self.attach.append((clfname, clog.getfulllog()))
-                    result += ["\nFor more information about the failure, "
-                               "see attached console log",
-                               "(%s) and LTP lite logs (for each Beaker "
-                               "recipe):" % clfname]
-
-                    ltp_results = runner.get_ltp_lite_logs(jobid)
-                    for ltp_recipe, ltp_logs in ltp_results.items():
-                        result += ['\n  ' + ltp_recipe]
-                        if not any(ltp_logs):
-                            result += ['    N/A']
-                            continue
-                        result += ['    ' + ltp_log
-                                   for ltp_log in ltp_logs if ltp_log]
-
-                if slshwurl is not None:
-                    if system not in minfo["short"]:
-                        response = requests.get(slshwurl)
-                        if response:
-                            result.append("\nMachine info:")
-                            result += response.text.split('\n')
-                            minfo["short"][system] = jidx
-                    else:
-                        result.append("\nMachine info: same as #%d" %
-                                      minfo["short"].get(system))
-
-                result.append('')
-                jidx += 1
-
-            if self.multireport and self.cfg.get('retcode') != '0' and \
-                    self.multireport_failed == MULTI_PASS:
-                self.multireport_failed = MULTI_TEST
+        if self.multireport and self.cfg.get('retcode') != '0' and \
+                self.multireport_failed == MULTI_PASS:
+            self.multireport_failed = MULTI_TEST
 
         return result
 
