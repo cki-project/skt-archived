@@ -626,7 +626,9 @@ class MailReporter(Reporter):
                                filename=name)
 
             msg.attach(tmp)
-
-        mailserver = smtplib.SMTP(self.smtp_url)
-        mailserver.sendmail(self.mailfrom, self.mailto, msg.as_string())
-        mailserver.quit()
+        try:
+            mailserver = smtplib.SMTP(self.smtp_url)
+            mailserver.sendmail(self.mailfrom, self.mailto, msg.as_string())
+            mailserver.quit()
+        except smtplib.SMTPException:
+            logging.error("Unable to send email.")
