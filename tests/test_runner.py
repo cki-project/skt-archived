@@ -89,30 +89,30 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner.getresultstree('RS:123')
         self.assertEqual(next(x.text for x in result.iter('test')), 'TEST')
 
-    def test_forget_cid_withj(self):
-        """Ensure __forget_cid() works with jobs."""
+    def test_forget_taskspec_withj(self):
+        """Ensure __forget_taskspec() works with jobs."""
         # pylint: disable=protected-access,E1101
         self.myrunner.job_to_recipe_set_map = {"J:00001": ["RS:00001"]}
-        result = self.myrunner._BeakerRunner__forget_cid("J:00001")
+        result = self.myrunner._BeakerRunner__forget_taskspec("J:00001")
         self.assertIsNone(result)
         self.assertEqual(self.myrunner.job_to_recipe_set_map, {})
 
-    def test_forget_cid_withr(self):
-        """Ensure __forget_cid() works with recipe sets."""
+    def test_forget_taskspec_withr(self):
+        """Ensure __forget_taskspec() works with recipe sets."""
         # pylint: disable=protected-access,E1101
         self.myrunner.job_to_recipe_set_map = {"J:00001": ["RS:00001"]}
-        result = self.myrunner._BeakerRunner__forget_cid("RS:00001")
+        result = self.myrunner._BeakerRunner__forget_taskspec("RS:00001")
         self.assertIsNone(result)
         self.assertEqual(self.myrunner.job_to_recipe_set_map, {})
 
-    def test_forget_cid_bad_job(self):
-        """Ensure __forget_cid() fails with an invalid taskspec."""
+    def test_forget_taskspec_bad_job(self):
+        """Ensure __forget_taskspec() fails with an invalid taskspec."""
         # pylint: disable=protected-access,E1101
         with self.assertRaises(Exception) as context:
-            self.myrunner._BeakerRunner__forget_cid("OHCOMEON:00001")
+            self.myrunner._BeakerRunner__forget_taskspec("OHCOMEON:00001")
 
         self.assertIn(
-            "Unknown cid type: OHCOMEON:00001",
+            "Unknown taskspec type: OHCOMEON:00001",
             context.exception
         )
 

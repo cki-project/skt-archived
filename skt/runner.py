@@ -119,44 +119,44 @@ class BeakerRunner(Runner):
 
         return xml
 
-    def getresultstree(self, cid):
+    def getresultstree(self, taskspec):
         """
-        Retrieve Beaker results for cid in Beaker's native XML format.
+        Retrieve Beaker results for taskspec in Beaker's native XML format.
 
         Args:
-            cid:   ID of the job, recipe or recipe set.
+            taskspec:   ID of the job, recipe or recipe set.
 
         Returns:
             etree node representing the results.
         """
-        args = ["bkr", "job-results", cid]
+        args = ["bkr", "job-results", taskspec]
 
         bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, _) = bkr.communicate()
         return etree.fromstring(stdout)
 
-    def __forget_cid(self, cid):
+    def __forget_taskspec(self, taskspec):
         """
         Remove a job or recipe set from self.job_to_recipe_set_map, and recipe
         set from self.watchlist if applicable.
 
         Args:
-            cid: The job (J:xxxxx) or recipe set (RS:xxxxx) ID.
+            taskspec: The job (J:xxxxx) or recipe set (RS:xxxxx) ID.
         """
-        if cid.startswith("J:"):
-            del self.job_to_recipe_set_map[cid]
-        elif cid.startswith("RS:"):
-            self.watchlist.discard(cid)
+        if taskspec.startswith("J:"):
+            del self.job_to_recipe_set_map[taskspec]
+        elif taskspec.startswith("RS:"):
+            self.watchlist.discard(taskspec)
             deljids = set()
             for (jid, rset) in self.job_to_recipe_set_map.iteritems():
-                if cid in rset:
-                    rset.remove(cid)
+                if taskspec in rset:
+                    rset.remove(taskspec)
                     if not rset:
                         deljids.add(jid)
             for jid in deljids:
                 del self.job_to_recipe_set_map[jid]
         else:
-            raise ValueError("Unknown cid type: %s" % cid)
+            raise ValueError("Unknown taskspec type: %s" % taskspec)
 
     def __getresults(self):
         """
@@ -246,7 +246,7 @@ class BeakerRunner(Runner):
                 logging.info('Failed to cancel the remaining recipe sets!')
 
         for job_id in self.job_to_recipe_set_map.keys():
-            self.__forget_cid(job_id)
+            self.__forget_taskspec(job_id)
 
     def __watchloop(self):
         while self.watchlist:
@@ -288,7 +288,7 @@ class BeakerRunner(Runner):
                         logging.warning('%s from %s aborted!',
                                         recipe_id,
                                         recipe_set_id)
-                        self.__forget_cid(recipe_set_id)
+                        self.__forget_taskspec(recipe_set_id)
                         self.aborted_count += 1
 
                         if self.aborted_count < self.max_aborted:
@@ -312,7 +312,7 @@ class BeakerRunner(Runner):
 
                     if not test_failure:
                         # Recipe failed before the tested kernel was installed
-                        self.__forget_cid(recipe_set_id)
+                        self.__forget_taskspec(recipe_set_id)
                         self.aborted_count += 1
 
                         if self.aborted_count < self.max_aborted:
