@@ -373,10 +373,13 @@ class Reporter(object):
 
         msg += ['\n'] + self.__getmergeinfo()
 
+        # If the mergelog exists, then this test run failed at the merge step
         if self.cfg.get("mergelog"):
             msg += self.__getmergefailure()
         else:
             self.__get_kernel_config()
+            # If the buildlog exists, then this test run failed at the compile
+            # step
             if self.cfg.get("buildlog"):
                 msg += self.__getbuildfailure()
             elif self.cfg.get('runner'):
