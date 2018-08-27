@@ -382,11 +382,18 @@ class Reporter(object):
             elif self.cfg.get('runner'):
                 msg += self.__getjobresults()
 
-        msg += ['\nPlease reply to this email if you find an issue with our '
-                'testing process,',
-                'or wish to not receive these reports anymore.',
-                '\nSincerely,',
-                '  Kernel CI Team']
+        # Set up a message footer that welcomes and encourages feedback
+        msg += """
+We welcome any feedback you have about these test results. Please feel free to
+reply to this email with:
+
+    * Questions about the testing process or test results
+    * Suggestions for improvements
+    * Any other comments
+
+Sincerely,
+Kernel CI Team
+"""
 
         # Move configuration attachments to the end because some mail clients
         # (eg. mutt) inline them and they are huge
