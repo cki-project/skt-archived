@@ -133,9 +133,6 @@ class KernelTree(object):
         status = process.wait()
         return status, output
 
-    def getpath(self):
-        return self.wdir
-
     def __setup_repository(self):
         """Initialize the repo and set the origin."""
         self.__git_cmd("init")

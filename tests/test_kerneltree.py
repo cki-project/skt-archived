@@ -94,11 +94,6 @@ class KernelTreeTest(unittest.TestCase):
             result = self.kerneltree.checkout()
             self.assertEqual("stdout", result)
 
-    def test_getpath(self):
-        """Ensure that getpath() returns the workdir path."""
-        result = self.kerneltree.getpath()
-        self.assertEqual(result, self.tmpdir)
-
     @mock.patch('subprocess.Popen')
     def test_get_commit_date(self, mock_popen):
         """Ensure that get_commit_date() returns an integer date."""

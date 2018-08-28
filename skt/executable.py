@@ -294,10 +294,9 @@ def cmd_merge(cfg):
             (exc, exc_type, trace) = sys.exc_info()
             raise exc, exc_type, trace
 
-    kpath = ktree.getpath()
     buildhead = ktree.get_commit_hash()
 
-    save_state(cfg, {'workdir': kpath,
+    save_state(cfg, {'workdir': cfg.get('workdir'),
                      'buildhead': buildhead})
 
     report_results(merge_result_path, 'true',
