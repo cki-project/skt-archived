@@ -77,20 +77,24 @@ def report_results(result_path, result_string, report_path, report_string):
         report_file.write(report_string)
 
 
-def remove_oldresult(output_dir, prefix_filename):
+def remove_oldresult(output_dir, prefix):
     """
     Remove existing results from previous runs.
 
     Args:
-        output_dir:      Source directory stores existing result.
-        prefix_filename: Prefix of the existing result filename.
+        output_dir: Source directory storing existing result.
+        prefix:     Prefix of the existing results to be removed.
     """
-    try:
-        for filename in os.listdir(output_dir):
-            if filename.startswith(prefix_filename):
+    for filename in os.listdir(output_dir):
+        if filename.startswith(prefix):
+            try:
                 os.unlink(join_with_slash(output_dir, filename))
-    except OSError:
-        pass
+            except OSError as exc:
+                # May be a directory (eg. merge.source)
+                if exc.errno == os.errno.EISDIR:
+                    shutil.rmtree(join_with_slash(output_dir, filename))
+                else:
+                    raise exc
 
 
 def save_state(cfg, state):
