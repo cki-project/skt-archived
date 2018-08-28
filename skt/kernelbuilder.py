@@ -30,14 +30,15 @@ from skt.misc import join_with_slash
 
 
 class KernelBuilder(object):
-    def __init__(self, source_dir, basecfg, cfgtype=None,
+    def __init__(self, source_dir, output_dir, basecfg, cfgtype=None,
                  extra_make_args=None, enable_debuginfo=False,
                  rh_configs_glob=None):
         self.source_dir = source_dir
+        self.output_dir = output_dir
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
         self._ready = 0
-        self.buildlog = join_with_slash(self.source_dir, "build.log")
+        self.buildlog = join_with_slash(self.output_dir, "build.log")
         self.make_argv_base = ["make", "-C", self.source_dir]
         self.enable_debuginfo = enable_debuginfo
         self.build_arch = self.__get_build_arch()
@@ -236,19 +237,20 @@ class KernelBuilder(object):
         match = re.search("^Tarball successfully created in (.*)$",
                           ''.join(stdout_list), re.MULTILINE)
         if match:
-            fpath = os.path.realpath(
-                join_with_slash(
-                    self.source_dir,
-                    match.group(1)
-                )
-            )
+            tarball_name = match.group(1)
         else:
             raise ParsingError('Failed to find tgz path in stdout')
+
+        fpath = os.path.realpath(join_with_slash(self.source_dir,
+                                                 tarball_name))
 
         if not os.path.isfile(fpath):
             raise IOError("Built kernel tarball {} not found".format(fpath))
 
-        return fpath
+        if self.source_dir != self.output_dir:
+            shutil.move(fpath, self.output_dir)
+
+        return os.path.realpath(join_with_slash(self.output_dir, tarball_name))
 
     @staticmethod
     def append_and_log2stdout(lines, full_log):

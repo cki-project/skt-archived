@@ -35,6 +35,8 @@ class KBuilderTest(unittest.TestCase):
         self.tmpconfig = tempfile.NamedTemporaryFile()
         self.kbuilder = kernelbuilder.KernelBuilder(
             self.tmpdir,
+            # Keep source and output directories the same for ease
+            self.tmpdir,
             self.tmpconfig.name
         )
         self.m_popen = Mock()
@@ -160,6 +162,8 @@ class KBuilderTest(unittest.TestCase):
         """Ensure KernelBuilder handles extra_make_args properly."""
         extra_make_args_example = '-j10'
         kbuilder = kernelbuilder.KernelBuilder(
+            self.tmpdir,
+            # Keep source and output directories the same for ease
             self.tmpdir,
             self.tmpconfig.name,
             extra_make_args=extra_make_args_example

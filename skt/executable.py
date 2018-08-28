@@ -17,6 +17,7 @@ import ConfigParser
 import argparse
 import ast
 import datetime
+import distutils.dir_util
 import importlib
 import json
 import logging
@@ -324,9 +325,17 @@ def cmd_build(cfg):
     build_report_path = join_with_slash(cfg.get('output_dir'),
                                         'build.report')
 
+    # Copy over the kernel tree to build so any modifications don't affect
+    # possible paralell runs
+    distutils.dir_util.copy_tree(
+        join_with_slash(cfg.get('input_dir'), 'merge.source/'),
+        join_with_slash(cfg.get('output_dir'), 'build.source')
+    )
+
     tgz = None
     builder = KernelBuilder(
-        source_dir=cfg.get('workdir'),
+        source_dir=join_with_slash(cfg.get('output_dir'), 'build.source/'),
+        output_dir=cfg.get('output_dir'),
         basecfg=cfg.get('baseconfig'),
         cfgtype=cfg.get('cfgtype'),
         extra_make_args=cfg.get('makeopts'),
@@ -359,7 +368,8 @@ def cmd_build(cfg):
         save_state(cfg, {'tarpkg': ttgz})
 
     tconfig = '%s.csv.config' % cfg.get('buildhead')
-    shutil.copyfile(builder.get_cfgpath(), tconfig)
+    shutil.copyfile(builder.get_cfgpath(),
+                    join_with_slash(cfg.get('output_dir'), tconfig))
 
     krelease = builder.getrelease()
     kernel_arch = builder.build_arch
@@ -380,6 +390,9 @@ def cmd_build(cfg):
                 os.path.basename(builder.buildlog)
             )
         ])
+
+    # Remove temporary files
+    shutil.rmtree(join_with_slash(cfg.get('output_dir'), 'build.source/'))
 
     report_results(build_result_path, 'true' if not retcode else 'false',
                    build_report_path, report_string)

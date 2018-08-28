@@ -41,14 +41,14 @@ class KernelTree(object):
                     Smaller depths lead to faster repo clones.
         """
         # The git "working directory" (the "checkout")
-        self.wdir = wdir
+        self.wdir = join_with_slash(wdir, 'merge.source/')
         # The cloned git repository
         self.gdir = join_with_slash(self.wdir, ".git")
         # The origin remote's URL
         self.uri = uri
         # The remote reference to checkout
         self.ref = ref if ref is not None else "master"
-        self.mergelog = join_with_slash(self.wdir, "merge.log")
+        self.mergelog = join_with_slash(wdir, "merge.log")
         self.fetch_depth = fetch_depth
 
         try:
