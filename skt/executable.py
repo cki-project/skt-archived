@@ -198,7 +198,7 @@ def cmd_merge(cfg):
     ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
-        wdir=cfg.get('workdir'),
+        wdir=cfg.get('output_dir'),
         fetch_depth=cfg.get('fetch_depth')
     )
     bhead = ktree.checkout()
@@ -296,7 +296,7 @@ def cmd_merge(cfg):
 
     buildhead = ktree.get_commit_hash()
 
-    save_state(cfg, {'workdir': cfg.get('workdir'),
+    save_state(cfg, {'workdir': cfg.get('output_dir'),
                      'buildhead': buildhead})
 
     report_results(merge_result_path, 'true',
