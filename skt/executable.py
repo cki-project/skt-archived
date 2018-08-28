@@ -584,10 +584,17 @@ def setup_parser():
         help="Path to work dir"
     )
     parser.add_argument(
+        '-i',
+        '--input-dir',
+        type=str,
+        help='Path to input directory, workdir / current directory if not '
+             + 'specified'
+    )
+    parser.add_argument(
         "-o",
         "--output-dir",
         type=str,
-        help="Path to output directory"
+        help="Path to output directory, input directory if not specified"
     )
     parser.add_argument(
         "--junit",
@@ -996,17 +1003,25 @@ def load_config(args):
             cfg['runner'][1]['blacklist']
         )
 
-    # Create and get an absolute path for the output directory
+    # Create and get an absolute path for the input / output directories
+    if not cfg.get('input_dir'):
+        if os.access(cfg.get('workdir'), os.W_OK | os.X_OK):
+            cfg['input_dir'] = cfg.get('workdir')
+        else:
+            cfg['input_dir'] = os.getcwd()
+    cfg['input_dir'] = full_path(cfg.get('input_dir'))
     if cfg.get('output_dir'):
         cfg['output_dir'] = full_path(cfg.get('output_dir'))
+        # Create the directory if it doesn't exist yet. Only concerns us if the
+        # directory is specified in the configuration -- input and work dirs
+        # have to exist.
         try:
             os.mkdir(cfg.get('output_dir'))
-        except OSError:
-            pass
-    elif os.access(cfg.get('workdir'), os.W_OK | os.X_OK):
-        cfg['output_dir'] = cfg.get('workdir')
+        except OSError as exc:
+            if exc.errno != os.errno.EEXIST:
+                raise exc
     else:
-        cfg['output_dir'] = os.getcwd()
+        cfg['output_dir'] = cfg['input_dir']
 
     return cfg
 
