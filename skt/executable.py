@@ -195,6 +195,11 @@ def cmd_merge(cfg):
     # idx[2]: counter of pw option.
     idx = [0, 0, 0]
     previous_merge = ''
+
+    remove_oldresult(cfg.get('output_dir'), 'merge.')
+    merge_result_path = join_with_slash(cfg.get('output_dir'), 'merge.result')
+    merge_report_path = join_with_slash(cfg.get('output_dir'), 'merge.report')
+
     ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
@@ -207,16 +212,9 @@ def cmd_merge(cfg):
                      'basehead': bhead,
                      'commitdate': commitdate})
 
-    remove_oldresult(cfg.get('output_dir'), 'merge.')
-
     report_string = '\n'.join(['We cloned the git tree and checked out %s '
                                'from the repository at' % bhead[:12],
                                '  %s' % cfg.get('baserepo')])
-    merge_result_path = join_with_slash(cfg.get('output_dir'),
-                                        'merge.result')
-    merge_report_path = join_with_slash(cfg.get('output_dir'),
-                                        'merge.report')
-
     for thing_to_merge in cfg.get('merge_queue', []):
         try:
             if thing_to_merge[0] == 'merge_ref':
