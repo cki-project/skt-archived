@@ -930,29 +930,17 @@ def load_config(args):
         for (name, value) in config.items('state'):
             if not cfg.get(name):
                 if name.startswith("jobid_"):
-                    if "jobs" not in cfg:
-                        cfg["jobs"] = set()
-                    cfg["jobs"].add(value)
+                    cfg.setdefault("jobs", set()).add(value)
                 if name.startswith('recipesetid_'):
-                    if 'recipe_sets' not in cfg:
-                        cfg['recipe_sets'] = set()
-                    cfg['recipe_setss'].add(value)
+                    cfg.setdefault("recipe_sets", set()).add(value)
                 elif name.startswith("mergerepo_"):
-                    if "mergerepos" not in cfg:
-                        cfg["mergerepos"] = list()
-                    cfg["mergerepos"].append(value)
+                    cfg.setdefault("mergerepos", list()).append(value)
                 elif name.startswith("mergehead_"):
-                    if "mergeheads" not in cfg:
-                        cfg["mergeheads"] = list()
-                    cfg["mergeheads"].append(value)
+                    cfg.setdefault("mergeheads", list()).append(value)
                 elif name.startswith("localpatch_"):
-                    if "localpatches" not in cfg:
-                        cfg["localpatches"] = list()
-                    cfg["localpatches"].append(value)
+                    cfg.setdefault("localpatches", list()).append(value)
                 elif name.startswith("patchwork_"):
-                    if "patchworks" not in cfg:
-                        cfg["patchworks"] = list()
-                    cfg["patchworks"].append(value)
+                    cfg.setdefault("patchworks", list()).append(value)
                 cfg[name] = value
 
     if config.has_section('config'):
