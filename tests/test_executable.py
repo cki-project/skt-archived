@@ -12,13 +12,13 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for runner module."""
-from StringIO import StringIO
 from io import BytesIO
 import os
 import sys
 import unittest
 
 import mock
+import six
 from skt import executable
 
 
@@ -33,8 +33,8 @@ class TestExecutable(unittest.TestCase):
         # Capture stdout/stderr temporarily
         old_stdout = sys.stdout
         old_stderr = sys.stderr
-        temp_stdout = StringIO()
-        temp_stderr = StringIO()
+        temp_stdout = six.StringIO()
+        temp_stderr = six.StringIO()
         sys.stdout = temp_stdout
         sys.stderr = temp_stderr
 

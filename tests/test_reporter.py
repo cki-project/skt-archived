@@ -12,7 +12,6 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for reporter module."""
-import StringIO
 import os
 import shutil
 import tempfile
@@ -22,6 +21,7 @@ import xml.etree.ElementTree as etree
 
 import mock
 import responses
+import six
 
 from skt import reporter
 
@@ -175,7 +175,7 @@ class TestStdioReporter(unittest.TestCase):
         if os.path.isfile(self.tempconfig):
             os.unlink(self.tempconfig)
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.attach.append(('example.log', 'just an example'))
         rptclass.report(printer=testprint)
@@ -215,7 +215,7 @@ class TestStdioReporter(unittest.TestCase):
         if os.path.isfile(self.tempconfig):
             os.unlink(self.tempconfig)
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -246,7 +246,7 @@ class TestStdioReporter(unittest.TestCase):
 
         self.basecfg['buildlog'] = self.make_file('build.log', 'build failed')
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -285,7 +285,7 @@ class TestStdioReporter(unittest.TestCase):
         )
         mock_grt.return_value = self.beaker_fail_results
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -328,7 +328,7 @@ class TestStdioReporter(unittest.TestCase):
         mock_grt.return_value = self.beaker_pass_results
         self.basecfg['retcode'] = '0'
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -366,7 +366,7 @@ class TestStdioReporter(unittest.TestCase):
         self.basecfg['localpatches'] = []
         self.basecfg['patchworks'] = ["http://patchwork.example.com/patch/1"]
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -411,7 +411,7 @@ class TestStdioReporter(unittest.TestCase):
         del self.basecfg['krelease']
         del self.basecfg['runner']
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -442,7 +442,7 @@ class TestStdioReporter(unittest.TestCase):
         self.basecfg['localpatches'] = []
         self.basecfg['patchworks'] = []
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -494,7 +494,7 @@ class TestStdioReporter(unittest.TestCase):
         # Mock the loading of these state files
         mock_load.side_effect = [state1, state2]
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -550,7 +550,7 @@ class TestStdioReporter(unittest.TestCase):
         # Mock the loading of these state files
         mock_load.side_effect = [state1, state2]
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
@@ -611,7 +611,7 @@ class TestStdioReporter(unittest.TestCase):
         # Mock the loading of these state files
         mock_load.side_effect = [state1, state2]
 
-        testprint = StringIO.StringIO()
+        testprint = six.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()

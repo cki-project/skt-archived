@@ -13,9 +13,9 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 import gzip
 import re
-import StringIO
 
 import requests
+import six
 
 
 def gzipdata(data):
@@ -28,7 +28,7 @@ def gzipdata(data):
     Returns:
         String containing gzip-compressed data.
     """
-    tstr = StringIO.StringIO()
+    tstr = six.StringIO()
     with gzip.GzipFile(fileobj=tstr, mode="w") as fileh:
         fileh.write(data)
     return tstr.getvalue()

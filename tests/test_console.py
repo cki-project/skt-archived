@@ -14,11 +14,11 @@
 """Test cases for console checker module."""
 import gzip
 import re
-import StringIO
 import unittest
 
 from contextlib import contextmanager
 import mock
+import six
 
 from skt import console
 from tests import misc
@@ -86,7 +86,7 @@ class TestConsoleLog(unittest.TestCase):
         result = consolelog.getfulllog()
 
         # Decompress the string and make sure it matches our test data
-        tstr = StringIO.StringIO(result)
+        tstr = six.StringIO(result)
         with gzip.GzipFile(fileobj=tstr, mode="r") as fileh:
             data_test = fileh.read()
 
