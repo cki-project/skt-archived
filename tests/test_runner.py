@@ -15,7 +15,7 @@
 import os
 import unittest
 
-import xml.etree.ElementTree as etree
+from defusedxml.ElementTree import fromstring
 import mock
 
 from skt import runner
@@ -121,7 +121,7 @@ class TestRunner(unittest.TestCase):
         """Ensure __getresults() works."""
         # pylint: disable=W0212,E1101
         self.myrunner.job_to_recipe_set_map = {'jobid': set(['recipeset'])}
-        self.myrunner.recipe_set_results['recipeset'] = etree.fromstring(
+        self.myrunner.recipe_set_results['recipeset'] = fromstring(
             misc.get_asset_content('beaker_recipe_set_results.xml')
         )
 
@@ -142,7 +142,7 @@ class TestRunner(unittest.TestCase):
         """Ensure __getresults() handles a job failure."""
         # pylint: disable=W0212,E1101
         self.myrunner.job_to_recipe_set_map = {'jobid': set(['recipeset'])}
-        self.myrunner.recipe_set_results['recipeset'] = etree.fromstring(
+        self.myrunner.recipe_set_results['recipeset'] = fromstring(
             misc.get_asset_content('beaker_fail_results.xml')
         )
 
@@ -154,7 +154,7 @@ class TestRunner(unittest.TestCase):
         """Ensure __recipe_set_to_job() works."""
         # pylint: disable=W0212,E1101
         beaker_xml = misc.get_asset_content('beaker_recipe_set_results.xml')
-        xml_parsed = etree.fromstring(beaker_xml)
+        xml_parsed = fromstring(beaker_xml)
 
         result = self.myrunner._BeakerRunner__recipe_set_to_job(xml_parsed)
         self.assertEqual(result.tag, 'job')
@@ -185,7 +185,7 @@ class TestRunner(unittest.TestCase):
         self.myrunner.whiteboard = 'test'
 
         beaker_xml = misc.get_asset_content('beaker_pass_results.xml')
-        mock_getresultstree.return_value = etree.fromstring(beaker_xml)
+        mock_getresultstree.return_value = fromstring(beaker_xml)
         mock_jobsubmit.return_value = "J:0001"
 
         # no need to wait 60 seconds

@@ -20,6 +20,7 @@ import subprocess
 import time
 import xml.etree.ElementTree as etree
 
+from defusedxml.ElementTree import fromstring
 import requests
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
@@ -133,7 +134,7 @@ class BeakerRunner(Runner):
 
         bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, _) = bkr.communicate()
-        return etree.fromstring(stdout)
+        return fromstring(stdout)
 
     def __forget_taskspec(self, taskspec):
         """
@@ -427,7 +428,7 @@ class BeakerRunner(Runner):
         self.max_aborted = max_aborted
 
         try:
-            job_xml_tree = etree.fromstring(self.__getxml(
+            job_xml_tree = fromstring(self.__getxml(
                 {'KVER': release,
                  'KPKG_URL': url,
                  'ARCH': arch}
