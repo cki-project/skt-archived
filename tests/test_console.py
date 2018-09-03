@@ -77,7 +77,7 @@ class TestConsoleLog(unittest.TestCase):
         # pylint: disable=W0212,E1101
         consolelog = console.ConsoleLog(kver='4-4', url_or_path=None)
         result = consolelog._ConsoleLog__fetchdata()
-        self.assertItemsEqual([], result)
+        six.assertCountEqual(self, [], result)
 
     def test_getfulllog(self):
         """Ensure getfulllog() returns gzipped data."""
