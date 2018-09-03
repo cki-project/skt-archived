@@ -29,6 +29,7 @@ import time
 import traceback
 
 import junit_xml
+import six
 
 import skt
 import skt.console
@@ -291,8 +292,8 @@ def cmd_merge(cfg):
 
             return
         except Exception:
-            (exc, exc_type, trace) = sys.exc_info()
-            raise exc, exc_type, trace
+            exc_type, exc, trace = sys.exc_info()
+            six.reraise(exc_type, exc, trace)
 
     kpath = ktree.getpath()
     buildhead = ktree.get_commit_hash()
@@ -345,8 +346,8 @@ def cmd_build(cfg):
         save_state(cfg, {'buildlog': builder.buildlog})
         retcode = SKT_FAIL
     except Exception:
-        (exc, exc_type, trace) = sys.exc_info()
-        raise exc, exc_type, trace
+        exc_type, exc, trace = sys.exc_info()
+        six.reraise(exc_type, exc, trace)
 
     if tgz:
         if cfg.get('buildhead'):
