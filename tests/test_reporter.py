@@ -18,7 +18,7 @@ import shutil
 import tempfile
 import unittest
 
-import xml.etree.ElementTree as etree
+from defusedxml.ElementTree import fromstring
 
 import mock
 import responses
@@ -110,10 +110,10 @@ class TestStdioReporter(unittest.TestCase):
             fileh.write('Config file text from a file')
 
         # Load our sample Beaker XML files
-        self.beaker_pass_results = etree.fromstring(
+        self.beaker_pass_results = fromstring(
             read_asset("beaker_recipe_set_results.xml")
         )
-        self.beaker_fail_results = etree.fromstring(
+        self.beaker_fail_results = fromstring(
             read_asset("beaker_recipe_set_fail_results.xml")
         )
 
