@@ -239,7 +239,6 @@ class KernelTree(object):
         return str(head).rstrip()
 
     def __get_remote_url(self, remote):
-        rurl = None
         grs = subprocess.Popen(["git",
                                 "--work-tree", self.wdir,
                                 "--git-dir", self.gdir,
@@ -250,10 +249,7 @@ class KernelTree(object):
         for line in stdout.split("\n"):
             m = re.match('Fetch URL: (.*)', line)
             if m:
-                rurl = m.group(1)
-                break
-
-        return rurl
+                return m.group(1)
 
     def __get_remote_name(self, uri):
         remote_name = (uri.split('/')[-1].replace('.git', '')
