@@ -247,9 +247,9 @@ class KernelTree(object):
                                stderr=subprocess.PIPE)
         (stdout, _) = grs.communicate()
         for line in stdout.split("\n"):
-            m = re.match('Fetch URL: (.*)', line)
-            if m:
-                return m.group(1)
+            match = re.match('Fetch URL: (.*)', line)
+            if match:
+                return match.group(1)
 
     def __get_remote_name(self, uri):
         remote_name = (uri.split('/')[-1].replace('.git', '')
