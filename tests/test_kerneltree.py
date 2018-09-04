@@ -227,7 +227,8 @@ class KernelTreeTest(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    def test_merge_pw_patch_failure(self):
+    @mock.patch('logging.error')
+    def test_merge_pw_patch_failure(self, mock_logging):
         """Ensure merge_patchwork_patch() handles patch failures properly."""
         mock_get_patch_mbox = mock.patch('skt.kerneltree.get_patch_mbox')
         mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
@@ -238,6 +239,8 @@ class KernelTreeTest(unittest.TestCase):
         with mock_get_patch_mbox, mock_git_cmd, self.popen_bad:
             with self.assertRaises(Exception):
                 self.kerneltree.merge_patchwork_patch('uri')
+
+        mock_logging.assert_called_once()
 
     def test_merge_patch_file(self):
         """Ensure merge_patch_file() tries to merge a patch."""
@@ -254,7 +257,8 @@ class KernelTreeTest(unittest.TestCase):
 
         self.assertIsNone(result)
 
-    def test_merge_patch_file_failure(self):
+    @mock.patch('logging.error')
+    def test_merge_patch_file_failure(self, mock_logging):
         """Ensure merge_patch_file() handles a patch apply failure."""
         mock_check_output = mock.patch(
             'subprocess.check_output',
@@ -268,6 +272,8 @@ class KernelTreeTest(unittest.TestCase):
         with mock_check_output:
             with self.assertRaises(Exception):
                 self.kerneltree.merge_patch_file(patch_file)
+
+        mock_logging.assert_called_once()
 
     def test_merge_patch_file_missing(self):
         """Ensure merge_patch_file() fails when a patch is missing."""
