@@ -239,6 +239,15 @@ class KernelTree(object):
         return str(head).rstrip()
 
     def __get_remote_url(self, remote):
+        """
+        Get the URL of a specific remote.
+
+        Args:
+            remote: The name of the remote.
+
+        Returns:
+            URL of the remote, None if the remote doesn't exist.
+        """
         grs = subprocess.Popen(["git",
                                 "--work-tree", self.wdir,
                                 "--git-dir", self.gdir,
