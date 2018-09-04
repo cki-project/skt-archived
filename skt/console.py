@@ -28,9 +28,9 @@ def gzipdata(data):
     Returns:
         String containing gzip-compressed data.
     """
-    tstr = six.StringIO()
-    with gzip.GzipFile(fileobj=tstr, mode="w") as fileh:
-        fileh.write(data)
+    tstr = six.BytesIO()
+    with gzip.GzipFile(fileobj=tstr, mode="wb") as fileh:
+        fileh.write(data.encode('utf-8'))
     return tstr.getvalue()
 
 

@@ -86,11 +86,11 @@ class TestConsoleLog(unittest.TestCase):
         result = consolelog.getfulllog()
 
         # Decompress the string and make sure it matches our test data
-        tstr = six.StringIO(result)
+        tstr = six.BytesIO(result)
         with gzip.GzipFile(fileobj=tstr, mode="r") as fileh:
             data_test = fileh.read()
 
-        self.assertEqual(data_test, consolelog.data[0])
+        self.assertEqual(data_test.decode('utf-8'), consolelog.data[0])
 
     def test_kernel_version_unmatch(self):
         """Ensure gettraces() doesn't catch trace when kver doesn't match."""

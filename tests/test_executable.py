@@ -60,7 +60,7 @@ class TestExecutable(unittest.TestCase):
         """Reusable method to test the load_config() method."""
         mock_open = mock.patch(
             'ConfigParser.open',
-            return_value=BytesIO('\n'.join(config_file))
+            return_value=BytesIO('\n'.join(config_file).encode('utf-8'))
         )
         parser = executable.setup_parser()
         args = parser.parse_args(testing_args)

@@ -141,7 +141,7 @@ class KernelTree(object):
         self.__git_cmd("init")
 
         # Does the repo have an origin set?
-        if 'origin' in self.__git_cmd("remote").split('\n'):
+        if 'origin' in str(self.__git_cmd("remote")).split('\n'):
             # Ensure the origin is set to the correct URL
             logging.debug("Setting URL for remote 'origin': %s" % self.uri)
             self.__git_cmd("remote", "set-url", "origin", self.uri)

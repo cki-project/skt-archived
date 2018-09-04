@@ -104,7 +104,7 @@ class TestIndependent(unittest.TestCase):
         )
 
         resp = skt.misc.get_patch_mbox('http://patchwork.example.com/patch/1')
-        self.assertEqual('{"result": "good"}', resp)
+        self.assertEqual('{"result": "good"}', resp.decode("utf-8"))
 
     @responses.activate
     def test_get_patch_mbox_fail(self):

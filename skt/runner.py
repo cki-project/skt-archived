@@ -21,6 +21,7 @@ import time
 import xml.etree.ElementTree as etree
 
 import requests
+import six
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 
@@ -148,7 +149,7 @@ class BeakerRunner(Runner):
         elif taskspec.startswith("RS:"):
             self.watchlist.discard(taskspec)
             deljids = set()
-            for (jid, rset) in self.job_to_recipe_set_map.iteritems():
+            for (jid, rset) in six.iteritems(self.job_to_recipe_set_map):
                 if taskspec in rset:
                     rset.remove(taskspec)
                     if not rset:

@@ -58,7 +58,7 @@ def get_patch_name(content):
         Name of the patch. <SUBJECT MISSING> is returned if no subject is
         found, and <SUBJECT ENCODING INVALID> if header decoding fails.
     """
-    headers = email.parser.Parser().parsestr(content, True)
+    headers = email.parser.Parser().parsestr(str(content), True)
     subject = headers['Subject']
     if not subject:
         # Emails return None if the header is not found so use a stub subject
