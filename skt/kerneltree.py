@@ -316,12 +316,9 @@ class KernelTree(object):
                                              "am", "-",
                                              cwd=self.wdir)
         if status != 0:
-            try:
-                self.__git_cmd("am", "--abort", cwd=self.wdir)
-            except subprocess.CalledProcessError as exc:
-                logging.debug("%s failed with status %d and "
-                              "following output:\n%s",
-                              exc.cmd, exc.returncode, exc.output)
+            logging.error('Patch application failed with:\n%s', output)
+
+            self.__git_cmd("am", "--abort", cwd=self.wdir)
 
             with open(self.mergelog, "w") as fileh:
                 fileh.write(output)
@@ -339,12 +336,9 @@ class KernelTree(object):
         try:
             self.__git_cmd("am", path, cwd=self.wdir)
         except subprocess.CalledProcessError as exc:
-            try:
-                self.__git_cmd("am", "--abort", cwd=self.wdir)
-            except subprocess.CalledProcessError as exc:
-                logging.debug("%s failed with status %d and "
-                              "following output:\n%s",
-                              exc.cmd, exc.returncode, exc.output)
+            logging.error('Patch application failed with:\n%s', exc.output)
+
+            self.__git_cmd("am", "--abort", cwd=self.wdir)
 
             with open(self.mergelog, "w") as fileh:
                 fileh.write(exc.output)
