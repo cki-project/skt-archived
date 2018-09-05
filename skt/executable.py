@@ -523,36 +523,10 @@ def cmd_console_check(cfg):
                        console_report_path, 'No call traces were detected.')
 
 
-def cmd_cleanup(cfg):
-    """
-    Remove the build information file, kernel tarball. Remove state information
-    from the configuration file, if saving state was enabled with the global
-    --state option, and remove the whole working directory, if the global
-    --wipe option was specified.
-
-    Args:
-        cfg:    A dictionary of skt configuration.
-    """
-    config = cfg.get('_parser')
-    if config.has_section('state'):
-        config.remove_section('state')
-        with open(cfg.get('rc'), 'w') as fileh:
-            config.write(fileh)
-
-    if cfg.get('tarpkg'):
-        try:
-            os.unlink(cfg.get('tarpkg'))
-        except OSError:
-            pass
-
-    if cfg.get('wipe') and cfg.get('workdir'):
-        shutil.rmtree(cfg.get('workdir'))
-
-
 def cmd_all(cfg):
     """
-    Run the following commands in order: merge, build, publish, run, report (if
-    --wait option was specified), and cleanup.
+    Run the following commands in order: merge, build, publish, run, and
+    report (if --wait option was specified).
 
     Args:
         cfg:    A dictionary of skt configuration.
@@ -563,7 +537,6 @@ def cmd_all(cfg):
     cmd_run(cfg)
     if cfg.get('wait'):
         cmd_report(cfg)
-    cmd_cleanup(cfg)
 
 
 def addtstamp(path, tstamp):
@@ -615,16 +588,6 @@ def setup_parser():
         "--output-dir",
         type=str,
         help="Path to output directory"
-    )
-    parser.add_argument(
-        "-w",
-        "--wipe",
-        help=(
-            "Clean build (make mrproper before building) and remove workdir "
-            "when finished"
-        ),
-        action="store_true",
-        default=False
     )
     parser.add_argument(
         "--junit",
@@ -713,6 +676,13 @@ def setup_parser():
         "--cfgtype",
         type=str,
         help="How to process default config (default: olddefconfig)"
+    )
+    parser_build.add_argument(
+        "-w",
+        "--wipe",
+        action="store_true",
+        default=False,
+        help="Clean build (make mrproper before building)"
     )
     parser_build.add_argument(
         "--enable-debuginfo",
@@ -846,8 +816,6 @@ def setup_parser():
              + 'same krelease.'
     )
 
-    parser_cleanup = subparsers.add_parser("cleanup", add_help=False)
-
     parser_all = subparsers.add_parser(
         "all",
         parents=[
@@ -855,8 +823,7 @@ def setup_parser():
             parser_build,
             parser_publish,
             parser_run,
-            parser_report,
-            parser_cleanup
+            parser_report
         ]
     )
 
@@ -907,8 +874,6 @@ def setup_parser():
     parser_run.set_defaults(_name="run")
     parser_console.set_defaults(func=cmd_console_check)
     parser_console.set_defaults(_name='console_check')
-    parser_cleanup.set_defaults(func=cmd_cleanup)
-    parser_cleanup.set_defaults(_name="cleanup")
     parser_all.set_defaults(func=cmd_all)
     parser_all.set_defaults(_name="all")
 

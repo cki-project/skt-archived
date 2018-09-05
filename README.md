@@ -109,18 +109,13 @@ The following commands are supported by `skt`:
 * `console-check`
     - Check the specified console logs for any traces, and report the first
       trace found for each console log.
-* `cleanup`
-    - Remove the build information file, kernel tarball. Remove state
-      information from the configuration file, if saving state was enabled
-      with the global `--state` option, and remove the whole working directory,
-      if the global `--wipe` option was specified.
 * `all`
     - Run the following commands in order: `merge`, `build`, `publish`, `run`,
-      `report` (if `--wait` option was specified), and `cleanup`.
+      `report` (if `--wait` option was specified).
 
 The following is a walk through the process of checking out a kernel commit,
-applying a patch from Patchwork, building the kernel, running the tests,
-reporting the results, and cleaning up.
+applying a patch from Patchwork, building the kernel, running the tests, and
+reporting the results.
 
 All the following commands use the `-vv` option to increase verbosity of the
 command's output, so it's easier to debug problems. Remove the option for
@@ -429,14 +424,6 @@ kernel release string is parsed out of state file:
 
     skt --rc skt-rc --state --workdir skt-workdir -vv \
         console-check --console http://beaker.example.com/skt-logs/console.log
-
-### Cleanup
-
-The `cleanup` command doesn't have its own options, but recognizes the global
-`--state` and `--wipe` options. It will remove the state section from the
-configuration file, if `--state` is specified, and it will remove the working
-directory, if `--wipe` is specified. Otherwise it will just remove the built
-tarball and the build information file.
 
 Developer Guide
 ---------------
