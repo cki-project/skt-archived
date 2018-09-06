@@ -173,7 +173,7 @@ class BeakerRunner(Runner):
             logging.error('All test sets aborted or were cancelled!')
             return SKT_ERROR
 
-        for job, recipe_sets in self.job_to_recipe_set_map.items():
+        for _, recipe_sets in self.job_to_recipe_set_map.items():
             for recipe_set_id in recipe_sets:
                 results = self.recipe_set_results[recipe_set_id]
                 for recipe_result in results.findall('recipe'):
