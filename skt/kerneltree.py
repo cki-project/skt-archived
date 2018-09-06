@@ -143,11 +143,11 @@ class KernelTree(object):
         # Does the repo have an origin set?
         if 'origin' in self.__git_cmd("remote").split('\n'):
             # Ensure the origin is set to the correct URL
-            logging.debug("Setting URL for remote 'origin': %s" % self.uri)
+            logging.debug("Setting URL for remote 'origin': %s", self.uri)
             self.__git_cmd("remote", "set-url", "origin", self.uri)
         else:
             # Add the origin remote
-            logging.debug("Adding missing remote 'origin': %s" % self.uri)
+            logging.debug("Adding missing remote 'origin': %s", self.uri)
             self.__git_cmd("remote", "add", "origin", self.uri)
 
     def get_commit_date(self, ref=None):
