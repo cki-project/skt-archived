@@ -87,12 +87,12 @@ class BeakerRunner(Runner):
                     if line:
                         hostnames.append(line)
         except (IOError, OSError) as exc:
-            logging.error('Can\'t access {}!'.format(filepath))
+            logging.error('Can\'t access %s!', filepath)
             raise exc
         except TypeError:
             logging.info('No hostname blacklist file passed')
 
-        logging.info('Blacklisted hostnames: {}'.format(hostnames))
+        logging.info('Blacklisted hostnames: %s', hostnames)
         return hostnames
 
     def __getxml(self, replacements):
