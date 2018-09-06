@@ -381,9 +381,9 @@ class BeakerRunner(Runner):
         (stdout, _) = bkr.communicate(xml)
 
         for line in stdout.split("\n"):
-            m = re.match(r"^Submitted: \['([^']+)'\]$", line)
-            if m:
-                jobid = m.group(1)
+            match = re.match(r"^Submitted: \['([^']+)'\]$", line)
+            if match:
+                jobid = match.group(1)
                 break
 
         if not jobid:
