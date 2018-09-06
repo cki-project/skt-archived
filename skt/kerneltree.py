@@ -259,6 +259,7 @@ class KernelTree(object):
             match = re.match('Fetch URL: (.*)', line)
             if match:
                 return match.group(1)
+        return None
 
     def __get_remote_name(self, uri):
         remote_name = (uri.split('/')[-1].replace('.git', '')
