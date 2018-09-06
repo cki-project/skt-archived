@@ -150,12 +150,12 @@ class KernelBuilder(object):
             self.__prepare_kernel_config()
 
         args = self.make_argv_base + ["kernelrelease"]
-        mk = subprocess.Popen(args, stdout=subprocess.PIPE)
-        (stdout, _) = mk.communicate()
+        make = subprocess.Popen(args, stdout=subprocess.PIPE)
+        (stdout, _) = make.communicate()
         for line in stdout.split("\n"):
-            m = re.match(r'^\d+\.\d+\.\d+.*$', line)
-            if m:
-                krelease = m.group()
+            match = re.match(r'^\d+\.\d+\.\d+.*$', line)
+            if match:
+                krelease = match.group()
                 break
 
         if krelease is None:
