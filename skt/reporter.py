@@ -600,7 +600,7 @@ class MailReporter(Reporter):
                 msg['Subject'] = self._getsubject()
             msg.attach(MIMEText(self._getreport()))
             # Add the SKT job IDs so we can correlate emails to jobs
-            msg['X-SKT-JIDS'] = ' '.join(self._getjobids())
+            msg['X-SKT-JIDS'] = ' '.join(self.cfg.get("jobs"))
 
         for (name, att) in self.attach:
             # TODO Store content type and charset when adding attachments
