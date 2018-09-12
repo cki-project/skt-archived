@@ -284,6 +284,17 @@ class KernelTree(object):
         return remote_name
 
     def merge_git_ref(self, uri, ref="master"):
+        """
+        Merge a git branch/reference into the tree.
+
+        Args:
+            uri: URL points to a repo containing the branch/reference to merge
+            ref: Reference to checkout, default is master.
+
+        Return:
+            A tuple (SKT_SUCCESS, reference to commit) on success.
+            A tuple (SKT_FAIL, None)                   on failure.
+        """
         remote_name = self.__get_remote_name(uri)
         head = None
 
@@ -317,6 +328,15 @@ class KernelTree(object):
         return (SKT_SUCCESS, head)
 
     def merge_patchwork_patch(self, uri):
+        """
+        Apply a patch from Patchwork (using git am)
+
+        Args:
+            uri: URL of patch on a Patchwork instance.
+
+        Raises:
+            PatchApplicationError in case the patch failed to apply.
+        """
         patch_content = get_patch_mbox(uri)
 
         logging.info("Applying %s", uri)
@@ -339,6 +359,15 @@ class KernelTree(object):
             )
 
     def merge_patch_file(self, path):
+        """
+        Apply a particular local patch run.
+
+        Args:
+            path: A full path of local patch.
+
+        Raises:
+            PatchApplicationError in case the patch failed to apply.
+        """
         if not os.path.exists(path):
             raise Exception("Patch %s not found" % path)
 
