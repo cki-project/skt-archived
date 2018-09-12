@@ -262,6 +262,15 @@ class KernelTree(object):
         return None
 
     def __get_remote_name(self, uri):
+        """
+        Get the remote name of a specific URI.
+
+        Args:
+            uri: The URI of the repository's remote.
+
+        Returns:
+            A string representing the remote name.
+        """
         remote_name = (uri.split('/')[-1].replace('.git', '')
                        if not uri.endswith('/')
                        else uri.split('/')[-2].replace('.git', ''))
