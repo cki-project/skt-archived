@@ -361,20 +361,20 @@ def cmd_build(cfg):
         logging.info("tarball path: %s", new_tarball_name)
         save_state(cfg, {'tarpkg': new_tarball_name})
 
-    tconfig = '%s.csv.config' % cfg.get('buildhead')
+    config_name = 'build.kernel.config.txt'
     shutil.copyfile(builder.get_cfgpath(),
-                    join_with_slash(cfg.get('output_dir'), tconfig))
+                    join_with_slash(cfg.get('output_dir'), config_name))
 
     krelease = builder.getrelease()
     kernel_arch = builder.build_arch
 
-    save_state(cfg, {'buildconf': tconfig,
+    save_state(cfg, {'buildconf': config_name,
                      'krelease': krelease,
                      'kernel_arch': kernel_arch})
 
     report_string = '{} ({{{}}})'.format(
         'The kernel was built with the attached configuration',
-        tconfig
+        config_name
     )
     if retcode:
         report_string += '\n'.join([
