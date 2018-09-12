@@ -16,7 +16,6 @@ from __future__ import print_function
 import ConfigParser
 import argparse
 import ast
-import datetime
 import distutils.dir_util
 import importlib
 import json
@@ -315,9 +314,6 @@ def cmd_build(cfg):
         cfg:    A dictionary of skt configuration.
     """
     global retcode
-    tstamp = datetime.datetime.strftime(datetime.datetime.now(),
-                                        "%Y%m%d%H%M%S")
-
     remove_oldresult(cfg.get('output_dir'), 'build.')
 
     build_result_path = join_with_slash(cfg.get('output_dir'),
@@ -359,13 +355,11 @@ def cmd_build(cfg):
         raise exc, exc_type, trace
 
     if tgz:
-        if cfg.get('buildhead'):
-            ttgz = "%s.tar.gz" % cfg.get('buildhead')
-        else:
-            ttgz = addtstamp(tgz, tstamp)
-        shutil.move(tgz, ttgz)
-        logging.info("tarball path: %s", ttgz)
-        save_state(cfg, {'tarpkg': ttgz})
+        new_tarball_name = 'build.kernel.tar.gz'
+        shutil.move(tgz,
+                    join_with_slash(cfg.get('output_dir'), new_tarball_name))
+        logging.info("tarball path: %s", new_tarball_name)
+        save_state(cfg, {'tarpkg': new_tarball_name})
 
     tconfig = '%s.csv.config' % cfg.get('buildhead')
     shutil.copyfile(builder.get_cfgpath(),
@@ -551,21 +545,6 @@ def cmd_all(cfg):
     cmd_run(cfg)
     if cfg.get('wait'):
         cmd_report(cfg)
-
-
-def addtstamp(path, tstamp):
-    """
-    Add time stamp to a file path.
-
-    Args:
-        path:   file path.
-        tstamp: time stamp.
-
-    Returns:
-        New path with time stamp.
-    """
-    return join_with_slash(os.path.dirname(path),
-                           "%s-%s" % (tstamp, os.path.basename(path)))
 
 
 def setup_logging(verbose):
