@@ -190,7 +190,7 @@ def cmd_merge(cfg):
     """
     global retcode
     # Counter merge patch following:
-    # id[0]:  counter of merge-ref option.
+    # idx[0]: counter of merge-ref option.
     # idx[1]: counter of patch option.
     # idx[2]: counter of pw option.
     idx = [0, 0, 0]
