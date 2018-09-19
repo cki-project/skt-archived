@@ -718,6 +718,12 @@ def setup_parser():
         type=str,
         help="Path to tar pkg to publish"
     )
+    parser_publish.add_argument(
+        '--prefix',
+        type=str,
+        default='',
+        help='Optional prefix string to prepend to filename when publishing'
+    )
 
     # These arguments apply to the 'run' skt command
     parser_run = subparsers.add_parser("run", add_help=False)
@@ -928,6 +934,12 @@ def load_config(args):
         cfg['publisher'] = [config.get('publisher', 'type'),
                             config.get('publisher', 'destination'),
                             config.get('publisher', 'baseurl')]
+        if config.has_option('publisher', 'prefix'):
+            cfg['publisher'].append(config.get('publisher', 'prefix'))
+        else:
+            cfg['publisher'].append('')
+    elif cfg.get('publisher'):
+        cfg['publisher'].append(cfg['prefix'])
 
     if config.has_section('runner') and not cfg.get('runner'):
         rcfg = {}

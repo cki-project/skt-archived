@@ -21,5 +21,9 @@ class TestPublisher(unittest.TestCase):
     """Test cases for publisher.Publisher class."""
     def test_geturl(self):
         """Check if the source url is built correctly."""
-        pub = publisher.Publisher('dest', 'file:///tmp/test')
+        pub = publisher.Publisher('dest', 'file:///tmp/test', '')
         self.assertEqual(pub.geturl('source'), 'file:///tmp/test/source')
+
+        pub_with_prefix = publisher.Publisher('dest', 'file:///tmp/test', 'p')
+        self.assertEqual(pub_with_prefix.geturl('source'),
+                         'file:///tmp/test/psource')

@@ -26,7 +26,7 @@ class Publisher(object):
     # not be inherited
     TYPE = 'default'
 
-    def __init__(self, dest, url):
+    def __init__(self, dest, url, prefix):
         """
         Initialize an abstract result publisher.
 
@@ -34,12 +34,15 @@ class Publisher(object):
             dest:   Type-specific destination string.
             url:    Base URL prefix of the published result,
                     without '/' on the end.
+            prefix: Prefix to prepend to the filenames when publishing.
         """
         self.destination = dest
         self.baseurl = url
+        self.prefix = prefix
 
         logging.info("publisher type: %s", self.TYPE)
         logging.info("publisher destination: %s", self.destination)
+        logging.info('filename prefix: %s', self.prefix)
 
     def geturl(self, source):
         """
@@ -51,7 +54,8 @@ class Publisher(object):
         Returns:
             Published URL corresponding to the specified source.
         """
-        return join_with_slash(self.baseurl, os.path.basename(source))
+        return join_with_slash(self.baseurl,
+                               self.prefix + os.path.basename(source))
 
     # TODO Define abstract "publish" method.
 
@@ -69,7 +73,8 @@ class CpPublisher(Publisher):
         Returns:
             Published URL corresponding to the specified source.
         """
-        destination = join_with_slash(self.destination, "")
+        destination = join_with_slash(self.destination,
+                                      self.prefix + os.path.basename(source))
         shutil.copy(source, destination)
         return self.geturl(source)
 
@@ -87,7 +92,8 @@ class ScpPublisher(Publisher):
         Returns:
             Published URL corresponding to the specified source.
         """
-        destination = join_with_slash(self.destination, "")
+        destination = join_with_slash(self.destination,
+                                      self.prefix + os.path.basename(source))
         subprocess.check_call(["scp", source, destination])
         return self.geturl(source)
 
@@ -107,13 +113,15 @@ class SftpPublisher(Publisher):
         """
         sp = subprocess.Popen(['sftp', self.destination],
                               shell=False, stdin=subprocess.PIPE)
-        sp.stdin.write("put -r %s\n" % source)
+        sp.stdin.write("put -r {} {}\n".format(
+            source, self.prefix + os.path.basename(source)
+        ))
         sp.stdin.close()
         sp.wait()
         return self.geturl(source)
 
 
-def getpublisher(ptype, parg, pburl):
+def getpublisher(ptype, parg, pburl, prefix):
     """
     Create an instance of a "publisher" subclass with specified arguments.
 
@@ -129,5 +137,5 @@ def getpublisher(ptype, parg, pburl):
     """
     for cls in Publisher.__subclasses__():
         if cls.TYPE == ptype:
-            return cls(parg, pburl)
+            return cls(parg, pburl, prefix)
     raise ValueError("Unknown publisher type: %s" % ptype)
