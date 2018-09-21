@@ -35,7 +35,6 @@ class KernelTree(object):
             ref:    The remote reference to checkout. Assumed to be "master",
                     if not specified.
             wdir:   The directory to house the clone and to checkout into.
-                    Creates and uses a temporary directory if not specified.
             fetch_depth:
                     The amount of git history to include with the clone.
                     Smaller depths lead to faster repo clones.

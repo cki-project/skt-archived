@@ -965,9 +965,13 @@ def load_config(args):
         # Use the reporter configuration from the configuration file
         cfg['reporter'] = config.items('reporter')
 
-    # Get an absolute path for the work directory
+    # Get an absolute path for the work directory and create it if needed
     if cfg.get('workdir'):
         cfg['workdir'] = full_path(cfg.get('workdir'))
+        try:
+            os.mkdir(cfg['workdir'])
+        except OSError:
+            pass
     else:
         cfg['workdir'] = tempfile.mkdtemp()
 
