@@ -293,13 +293,19 @@ class Reporter(object):
                     recipe_tests = runner.get_recipe_test_list(recipe)
                     result += ['We ran the following tests:']
                     for test_name in recipe_tests:
-                        test_result = recipe.find(
+                        task_node = recipe.find(
                             "task[@name='{}']".format(test_name)
-                        ).attrib.get('result')
+                        )
+                        test_result = task_node.attrib.get('result')
                         result += ['  - {}: {}'.format(test_name,
                                                        test_result.upper())]
                         if test_result != 'Pass':
                             failed_tasks.append(test_name)
+
+                        if task_node.find('fetch') is not None:
+                            result.append('    - Test URL: {}'.format(
+                                task_node.find('fetch').attrib.get('url')
+                            ))
 
                 if failed_tasks:
                     result += [

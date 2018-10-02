@@ -477,14 +477,20 @@ class BeakerRunner(Runner):
                     recipe_tests = self.get_recipe_test_list(recipe)
                     report_string += 'We ran the following tests:\n'
                     for test_name in recipe_tests:
-                        test_result = recipe.find(
+                        task_node = recipe.find(
                             "task[@name='{}']".format(test_name)
-                        ).attrib.get('result')
+                        )
+                        test_result = task_node.attrib.get('result')
                         report_string += '  - {}: {}\n'.format(
                             test_name, test_result.upper()
                         )
                         if test_result != 'Pass':
                             failed_tasks.append(test_name)
+
+                        if task_node.find('fetch') is not None:
+                            report_string += '    - Test URL: {}\n'.format(
+                                task_node.find('fetch').attrib.get('url')
+                            )
 
                 if failed_tasks:
                     report_string += '\n{}\n{}\n'.format(
