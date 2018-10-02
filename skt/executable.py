@@ -362,14 +362,20 @@ def cmd_build(cfg):
 
     krelease = builder.getrelease()
     kernel_arch = builder.build_arch
+    make_opts = ' '.join(builder.make_argv_base
+                         + builder.targz_pkg_argv
+                         + builder.extra_make_args)
 
     save_state(cfg, {'buildconf': tconfig,
                      'krelease': krelease,
-                     'kernel_arch': kernel_arch})
+                     'kernel_arch': kernel_arch,
+                     'make_opts': make_opts})
 
-    report_string = '{} ({{{}}})'.format(
+    report_string = '{} ({{{}}})\n{}\n    {}'.format(
         'The kernel was built with the attached configuration',
-        tconfig
+        tconfig,
+        'and the following command: ',
+        make_opts
     )
     if retcode:
         report_string += '\n'.join([
