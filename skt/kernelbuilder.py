@@ -43,6 +43,12 @@ class KernelBuilder(object):
         self.build_arch = self.__get_build_arch()
         self.rh_configs_glob = rh_configs_glob
 
+        self.targz_pkg_argv = [
+            "INSTALL_MOD_STRIP=1",
+            "-j%d" % multiprocessing.cpu_count(),
+            "targz-pkg"
+        ]
+
         # Split the extra make arguments provided by the user
         if extra_make_args:
             self.extra_make_args = shlex.split(extra_make_args)
@@ -184,14 +190,9 @@ class KernelBuilder(object):
         self.__prepare_kernel_config()
 
         # Set up the arguments and options for the kernel build
-        targz_pkg_argv = [
-            "INSTALL_MOD_STRIP=1",
-            "-j%d" % multiprocessing.cpu_count(),
-            "targz-pkg"
-        ]
         kernel_build_argv = (
             self.make_argv_base
-            + targz_pkg_argv
+            + self.targz_pkg_argv
             + self.extra_make_args
         )
 

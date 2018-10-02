@@ -218,7 +218,9 @@ class Reporter(object):
 
         self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
         return ['\nThe kernel was built with the attached configuration '
-                '(%s).' % cfgname]
+                '(%s)' % cfgname,
+                'and the following command:',
+                '    %s' % self.cfg.get('make_opts')]
 
     def __getmergefailure(self):
         result = ['\nHowever, the application of the last patch above '
