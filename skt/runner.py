@@ -345,7 +345,8 @@ class BeakerRunner(Runner):
     def get_recipe_test_list(self, recipe_node):
         """
         Retrieve the list of tests which ran for a particular recipe. All tasks
-        after kpkginstall are interpreted as ran tests.
+        after kpkginstall, which were not skipped, are interpreted as ran
+        tests.
 
         Args:
             recipe_node: ElementTree node representing the recipe, extracted
@@ -358,7 +359,7 @@ class BeakerRunner(Runner):
         after_kpkg = False
 
         for test_task in recipe_node.findall('task'):
-            if after_kpkg:
+            if after_kpkg and test_task.attrib.get('result') != 'Skip':
                 test_list.append(test_task.attrib.get('name'))
 
             if 'kpkginstall' in test_task.attrib.get('name', ''):
@@ -475,22 +476,23 @@ class BeakerRunner(Runner):
                     failed_tasks.append('/distribution/kpkginstall')
                 else:
                     recipe_tests = self.get_recipe_test_list(recipe)
-                    report_string += 'We ran the following tests:\n'
-                    for test_name in recipe_tests:
-                        task_node = recipe.find(
-                            "task[@name='{}']".format(test_name)
-                        )
-                        test_result = task_node.attrib.get('result')
-                        report_string += '  - {}: {}\n'.format(
-                            test_name, test_result.upper()
-                        )
-                        if test_result != 'Pass':
-                            failed_tasks.append(test_name)
-
-                        if task_node.find('fetch') is not None:
-                            report_string += '    - Test URL: {}\n'.format(
-                                task_node.find('fetch').attrib.get('url')
+                    if recipe_tests:
+                        report_string += 'We ran the following tests:\n'
+                        for test_name in recipe_tests:
+                            task_node = recipe.find(
+                                "task[@name='{}']".format(test_name)
                             )
+                            test_result = task_node.attrib.get('result')
+                            report_string += '  - {}: {}\n'.format(
+                                test_name, test_result.upper()
+                            )
+                            if test_result != 'Pass':
+                                failed_tasks.append(test_name)
+
+                            if task_node.find('fetch') is not None:
+                                report_string += '    - Test URL: {}\n'.format(
+                                    task_node.find('fetch').attrib.get('url')
+                                )
 
                 if failed_tasks:
                     report_string += '\n{}\n{}\n'.format(
