@@ -21,7 +21,6 @@ import time
 import xml.etree.ElementTree as etree
 
 from defusedxml.ElementTree import fromstring
-import requests
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 
@@ -517,16 +516,15 @@ class BeakerRunner(Runner):
                         )
                     report_string += '\n'
 
-                machinedesc_url = recipe.find(
-                    "task[@name='/test/misc/machineinfo']/logs/"
-                    "log[@name='machinedesc.log']"
-                ).attrib.get('href')
-                machinedesc = requests.get(machinedesc_url).text
-                report_string += '\n{}\n\n{}\n\n'.format(
-                    'Testing was performed on a machine with following '
-                    'parameters:',
-                    machinedesc
-                )
+                    report_string += '\n{}\n\n'.format(
+                        'Hardware parameters of the machine are available at:'
+                    )
+                for hwinfo_log in['machinedesc.log', 'lshw.log']:
+                    hwinfo_url = recipe.find(
+                        "task[@name='/test/misc/machineinfo']/logs/"
+                        "log[@name='{}']".format(hwinfo_log)
+                    ).attrib.get('href')
+                    report_string += '{}\n'.format(hwinfo_url)
 
         return (ret, report_string)
 

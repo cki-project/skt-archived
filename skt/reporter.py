@@ -348,19 +348,17 @@ class Reporter(object):
                             '  {}'.format(subtask_log.attrib.get('href'))
                         ]
 
-                machinedesc_url = recipe.find(
-                    "task[@name='/test/misc/machineinfo']/logs/"
-                    "log[@name='machinedesc.log']"
-                ).attrib.get('href')
-                machinedesc = requests.get(machinedesc_url).text
                 result += [
                     '',
-                    'Testing was performed on a machine with following '
-                    'parameters:',
-                    '',
-                    machinedesc,
+                    'Hardware parameters of the machine are available at:',
                     ''
                 ]
+                for hwinfo_log in['machinedesc.log', 'lshw.log']:
+                    hwinfo_url = recipe.find(
+                        "task[@name='/test/misc/machineinfo']/logs/"
+                        "log[@name='{}']".format(hwinfo_log)
+                    ).attrib.get('href')
+                    result += [hwinfo_url]
 
         if self.multireport and self.cfg.get('retcode') != '0' and \
                 self.multireport_failed == MULTI_PASS:
