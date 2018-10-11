@@ -20,10 +20,8 @@ import logging
 import smtplib
 import sys
 
-import requests
-
 from skt.console import ConsoleLog, gzipdata
-from skt.misc import join_with_slash, get_patch_name, get_patch_mbox
+from skt.misc import get_patch_name, get_patch_mbox
 import skt.runner
 
 
@@ -147,21 +145,9 @@ class Reporter(object):
             'merge_git': [],
             'localpatch': [],
             'patchwork': [],
-            'config': None
         }
 
         mergedata = self.__stateconfigdata(mergedata)
-
-        if not self.cfg.get('mergelog'):
-            if self.cfg.get("cfgurl"):
-                response = requests.get(self.cfg.get("cfgurl"))
-                if response:
-                    mergedata['config'] = response.text
-            else:
-                with open(join_with_slash(self.cfg.get("workdir"),
-                                          ".config"), "r") as fileh:
-                    mergedata['config'] = fileh.read()
-
         self.mergedata = mergedata
 
     def __getmergeinfo(self):
@@ -202,25 +188,18 @@ class Reporter(object):
 
         return result
 
-    def __get_kernel_config(self, suffix=None):
+    def __get_build_data(self):
         """
-        Add the configuration which was used to build the kernel to reporter's
-        list of attachments. Add optional suffix to attachment's name to
-        distinguish it from other configs.
+        Get the information about kernel build - the make command and a link to
+        configuration that was used.
 
-        Args:
-            suffix: Optional suffix to add to attachment's name.
-
-        Returns:
-            A list of strings representing build configuration data.
+        Returns: A list of strings representing the build data.
         """
-        cfgname = "config.gz" if not suffix else "config_{}.gz".format(suffix)
 
-        self.attach.append((cfgname, gzipdata(self.mergedata["config"])))
-        return ['\nThe kernel was built with the attached configuration '
-                '(%s)' % cfgname,
-                'and the following command:',
-                '    %s' % self.cfg.get('make_opts')]
+        return ['\nThe kernel was built with the following command:',
+                '    %s' % self.cfg.get('make_opts'),
+                'and the configuration used is available at',
+                '    %s' % self.cfg.get('cfgurl')]
 
     def __getmergefailure(self):
         result = ['\nHowever, the application of the last patch above '
@@ -385,7 +364,7 @@ class Reporter(object):
         if self.cfg.get("mergelog"):
             msg += self.__getmergefailure()
         else:
-            self.__get_kernel_config()
+            msg += self.__get_build_data()
             if self.cfg.get("buildlog"):
                 msg += self.__getbuildfailure()
             elif self.cfg.get('runner'):
@@ -396,16 +375,6 @@ class Reporter(object):
                 'or wish to not receive these reports anymore.',
                 '\nSincerely,',
                 '  Kernel CI Team']
-
-        # Move configuration attachments to the end because some mail clients
-        # (eg. mutt) inline them and they are huge
-        # It's not safe to iterate over changing list so let's use a helper
-        config_attachments = [attachment for attachment in self.attach
-                              if 'config' in attachment[0]]
-        self.attach = [
-            attachment for attachment in self.attach
-            if attachment not in config_attachments
-        ] + config_attachments
 
         return '\n'.join(msg)
 
@@ -452,7 +421,7 @@ class Reporter(object):
                              if self.cfg.get('kernel_arch')
                              else 'test set %s' % marker)]
 
-                results += self.__get_kernel_config(marker)
+                results += self.__get_build_data()
 
                 if self.cfg.get('buildlog'):
                     if not self.multireport_failed:
@@ -468,16 +437,6 @@ class Reporter(object):
                     'or wish to not receive these reports anymore.',
                     '\nSincerely,',
                     '  Kernel CI Team']
-
-        # Move configuration attachments to the end because some mail clients
-        # (eg. mutt) inline them and they are huge
-        # It's not safe to iterate over changing list so let's use a helper
-        config_attachments = [attachment for attachment in self.attach
-                              if 'config' in attachment[0]]
-        self.attach = [
-            attachment for attachment in self.attach
-            if attachment not in config_attachments
-        ] + config_attachments
 
         return '\n'.join(intro + self.__get_multireport_summary() + results)
 
