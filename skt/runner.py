@@ -505,15 +505,23 @@ class BeakerRunner(Runner):
                     )
                     report_string += '- {}\n'.format(failed_task)
                     for log in task_node.findall('logs/log'):
+                        if any(log_name in log.attrib.get('name') for
+                               log_name in ['harness', 'setup']):
+                            continue
+
                         report_string += '  {}\n'.format(
                             log.attrib.get('href')
                         )
-                    for subtask_log in task_node.findall(
-                            'results/result/logs/log'
-                    ):
-                        report_string += '  {}\n'.format(
-                            subtask_log.attrib.get('href')
-                        )
+                    for subtask in task_node.findall('results/result'):
+                        if any(subtask_name in subtask.attrib.get('path') for
+                               subtask_name in ['install']) or \
+                                subtask.attrib.get('result') == 'Pass':
+                            continue
+
+                        for subtask_log in subtask.findall('logs/log'):
+                            report_string += '  {}\n'.format(
+                                subtask_log.attrib.get('href')
+                            )
                     report_string += '\n'
 
                     report_string += '\n{}\n\n'.format(
