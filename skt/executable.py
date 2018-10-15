@@ -864,17 +864,17 @@ def load_config(args):
     """
     # NOTE(mhayden): The shell should do any tilde expansions on the path
     # before the rc path is provided to Python.
-    config = ConfigParser.ConfigParser()
-    config.read(os.path.abspath(args.rc))
+    config_parser = ConfigParser.ConfigParser()
+    config_parser.read(os.path.abspath(args.rc))
 
     cfg = vars(args)
-    cfg['_parser'] = config
+    cfg['_parser'] = config_parser
     cfg['_testcases'] = []
 
     # Read 'state' section first so that it is not overwritten by 'config'
     # section values.
-    if cfg.get('state') and config.has_section('state'):
-        for (name, value) in config.items('state'):
+    if cfg.get('state') and config_parser.has_section('state'):
+        for (name, value) in config_parser.items('state'):
             if not cfg.get(name):
                 if name.startswith("jobid_"):
                     cfg.setdefault("jobs", set()).add(value)
@@ -890,22 +890,22 @@ def load_config(args):
                     cfg.setdefault("patchworks", list()).append(value)
                 cfg[name] = value
 
-    if config.has_section('config'):
-        for (name, value) in config.items('config'):
+    if config_parser.has_section('config'):
+        for (name, value) in config_parser.items('config'):
             if not cfg.get(name):
                 cfg[name] = value
 
-    if config.has_section('publisher') and not cfg.get('publisher'):
-        cfg['publisher'] = [config.get('publisher', 'type'),
-                            config.get('publisher', 'destination'),
-                            config.get('publisher', 'baseurl')]
+    if config_parser.has_section('publisher') and not cfg.get('publisher'):
+        cfg['publisher'] = [config_parser.get('publisher', 'type'),
+                            config_parser.get('publisher', 'destination'),
+                            config_parser.get('publisher', 'baseurl')]
 
-    if config.has_section('runner') and not cfg.get('runner'):
+    if config_parser.has_section('runner') and not cfg.get('runner'):
         rcfg = {}
-        for (key, val) in config.items('runner'):
+        for (key, val) in config_parser.items('runner'):
             if key != 'type':
                 rcfg[key] = val
-        cfg['runner'] = [config.get('runner', 'type'), rcfg]
+        cfg['runner'] = [config_parser.get('runner', 'type'), rcfg]
     elif cfg.get('runner'):
         cfg['runner'] = [cfg.get('runner')[0],
                          ast.literal_eval(cfg.get('runner')[1])]
@@ -922,9 +922,9 @@ def load_config(args):
             'mail_subject': cfg.get('mail_subject'),
             'mail_header': cfg.get('mail_header')
         }
-    elif config.has_section('reporter'):
+    elif config_parser.has_section('reporter'):
         # Use the reporter configuration from the configuration file
-        cfg['reporter'] = config.items('reporter')
+        cfg['reporter'] = config_parser.items('reporter')
 
     # Get an absolute path for the work directory
     if cfg.get('workdir'):
