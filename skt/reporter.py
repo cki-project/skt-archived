@@ -188,24 +188,31 @@ class Reporter(object):
         result = template.render(cfg=self.cfg)
         return [result]
 
-    def __getmergefailure(self):
-        result = ['\nHowever, the application of the last patch above '
-                  'failed with the',
-                  'following output:\n']
+    def __get_merge_log(self):
+        """
+        Read the merge log from a failed merge and exclude any lines which
+        are not useful.
 
+        Returns: A string containing the reduced merge log.
+        """
+        useless_lines = [
+            "The copy of the patch",
+            "see the failed patch"
+        ]
+        mergelog = ""
         with open(self.cfg.get("mergelog"), 'r') as fileh:
             for line in fileh:
-                # Skip the useless part of the 'git am' output
-                if ("The copy of the patch" in line) \
-                        or ('see the failed patch' in line):
-                    break
-                result.append('    ' + line.strip())
+                if not any(substring in line for substring in useless_lines):
+                    mergelog += line
 
-        result += ['\nPlease note that if there are subsequent patches in the '
-                   'series, they weren\'t',
-                   'applied because of the error message stated above.\n']
+        return mergelog.strip()
 
-        return result
+    def __getmergefailure(self):
+        mergelog = self.__get_merge_log()
+
+        template = JINJA_ENV.get_template('merge_failure.j2')
+        result = template.render(mergelog=mergelog)
+        return [result]
 
     def __getbuildfailure(self, suffix=None):
         attname = "build.log.gz" if not suffix else "build_%s.log.gz" % suffix
