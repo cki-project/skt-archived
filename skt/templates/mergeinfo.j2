@@ -1,0 +1,32 @@
+{# This template is populated by Reporter.__getmergeinfo() #}
+{# Report on merging local patches or patches from patchwork #}
+{% if mergedata['localpatch'] or mergedata['patchwork'] %}
+    {% if ((mergedata['localpatch'] | length) + (mergedata['patchwork'] | length)) > 1 %}
+    {% set patch_plural = 'patches' %}
+    {% else %}
+    {% set patch_plural = 'patch' %}
+    {% endif %}
+
+We checked out commit {{ mergedata['base'][1][:12] }} from {{ mergedata['base'][0] }} and applied the following {{ patch_plural }}:
+
+{% for patchpath in mergedata['localpatch'] %}
+  - {{ patchpath }}
+
+{% endfor %}
+{% for patch_url, patch_name in mergedata['patchwork'] %}
+  - {{ patch_name }}
+    from: {{ patch_url }}
+
+{% endfor %}
+{% else %}
+We checked out commit {{ mergedata['base'][1][:12] }} from {{ mergedata['base'][0] }}.
+{% endif %}
+{# Report on merging git refs #}
+{% if mergedata['merge_git'] %}
+
+We merged the following references into the tree:
+{% for repo, head in mergedata['merge_git'] %}
+  - {{ repo }}
+    into commit {{ head[:12] }}
+{% endfor %}
+{% endif %}

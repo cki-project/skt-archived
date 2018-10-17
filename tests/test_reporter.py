@@ -335,7 +335,7 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report for kernel 3.10.0',
-            'We applied the following patches:',
+            'and applied the following patches:',
             'commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
             'Test results for recipe R:None',
@@ -373,7 +373,7 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report for kernel 3.10.0',
-            'We applied the following patch:',
+            'and applied the following patch:',
             'commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
             'Test results for recipe R:None',
@@ -418,7 +418,7 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report',
-            'We applied the following patches:',
+            'and applied the following patches:',
             'commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
         ]
@@ -449,7 +449,7 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report for kernel 3.10.0',
-            'checked out {}'.format(self.basecfg['basehead']),
+            'checked out commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
             'We ran the following tests:',
             'test/we/ran: PASS'

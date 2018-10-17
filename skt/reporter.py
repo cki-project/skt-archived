@@ -17,8 +17,11 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
+import os
 import smtplib
 import sys
+
+from jinja2 import Environment, FileSystemLoader
 
 from skt.console import ConsoleLog, gzipdata
 from skt.misc import get_patch_name, get_patch_mbox
@@ -29,6 +32,18 @@ MULTI_PASS = 0
 MULTI_MERGE = 1
 MULTI_BUILD = 2
 MULTI_TEST = 3
+
+# Determine the absolute path to this script and the directory which holds
+# the jinja2 templates.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = "{}/templates".format(SCRIPT_DIR)
+
+# Set up the jinja2 environment which can be reused throughout this script.
+JINJA_ENV = Environment(
+    loader=FileSystemLoader(TEMPLATE_DIR),
+    trim_blocks=True,  # Remove first newline after a jinja2 block
+    keep_trailing_newline=True  # Preserve trailing newlines
+)
 
 
 def load_state_cfg(statefile):
@@ -158,35 +173,9 @@ class Reporter(object):
         Returns: A list of strings representing data about applied patches and
                  base repository.
         """
-        result = ['We cloned the git tree and checked out %s from the '
-                  'repository at' % self.mergedata['base'][1][:12],
-                  '  %s' % self.mergedata['base'][0]]
-
-        if self.mergedata['merge_git']:
-            result += ['\nWe merged the following references into the tree:']
-            for repo, head in self.mergedata['merge_git']:
-                result += ['  - %s' % repo,
-                           '    into commit %s' % head[:12]]
-        elif self.mergedata['localpatch'] or self.mergedata['patchwork']:
-            result = ['We applied the following patch']
-            if len(self.mergedata['localpatch']
-                   + self.mergedata['patchwork']) > 1:
-                result[0] += 'es:\n'
-            else:
-                result[0] += ':\n'
-
-            for patchpath in self.mergedata['localpatch']:
-                result += ['  - %s' % patchpath]
-
-            for (purl, pname) in self.mergedata['patchwork']:
-                result += ['  - %s,' % pname,
-                           '    grabbed from %s\n' % purl]
-
-            result += ['on top of commit %s from the repository at' %
-                       self.mergedata['base'][1][:12],
-                       '  %s' % self.mergedata['base'][0]]
-
-        return result
+        template = JINJA_ENV.get_template('mergeinfo.j2')
+        result = template.render(mergedata=self.mergedata)
+        return [result]
 
     def __get_build_data(self):
         """
@@ -367,7 +356,7 @@ class Reporter(object):
             msg[-1] += ', with hope it'
             msg += ['will help you find possible issues sooner.']
 
-        msg += ['\n'] + self.__getmergeinfo()
+        msg += self.__getmergeinfo()
 
         if self.cfg.get("mergelog"):
             msg += self.__getmergefailure()
@@ -413,7 +402,7 @@ class Reporter(object):
                     intro[-1] += ', with hope it'
                     intro += ['will help you find possible issues sooner.']
 
-                results += ['\n'] + self.__getmergeinfo() + ['']
+                results += self.__getmergeinfo()
 
                 # We use the same tree for all runs so any merge failures are
                 # same as well.
