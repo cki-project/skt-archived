@@ -625,7 +625,7 @@ class TestStdioReporter(unittest.TestCase):
             'results for x86_64 architecture',
             'test/we/ran: FAIL',
             'Test results for recipe R:None',
-            'the configuration used is available at',
+            'The kernel configuration used is available here:',
             'None_console.log.gz'
         ]
         for required_string in required_strings:

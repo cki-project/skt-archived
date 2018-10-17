@@ -184,11 +184,9 @@ class Reporter(object):
 
         Returns: A list of strings representing the build data.
         """
-
-        return ['\nThe kernel was built with the following command:',
-                '    %s' % self.cfg.get('make_opts'),
-                'and the configuration used is available at',
-                '    %s' % self.cfg.get('cfgurl')]
+        template = JINJA_ENV.get_template('build_data.j2')
+        result = template.render(cfg=self.cfg)
+        return [result]
 
     def __getmergefailure(self):
         result = ['\nHowever, the application of the last patch above '
