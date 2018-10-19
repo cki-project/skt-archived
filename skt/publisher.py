@@ -106,7 +106,7 @@ class SftpPublisher(Publisher):
             Published URL corresponding to the specified source.
         """
         sp = subprocess.Popen(['sftp', self.destination],
-                              shell=False, stdin=subprocess.PIPE)
+                              stdin=subprocess.PIPE)
         sp.stdin.write("put -r %s\n" % source)
         sp.stdin.close()
         sp.wait()
