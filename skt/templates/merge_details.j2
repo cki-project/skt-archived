@@ -1,0 +1,17 @@
+
+We cloned this repository and checked out a ref:
+
+  Repo: {{ mergedata['base'][0] }}
+  Ref:  {{ mergedata['base'][1] }}
+
+We then merged the following {{ patch_plural }} with `git am`:
+
+{% for patch_url, patch_name in mergedata.patchwork %}
+  {{ patch_name }}
+  {{ patch_url }}
+
+{% endfor %}
+{% for patch_path in mergedata.localpatch %}
+  {{ patch_path }}
+
+{% endfor %}

@@ -1,0 +1,95 @@
+{# Set some initial variables that we will use throughout the templates. #}
+{% set total_patches = (mergedata.patchwork | length) + (mergedata.localpatch | length) %}
+{% set patch_plural = "patches" if total_patches > 1 else "patch" %}
+Hello,
+
+{% if mergedata['localpatch'] or mergedata['patchwork'] %}
+{# We tested patches against a kernel tree. #}
+We ran automated tests on a patchset that was proposed for merging into this
+kernel tree. The results of these automated tests are provided below.
+{% else %}
+{# We ran baseline tests against a kernel tree. #}
+We ran automated tests on a recent commit from this kernel tree. The results
+of these automated tests are provided below.
+{% endif %}
+
+{# What is the overall job result? #}
+{% if multireport_failed == 1 %}
+  +----------------+---------------+
+  | OVERALL RESULT | FAILED        |
+  +================+===============+
+  | Patch merge    | FAILED        |
+  +----------------+---------------+
+  | Kernel compile | NOT ATTEMPTED |
+  +----------------+---------------+
+  | Hardware test  | NOT ATTEMPTED |
+  +----------------+---------------+
+{% elif multireport_failed == 2 %}
+  +----------------+---------------+
+  | OVERALL RESULT | FAILED        |
+  +================+===============+
+  | Patch merge    | PASSED        |
+  +----------------+---------------+
+  | Kernel compile | FAILED        |
+  +----------------+---------------+
+  | Hardware test  | NOT ATTEMPTED |
+  +----------------+---------------+
+{% elif multireport_failed == 3 %}
+  +----------------+---------------+
+  | OVERALL RESULT | FAILED        |
+  +================+===============+
+  | Patch merge    | PASSED        |
+  +----------------+---------------+
+  | Kernel compile | PASSED        |
+  +----------------+---------------+
+  | Hardware test  | FAILED        |
+  +----------------+---------------+
+{% else %}
+  +----------------+---------------+
+  | OVERALL RESULT | PASSED        |
+  +================+===============+
+  | Patch merge    | PASSED        |
+  +----------------+---------------+
+  | Kernel compile | PASSED        |
+  +----------------+---------------+
+  | Hardware test  | PASSED        |
+  +----------------+---------------+
+{% endif %}
+
+{% if multireport_failed > 0 %}
+    {% if multireport_failed == 1 %}
+    {# Explain the merge failure. #}
+    {% include 'merge_failure.j2' %}
+    {% endif %}
+    {% if multireport_failed == 2 %}
+    {# Explain the build failure. #}
+    {% include 'build_failure.j2' %}
+    {% endif %}
+    {% if multireport_failed == 3 %}
+    {# Explain the testing failure. #}
+    {% include 'test_failure.j2' %}
+    {% endif %}
+We hope that these logs can help you find the problem quickly. For the full
+detail on our testing procedures, please scroll to the bottom of this message.
+
+{% endif %}
+Please reply to this email if you have any questions about the tests that we
+ran or if you have any suggestions on how to make future tests more effective.
+
+Thank you!
+Continuous Kernel Integration (CKI) Team
+______________________________________________________________________________
+{# If we merged anything, we need to explain what we did and in what order. #}
+{% if total_patches > 0 %}
+
+Merge testing
+-------------
+{% include "merge_details.j2" %}
+{% endif %}
+{# Explain what we built if we made it to the compile steps. #}
+{% if multireport_failed != 1 %}
+
+Compile testing
+---------------
+{% include "build_details.j2" %}
+{% endif %}
