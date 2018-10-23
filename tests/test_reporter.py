@@ -123,6 +123,7 @@ class TestStdioReporter(unittest.TestCase):
             'krelease': '3.10.0',
             'baserepo': 'git://git.example.com/kernel.git',
             'basehead': '1234abcdef',
+            'kernel_arch': 'x86_64',
             'patchworks': [
                 'http://patchwork.example.com/patch/1',
                 'http://patchwork.example.com/patch/2'
@@ -256,7 +257,7 @@ class TestStdioReporter(unittest.TestCase):
             'commit {}'.format(self.basecfg['basehead']),
             self.basecfg['baserepo'],
             'However, the build failed.',
-            'build.log.gz',
+            'build_x86_64.log.gz',
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -284,6 +285,7 @@ class TestStdioReporter(unittest.TestCase):
             body="Machine information from beaker goes here"
         )
         mock_grt.return_value = self.beaker_fail_results
+        self.basecfg['retcode'] = '1'
 
         testprint = StringIO.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)

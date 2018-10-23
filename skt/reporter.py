@@ -108,9 +108,6 @@ class Reporter(object):
         self.attach = list()
         # TODO Describe
         self.mergedata = None
-        # Use explicit flag to determine if a single report for multiple test
-        # runs should be generated
-        self.multireport = True if cfg.get('result') else False
         # Save list of state files because self.cfg will be overwritten. This
         # can be changed to access a specific parameter after the FIXME with
         # passing only explicit parameters is implemented. Only test run and
@@ -351,44 +348,11 @@ class Reporter(object):
                     ).attrib.get('href')
                     result += [hwinfo_url]
 
-        if self.multireport and self.cfg.get('retcode') != '0' and \
-                self.multireport_failed == MultiReportFailure.PASS:
+        if (self.cfg.get('retcode') != '0' and
+           self.multireport_failed == MultiReportFailure.PASS):
             self.multireport_failed = MultiReportFailure.TEST
 
         return result
-
-    def _getreport(self):
-        msg = ['Hello,\n',
-               'We appreciate your contributions to the Linux kernel and '
-               'would like to help',
-               'test them. Below are the results of automatic tests we ran']
-        if self.mergedata['localpatch'] or self.mergedata['patchwork']:
-            msg[-1] += ' on a patchset'
-            msg += ['you\'re involved with, with hope it will help you find '
-                    'possible issues sooner.']
-        else:
-            # There is no patchset the person was involved with
-            msg[-1] += ', with hope it'
-            msg += ['will help you find possible issues sooner.']
-
-        msg += ['\n'] + self.__getmergeinfo()
-
-        if self.cfg.get("mergelog"):
-            msg += self.__getmergefailure()
-        else:
-            msg += self.__get_build_data()
-            if self.cfg.get("buildlog"):
-                msg += self.__getbuildfailure()
-            elif self.cfg.get('runner'):
-                msg += self.__getjobresults()
-
-        msg += ['\nPlease reply to this email if you find an issue with our '
-                'testing process,',
-                'or wish to not receive these reports anymore.',
-                '\nSincerely,',
-                '  Kernel CI Team']
-
-        return '\n'.join(msg)
 
     def _get_multireport(self):
         intro = ['Hello,\n',
@@ -397,8 +361,19 @@ class Reporter(object):
                  'test them. Below are the results of automatic tests we ran']
         results = []
 
+        # If we don't have any state files, this is likely a run with a single
+        # test. Make a single entry in self.statefiles so we can re-use the
+        # loop below.
+        self.statefiles = self.statefiles or [None]
+
         for idx, statefile in enumerate(self.statefiles):
-            self.cfg = load_state_cfg(statefile)
+
+            # If the statefile is none, this is a single run report and the
+            # state information has already been loaded into self.cfg.
+            if statefile:
+                self.cfg = load_state_cfg(statefile)
+
+            # Update the data about the patches merged.
             self._update_mergedata()
 
             if self.cfg.get("jobs"):
@@ -452,26 +427,6 @@ class Reporter(object):
 
         return '\n'.join(intro + self.__get_multireport_summary() + results)
 
-    def _getsubject(self):
-        if not self.cfg.get('mergelog') and \
-           not self.cfg.get('buildlog') and \
-           self.cfg.get('retcode') == '0':
-            subject = 'PASS: '
-        else:
-            subject = 'FAIL: '
-
-        if self.cfg.get("mergelog"):
-            subject += "Patch application failed"
-        elif self.cfg.get("buildlog"):
-            subject += "Build failed"
-        else:
-            subject += "Report"
-
-        if self.cfg.get("krelease"):
-            subject += " for kernel %s" % self.cfg.get("krelease")
-
-        return subject
-
     def _get_multisubject(self):
         if self.multireport_failed == MultiReportFailure.PASS:
             subject = 'PASS: '
@@ -519,16 +474,11 @@ class StdioReporter(Reporter):
     TYPE = 'stdio'
 
     def report(self, printer=sys.stdout):
-        if self.multireport:
-            # We need to run the reporting function first to get the aggregated
-            # data to build subject from
-            report = self._get_multireport()
-            printer.write("{}\n".format(self._get_multisubject()))
-            printer.write(report)
-        else:
-            self._update_mergedata()
-            printer.write("Subject: {}\n".format(self._getsubject()))
-            printer.write(self._getreport())
+        # We need to run the reporting function first to get the aggregated
+        # data to build subject from
+        report = self._get_multireport()
+        printer.write("Subject: {}\n".format(self._get_multisubject()))
+        printer.write(report)
 
         for (name, att) in self.attach:
             if name.endswith(('.log', '.txt')):
@@ -566,21 +516,13 @@ class MailReporter(Reporter):
             header, value = header_line.split(":", 1)
             msg[header] = value
 
-        if self.multireport:
-            # We need to run the reporting function first to get aggregates to
-            # build subject from
-            msg.attach(MIMEText(self._get_multireport()))
-            if not msg['Subject']:
-                msg['Subject'] = self._get_multisubject()
-            # Add the SKT job IDs so we can correlate emails to jobs
-            msg['X-SKT-JIDS'] = ' '.join(self.multi_job_ids)
-        else:
-            self._update_mergedata()
-            if not msg['Subject']:
-                msg['Subject'] = self._getsubject()
-            msg.attach(MIMEText(self._getreport()))
-            # Add the SKT job IDs so we can correlate emails to jobs
-            msg['X-SKT-JIDS'] = ' '.join(self.cfg.get("jobs"))
+        # We need to run the reporting function first to get aggregates to
+        # build subject from
+        msg.attach(MIMEText(self._get_multireport()))
+        if not msg['Subject']:
+            msg['Subject'] = self._get_multisubject()
+        # Add the SKT job IDs so we can correlate emails to jobs
+        msg['X-SKT-JIDS'] = ' '.join(self.multi_job_ids)
 
         for (name, att) in self.attach:
             # TODO Store content type and charset when adding attachments
