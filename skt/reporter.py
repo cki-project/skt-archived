@@ -16,6 +16,7 @@ import ConfigParser
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import enum
 import logging
 import smtplib
 import sys
@@ -25,10 +26,13 @@ from skt.misc import get_patch_name, get_patch_mbox
 import skt.runner
 
 
-MULTI_PASS = 0
-MULTI_MERGE = 1
-MULTI_BUILD = 2
-MULTI_TEST = 3
+class MultiReportFailure(enum.IntEnum):
+    """IntEnum to track multireport failure statuses."""
+
+    PASS = 0
+    MERGE = 1
+    BUILD = 2
+    TEST = 3
 
 
 def load_state_cfg(statefile):
@@ -114,7 +118,7 @@ class Reporter(object):
         self.statefiles = cfg.get('result', [])
         # Notion of failure for subject creation with multireporting. The
         # earliest problem in the pipeline is reported.
-        self.multireport_failed = MULTI_PASS
+        self.multireport_failed = MultiReportFailure.PASS
         # We need to save the job IDs when iterating over state files when
         # multireporting
         self.multi_job_ids = []
@@ -348,8 +352,8 @@ class Reporter(object):
                     result += [hwinfo_url]
 
         if self.multireport and self.cfg.get('retcode') != '0' and \
-                self.multireport_failed == MULTI_PASS:
-            self.multireport_failed = MULTI_TEST
+                self.multireport_failed == MultiReportFailure.PASS:
+            self.multireport_failed = MultiReportFailure.TEST
 
         return result
 
@@ -418,7 +422,7 @@ class Reporter(object):
                 # We use the same tree for all runs so any merge failures are
                 # same as well.
                 if self.cfg.get('mergelog'):
-                    self.multireport_failed = MULTI_MERGE
+                    self.multireport_failed = MultiReportFailure.MERGE
                     results += self.__getmergefailure()
 
             # Skip config/build/run retrieval if the merge failed.
@@ -433,7 +437,7 @@ class Reporter(object):
 
                 if self.cfg.get('buildlog'):
                     if not self.multireport_failed:
-                        self.multireport_failed = MULTI_BUILD
+                        self.multireport_failed = MultiReportFailure.BUILD
                     results += self.__getbuildfailure(marker)
                 elif self.cfg.get('runner'):
                     results += self.__getjobresults()
@@ -469,14 +473,14 @@ class Reporter(object):
         return subject
 
     def _get_multisubject(self):
-        if self.multireport_failed == MULTI_PASS:
+        if self.multireport_failed == MultiReportFailure.PASS:
             subject = 'PASS: '
         else:
             subject = 'FAIL: '
 
-        if self.multireport_failed == MULTI_MERGE:
+        if self.multireport_failed == MultiReportFailure.MERGE:
             subject += "Patch application failed"
-        elif self.multireport_failed == MULTI_BUILD:
+        elif self.multireport_failed == MultiReportFailure.BUILD:
             subject += "Build failed"
         else:
             subject += "Report"
@@ -495,13 +499,13 @@ class Reporter(object):
         """
         summary = ['\nTEST SUMMARY:']
 
-        if self.multireport_failed == MULTI_PASS:
+        if self.multireport_failed == MultiReportFailure.PASS:
             summary += ['  All builds and tests PASSED.']
-        elif self.multireport_failed == MULTI_MERGE:
+        elif self.multireport_failed == MultiReportFailure.MERGE:
             summary += ['  Patch application FAILED!']
-        elif self.multireport_failed == MULTI_BUILD:
+        elif self.multireport_failed == MultiReportFailure.BUILD:
             summary += ['  One or more builds FAILED!']
-        elif self.multireport_failed == MULTI_TEST:
+        elif self.multireport_failed == MultiReportFailure.TEST:
             summary += ['  Testing FAILED!']
 
         summary += ['\nMore detailed data follows.', '------------']
