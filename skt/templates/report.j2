@@ -15,16 +15,16 @@ of these automated tests are provided below.
 
 {# What is the overall job result? #}
 {% if multireport_failed.name == 'TEST' %}
-    Overall result: FAILED
+    Overall result: FAILED (see details below)
        Patch merge: OK
            Compile: OK
      Hardware test: FAILED
 {% elif multireport_failed.name == 'BUILD' %}
-    Overall result: FAILED
+    Overall result: FAILED  (see details below)
        Patch merge: OK
            Compile: FAILED
 {% elif multireport_failed.name == 'MERGE' %}
-    Overall result: FAILED
+    Overall result: FAILED  (see details below)
        Patch merge: FAILED
 {% elif multireport_failed.name == 'PASS' %}
     Overall result: PASSED
