@@ -138,8 +138,11 @@ class Reporter(object):
         self.multi_job_ids = []
 
     def __stateconfigdata(self, mergedata):
-        mergedata['base'] = (self.cfg.get("baserepo"),
-                             self.cfg.get("basehead"))
+        # Store the repo URL, base commit SHA, and subject for that commit.
+        mergedata['baserepo'] = self.cfg.get("baserepo")
+        mergedata['basehead'] = self.cfg.get("basehead")
+        mergedata['basesubject'] = self.cfg.get('basesubject')
+
         if self.cfg.get("mergerepos"):
             mrl = self.cfg.get("mergerepos")
             mhl = self.cfg.get("mergeheads")

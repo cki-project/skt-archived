@@ -6,12 +6,16 @@ Hello,
 {% if mergedata['localpatch'] or mergedata['patchwork'] %}
 {# We tested patches against a kernel tree. #}
 We ran automated tests on a patchset that was proposed for merging into this
-kernel tree. The results of these automated tests are provided below.
+kernel tree. The patches were applied to:
 {% else %}
 {# We ran baseline tests against a kernel tree. #}
-We ran automated tests on a recent commit from this kernel tree. The results
-of these automated tests are provided below.
+We ran automated tests on a recent commit from this kernel tree:
 {% endif %}
+
+       Kernel repo: {{ mergedata['baserepo'] }}
+            Commit: {{ mergedata['basehead'][:12] }} {{ mergedata['basesubject']}}
+
+The results of these automated tests are provided below.
 
 {# What is the overall job result? #}
 {% if multireport_failed.name == 'TEST' %}
@@ -32,9 +36,6 @@ of these automated tests are provided below.
            Compile: OK
      Hardware test: OK
 {% endif %}
-
-       Kernel repo: {{ mergedata['base'][0] }}
-            Commit: {{ mergedata['base'][1] }}
 
 {% if multireport_failed.name != 'PASS' %}
     {% if multireport_failed.name == 'MERGE' %}
