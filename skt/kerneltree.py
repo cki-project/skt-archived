@@ -198,6 +198,18 @@ class KernelTree(object):
         """
         return self.get_commit_details(ref, show_format='%H')
 
+    def get_commit_subject(self, ref=None):
+        """
+        Get the subject line of a commit specified by an optional ref.
+        Args:
+            ref: An optional reference to a commit in a git repo to be
+                 inspected. The current commit is used if a ref is not
+                 provided.
+        Returns:
+            The commit's subject line.
+        """
+        return self.get_commit_details(ref, show_format='%s')
+
     def checkout(self):
         """
         Clone and checkout the specified reference from the specified repo URL
