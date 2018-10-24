@@ -184,12 +184,10 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: FAIL: Patch application failed',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: FAILED',
+            'Patch merge: FAILED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'application of the last patch above failed',
-            'merge failed',
-            'because of the error message stated above',
-            'example.log\njust an example'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -223,10 +221,10 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: FAIL: Patch application failed',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: FAILED',
+            'Patch merge: FAILED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'application of the last patch above failed',
-            'because of the error message stated above',
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -254,10 +252,10 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: FAIL: Build failed',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: FAILED',
+            'Compile: FAILED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'However, the build failed.',
-            'build_x86_64.log.gz',
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -294,11 +292,10 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: FAIL: Report for kernel 3.10.0',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: FAILED',
+            'Hardware test: FAILED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'Test results for recipe R:None',
-            'None_console.log.gz',
-            'test/we/ran: FAIL'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -337,11 +334,9 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report for kernel 3.10.0',
-            'We applied the following patches:',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: PASSED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'Test results for recipe R:None',
-            'We ran the following tests'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -375,11 +370,9 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report for kernel 3.10.0',
-            'We applied the following patch:',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: PASSED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'Test results for recipe R:None',
-            'We ran the following tests'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -420,8 +413,7 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report',
-            'We applied the following patches:',
-            'commit {}'.format(self.basecfg['basehead']),
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
         for required_string in required_strings:
@@ -451,10 +443,9 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Report for kernel 3.10.0',
-            'checked out {}'.format(self.basecfg['basehead']),
+            'Overall result: PASS',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'We ran the following tests:',
-            'test/we/ran: PASS'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -503,14 +494,9 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'PASS: Report for kernel 3.10.0',
-            'All builds and tests PASSED.',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: PASSED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'results for s390x architecture',
-            'results for x86_64 architecture',
-            'Test results for recipe R:None',
-            'We ran the following tests',
-            'test/we/ran: PASS'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -559,13 +545,10 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'FAIL: Report for kernel 3.10.0',
-            'Testing FAILED!',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: FAILED',
+            'Hardware test: FAILED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'results for s390x architecture',
-            'results for x86_64 architecture',
-            'Test results for recipe R:None',
-            'test/we/ran: FAIL'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
@@ -620,15 +603,10 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'FAIL: Report for kernel 3.10.0',
-            'Testing FAILED!',
-            'commit {}'.format(self.basecfg['basehead']),
+            'Overall result: FAILED',
+            'Hardware test: FAILED',
+            self.basecfg['basehead'],
             self.basecfg['baserepo'],
-            'results for s390x architecture',
-            'results for x86_64 architecture',
-            'test/we/ran: FAIL',
-            'Test results for recipe R:None',
-            'the configuration used is available at',
-            'None_console.log.gz'
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)

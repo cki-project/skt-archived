@@ -18,12 +18,29 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import enum
 import logging
+import os
+import re
 import smtplib
 import sys
 
-from skt.console import ConsoleLog, gzipdata
+from jinja2 import Environment, FileSystemLoader
+
+from skt.console import gzipdata
 from skt.misc import get_patch_name, get_patch_mbox
 import skt.runner
+
+# Determine the absolute path to this script and the directory which holds
+# the jinja2 templates.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = "{}/templates".format(SCRIPT_DIR)
+
+# Set up the jinja2 environment which can be reused throughout this script.
+JINJA_ENV = Environment(
+    loader=FileSystemLoader(TEMPLATE_DIR),
+    trim_blocks=True,  # Remove first newline after a jinja2 block
+    keep_trailing_newline=True,  # Preserve trailing newlines
+    lstrip_blocks=True,  # Strip whitespace from the left side of tags
+)
 
 
 class MultiReportFailure(enum.IntEnum):
@@ -151,223 +168,184 @@ class Reporter(object):
         mergedata = self.__stateconfigdata(mergedata)
         self.mergedata = mergedata
 
-    def __getmergeinfo(self):
+    def __getmergelog(self):
         """
-        Retrieve information about applied patches and base repository as a
-        list of strings which should be then appended to the report.
-
-        Returns: A list of strings representing data about applied patches and
-                 base repository.
+        Read the merge log and remove unneeded lines.
+        Returns: A string containing a filtered merge log if the merge log
+                 exists. Otherwise None is returned.
         """
-        result = ['We cloned the git tree and checked out %s from the '
-                  'repository at' % self.mergedata['base'][1][:12],
-                  '  %s' % self.mergedata['base'][0]]
+        # Did the merge fail?
+        if not self.cfg.get('mergelog'):
+            return None
 
-        if self.mergedata['merge_git']:
-            result += ['\nWe merged the following references into the tree:']
-            for repo, head in self.mergedata['merge_git']:
-                result += ['  - %s' % repo,
-                           '    into commit %s' % head[:12]]
-        elif self.mergedata['localpatch'] or self.mergedata['patchwork']:
-            result = ['We applied the following patch']
-            if len(self.mergedata['localpatch']
-                   + self.mergedata['patchwork']) > 1:
-                result[0] += 'es:\n'
-            else:
-                result[0] += ':\n'
-
-            for patchpath in self.mergedata['localpatch']:
-                result += ['  - %s' % patchpath]
-
-            for (purl, pname) in self.mergedata['patchwork']:
-                result += ['  - %s,' % pname,
-                           '    grabbed from %s\n' % purl]
-
-            result += ['on top of commit %s from the repository at' %
-                       self.mergedata['base'][1][:12],
-                       '  %s' % self.mergedata['base'][0]]
-
-        return result
-
-    def __get_build_data(self):
-        """
-        Get the information about kernel build - the make command and a link to
-        configuration that was used.
-
-        Returns: A list of strings representing the build data.
-        """
-
-        return ['\nThe kernel was built with the following command:',
-                '    %s' % self.cfg.get('make_opts'),
-                'and the configuration used is available at',
-                '    %s' % self.cfg.get('cfgurl')]
-
-    def __getmergefailure(self):
-        result = ['\nHowever, the application of the last patch above '
-                  'failed with the',
-                  'following output:\n']
-
+        result = ""
         with open(self.cfg.get("mergelog"), 'r') as fileh:
             for line in fileh:
                 # Skip the useless part of the 'git am' output
                 if ("The copy of the patch" in line) \
                         or ('see the failed patch' in line):
                     break
-                result.append('    ' + line.strip())
-
-        result += ['\nPlease note that if there are subsequent patches in the '
-                   'series, they weren\'t',
-                   'applied because of the error message stated above.\n']
+                result += line
 
         return result
 
-    def __getbuildfailure(self, suffix=None):
-        attname = "build.log.gz" if not suffix else "build_%s.log.gz" % suffix
-        result = ['However, the build failed. We are attaching the build '
-                  'output for',
-                  'more information (%s).' % attname]
+    def __getbuildlog(self, suffix=None):
+        """
+        Read a build log from the disk and add it to the list of attachments.
+        Args:
+            suffix: The extra text to add to the build log file name. This is
+                    helpful for distinguishing between different architectures
+                    that were built. Examples: 'aarch64', 'x86_64'.
+        Returns: The name of the attachment that was added if the build log
+                 exists from a failed build. Otherwise None is returned.
+        """
+        # Did the build fail?
+        if not self.cfg.get('buildlog'):
+            return None
+
+        if suffix:
+            attachment_name = "build_{}.log.gz".format(suffix)
+        else:
+            attachment_name = "build.log.gz"
 
         with open(self.cfg.get("buildlog"), 'r') as fileh:
-            self.attach.append((attname, gzipdata(fileh.read())))
+            self.attach.append((attachment_name, gzipdata(fileh.read())))
 
-        return result
+        return attachment_name
+
+    def __get_failed_task_log(self, task_node):
+        """
+        Get logs from a failed task and its subtasks.
+        Returns: A list of log file URLs.
+        """
+        useless_logs = ['harness.log', 'setup.log']
+
+        # Get the logs from the main task.
+        task_logs = [
+            log.attrib.get('href') for log in task_node.findall('logs/log')
+            if log.attrib.get('name') not in useless_logs
+        ]
+
+        # If this task has subtasks, get those as well.
+        subtask_logs = [subtask.findall('logs/log') for subtask in
+                        task_node.findall('results/result')
+                        if subtask.attrib.get('result') != 'Pass']
+
+        for subtask_log in subtask_logs:
+            log_urls = [log.attrib.get('href') for log in subtask_log]
+            task_logs += log_urls
+
+        return task_logs
+
+    def __get_task(self, recipe, task_name):
+        """
+        Get the task XML node for a task.
+        Returns: An XML element for a particular task.
+        """
+        xml_task_element = "task[@name='{}']".format(task_name)
+        task_node = recipe.find(xml_task_element)
+        return task_node
 
     def __getjobresults(self):
         """
         Retrieve job results which should be appended to the report.
-
-        Get job results from runner, check console logs (if present) to filter
-        out infrastructure issues and find call traces. For each test run, add
-            1. Number of test run
-            2. It's result
-            3. If present, info about the machine the test ran on
-        If the testing failed, add first found trace call and attach related
-        console log.
-
+        Every test run has a list of receipe sets that were run. Each set
+        can contain one or more recipes. Each recipe has one or more tasks
+        that run individual tests.
         Returns:
             A list of lines representing results of test runs.
         """
+        # Did the job fail?
+        if self.cfg.get('retcode') == '0':
+            return
+
         result = []
 
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
+
+        # Get the list of recipes sets that were run.
         recipe_set_list = self.cfg.get('recipe_sets', [])
 
-        for recipe_set_id in recipe_set_list:
-            recipe_set_result = runner.getresultstree(recipe_set_id)
+        # Get the XML result tree for each recipe set.
+        recipe_set_results = [runner.getresultstree(recipe_set_id)
+                              for recipe_set_id in recipe_set_list]
+
+        # Loop through each recipe set to examine each recipe (and its tasks).
+        for recipe_set_result in recipe_set_results:
             for recipe in recipe_set_result.findall('recipe'):
+
+                # This will hold a list of XML nodes for each task that failed
+                # so we can retrieve data about the task later.
                 failed_tasks = []
+
+                # Get basic information about this recipe.
                 recipe_result = recipe.attrib.get('result')
+                recipe_data = {
+                    'id': recipe.attrib.get('id'),
+                    'arch': recipe.find(
+                        'hostRequires/and/arch').attrib.get('value'),
+                    'result': recipe_result,
+                    'failed_tasks': [],
+                }
 
-                result += ['\n\n{}{} ({} arch): {}\n'.format(
-                    'Test results for recipe R:',
-                    recipe.attrib.get('id'),
-                    recipe.find('hostRequires/and/arch').attrib.get('value'),
-                    recipe_result.upper()
-                )]
+                # Check if the kernel booted properly. If it failed, add it
+                # to the list of failed tasks and don't bother checking any
+                # other tests.
+                test_name = '/distribution/kpkginstall'
+                task_node = self.__get_task(recipe, test_name)
+                if task_node.attrib['result'] != 'Pass':
+                    failed_tasks.append(task_node)
+                    continue
 
-                kpkginstall_task = recipe.find(
-                    "task[@name='/distribution/kpkginstall']"
-                )
-                if kpkginstall_task.attrib.get('result') != 'Pass':
-                    result += ['Kernel failed to boot!\n']
-                    failed_tasks.append('/distribution/kpkginstall')
-                else:
-                    recipe_tests = runner.get_recipe_test_list(recipe)
-                    if recipe_tests:
-                        result += ['We ran the following tests:']
-                        for test_name in recipe_tests:
-                            task_node = recipe.find(
-                                "task[@name='{}']".format(test_name)
-                            )
-                            test_result = task_node.attrib.get('result')
-                            result += ['  - {}: {}'.format(
-                                test_name, test_result.upper()
-                            )]
-                            if test_result != 'Pass':
-                                failed_tasks.append(test_name)
+                # Get a list of the tests that were run for this recipe.
+                tests_run = runner.get_recipe_test_list(recipe)
+                for test_name in tests_run:
 
-                            if task_node.find('fetch') is not None:
-                                result.append('    - Test URL: {}'.format(
-                                    task_node.find('fetch').attrib.get('url')
-                                ))
+                    # Get the XML node of the task and its result.
+                    task_node = self.__get_task(recipe, test_name)
+                    task_result = task_node.attrib['result']
 
-                if failed_tasks:
-                    result += [
-                        '\nFor more information about the failures, here are '
-                        'links for the logs of',
-                        'failed tests and their subtasks:'
-                    ]
+                    # If this task failed, add it to the list of the failed
+                    # tasks.
+                    if task_result != 'Pass':
+                        failed_tasks.append(task_node)
 
-                    console_node = recipe.find("logs/log[@name='console.log']")
-                    if console_node is not None:
-                        console_log = ConsoleLog(
-                            self.cfg.get("krelease"),
-                            console_node.attrib.get('href')
-                        )
-                        if console_log.data:
-                            console_name = '{}_console.log.gz'.format(
-                                recipe.attrib.get('id')
-                            )
-                            self.attach.append(
-                                (console_name, console_log.getfulllog())
-                            )
-                            result += ['- console log ({}) is attached'.format(
-                                console_name
-                            )]
-                for failed_task in failed_tasks:
-                    task_node = recipe.find(
-                        "task[@name='{}']".format(failed_task)
-                    )
-                    result += ['- {}'.format(failed_task)]
-                    for log in task_node.findall('logs/log'):
-                        if any(log_name in log.attrib.get('name') for
-                               log_name in ['harness', 'setup']):
-                            continue
+                # Now that we have a list of tasks that failed, go through
+                # the list and gather data for each task. This data will go
+                # into the report.
+                for task_node in failed_tasks:
+                    logs = self.__get_failed_task_log(task_node)
 
-                        result += ['  {}'.format(log.attrib.get('href'))]
-                    for subtask in task_node.findall('results/result'):
-                        if any(subtask_name in subtask.attrib.get('path') for
-                               subtask_name in ['install']) or \
-                                subtask.attrib.get('result') == 'Pass':
-                            continue
+                    failed_task_detail = {
+                        'name': task_node.attrib.get('name'),
+                        'logs': logs
+                    }
+                    recipe_data['failed_tasks'].append(failed_task_detail)
 
-                        for subtask_log in subtask.findall('logs/log'):
-                            result += [
-                                '  {}'.format(subtask_log.attrib.get('href'))
-                            ]
-
-                result += [
-                    '',
-                    'Hardware parameters of the machine are available at:',
-                    ''
-                ]
-                for hwinfo_log in['machinedesc.log', 'lshw.log']:
-                    hwinfo_url = recipe.find(
-                        "task[@name='/test/misc/machineinfo']/logs/"
-                        "log[@name='{}']".format(hwinfo_log)
-                    ).attrib.get('href')
-                    result += [hwinfo_url]
-
-        if (self.cfg.get('retcode') != '0' and
-           self.multireport_failed == MultiReportFailure.PASS):
-            self.multireport_failed = MultiReportFailure.TEST
+                # Add all the details about this recipe to the main result.
+                result.append(recipe_data)
 
         return result
 
     def _get_multireport(self):
-        intro = ['Hello,\n',
-                 'We appreciate your contributions to the Linux kernel and '
-                 'would like to help',
-                 'test them. Below are the results of automatic tests we ran']
-        results = []
+        """
+        Generate a report based on an skt rc file and various state files.
+
+        Returns: A long string of test results suitable for sending via email
+                 or displaying directly in a terminal.
+        """
+        template = JINJA_ENV.get_template('report.j2')
 
         # If we don't have any state files, this is likely a run with a single
         # test. Make a single entry in self.statefiles so we can re-use the
         # loop below.
         self.statefiles = self.statefiles or [None]
 
-        for idx, statefile in enumerate(self.statefiles):
+        # Set up a list to hold our data for each job.
+        report_jobs = []
 
+        # Loop through each of the statefiles provided.
+        for idx, statefile in enumerate(self.statefiles):
             # If the statefile is none, this is a single run report and the
             # state information has already been loaded into self.cfg.
             if statefile:
@@ -376,104 +354,102 @@ class Reporter(object):
             # Update the data about the patches merged.
             self._update_mergedata()
 
+            # Add the list of jobs foud in this statefile to the list.
             if self.cfg.get("jobs"):
-                for jobid in sorted(self.cfg.get("jobs")):
-                    self.multi_job_ids.append(jobid)
+                jobs = [x for x in sorted(self.cfg.get('jobs'))]
+                self.multi_job_ids += jobs
 
-            # The patches applied should be same for all runs but we need to
-            # include the information only once
-            if not idx:
-                if self.mergedata['localpatch'] or self.mergedata['patchwork']:
-                    intro[-1] += ' on a patchset'
-                    intro += ['you\'re involved with, with hope it will help '
-                              'you find possible issues sooner.']
-                else:
-                    # There is no patchset the person was involved with
-                    intro[-1] += ', with hope it'
-                    intro += ['will help you find possible issues sooner.']
+            # Did the merge fail? If so, stop right here and send the report.
+            # We didn't build any kernels or test anything after that failure.
+            if self.cfg.get('mergelog'):
+                self.multireport_failed = MultiReportFailure.MERGE
+                result = template.render(
+                    mergedata=self.mergedata,
+                    cfg=self.cfg,
+                    mergelog=self.__getmergelog(),
+                    multireport_failed=self.multireport_failed,
+                )
+                return result
 
-                results += ['\n'] + self.__getmergeinfo() + ['']
+            # Store the data about this job for the report.
+            job_data = self.cfg
 
-                # We use the same tree for all runs so any merge failures are
-                # same as well.
-                if self.cfg.get('mergelog'):
-                    self.multireport_failed = MultiReportFailure.MERGE
-                    results += self.__getmergefailure()
+            # If our make options contain '-C <path>', we should remove that.
+            if 'make_opts' in job_data:
+                pattern = r' -C [\w\-/\d]+'
+                job_data['make_opts'] = re.sub(
+                    pattern, '', job_data['make_opts']
+                )
 
-            # Skip config/build/run retrieval if the merge failed.
-            if not self.cfg.get('mergelog'):
-                marker = self.cfg.get('kernel_arch', str(idx + 1))
-                results += ['\n##### These are the results for %s' %
-                            (marker + ' architecture'
-                             if self.cfg.get('kernel_arch')
-                             else 'test set %s' % marker)]
+            # Did the compile fail for this job?
+            # If yes, store the build log and skip to the next job since we
+            # didn't test anything in this job.
+            if self.cfg.get('buildlog'):
+                self.multireport_failed = MultiReportFailure.BUILD
+                kernel_arch = self.cfg.get('kernel_arch')
+                job_data['buildlog'] = self.__getbuildlog(kernel_arch)
+                report_jobs.append(job_data)
+                continue
 
-                results += self.__get_build_data()
+            # Did the tests fail for this job?
+            # If yes, get the job results for the report.
+            if self.cfg.get('retcode') != '0':
+                self.multireport_failed = MultiReportFailure.TEST
+                job_data['test_results'] = self.__getjobresults()
+                report_jobs.append(job_data)
+                continue
 
-                if self.cfg.get('buildlog'):
-                    if not self.multireport_failed:
-                        self.multireport_failed = MultiReportFailure.BUILD
-                    results += self.__getbuildfailure(marker)
-                elif self.cfg.get('runner'):
-                    results += self.__getjobresults()
+            # If we made it this far, the job was successful. Add it to the
+            # report.
+            report_jobs.append(job_data)
 
-            results.append('\n')
-
-        results += ['Please reply to this email if you find an issue with our '
-                    'testing process,',
-                    'or wish to not receive these reports anymore.',
-                    '\nSincerely,',
-                    '  Kernel CI Team']
-
-        return '\n'.join(intro + self.__get_multireport_summary() + results)
+        # Render the report.
+        result = template.render(
+            mergedata=self.mergedata,
+            cfg=self.cfg,
+            report_jobs=report_jobs,
+            multireport_failed=self.multireport_failed,
+        )
+        return result
 
     def _get_multisubject(self):
-        if self.multireport_failed == MultiReportFailure.PASS:
-            subject = 'PASS: '
-        else:
-            subject = 'FAIL: '
+        """
+        Generate a subject line for the report based on test results.
+
+        Returns: A string.
+        """
+        status = 'PASS'
+        detail = 'Report'
+        krelease = ''
+
+        if self.multireport_failed != MultiReportFailure.PASS:
+            status = 'FAIL'
 
         if self.multireport_failed == MultiReportFailure.MERGE:
-            subject += "Patch application failed"
+            detail = "Patch application failed"
         elif self.multireport_failed == MultiReportFailure.BUILD:
-            subject += "Build failed"
-        else:
-            subject += "Report"
+            detail = "Build failed"
 
         # Kernel release should be same for all kernels built
         if self.cfg.get("krelease"):
-            subject += " for kernel %s" % self.cfg.get("krelease")
+            krelease = " for kernel %s" % self.cfg.get("krelease")
 
-        return subject
-
-    def __get_multireport_summary(self):
-        """
-        Get a summary (pass / fail) of the multireport.
-
-        Returns: A list of lines (strings) representing the summary.
-        """
-        summary = ['\nTEST SUMMARY:']
-
-        if self.multireport_failed == MultiReportFailure.PASS:
-            summary += ['  All builds and tests PASSED.']
-        elif self.multireport_failed == MultiReportFailure.MERGE:
-            summary += ['  Patch application FAILED!']
-        elif self.multireport_failed == MultiReportFailure.BUILD:
-            summary += ['  One or more builds FAILED!']
-        elif self.multireport_failed == MultiReportFailure.TEST:
-            summary += ['  Testing FAILED!']
-
-        summary += ['\nMore detailed data follows.', '------------']
-        return summary
-
-    # TODO Define abstract "report" method.
+        return "{}: {}{}".format(status, detail, krelease)
 
 
 class StdioReporter(Reporter):
-    """A reporter sending results to stdout"""
+    """Generate test result output and print directly to the terminal."""
+
     TYPE = 'stdio'
 
     def report(self, printer=sys.stdout):
+        """
+        Print the email subject and text directly to a configurable output.
+
+        Args:
+            printer: What should be used to print the output to console
+                    (default: stdout)
+        """
         # We need to run the reporting function first to get the aggregated
         # data to build subject from
         report = self._get_multireport()
@@ -487,7 +463,7 @@ class StdioReporter(Reporter):
 
 
 class MailReporter(Reporter):
-    """A reporter sending results by e-mail"""
+    """Generate and send an email message with the results of the test."""
     TYPE = 'mail'
 
     def __init__(self, cfg):
@@ -503,6 +479,7 @@ class MailReporter(Reporter):
         super(MailReporter, self).__init__(cfg)
 
     def report(self):
+        """Generate and send the email report."""
         msg = MIMEMultipart()
 
         # Add the most basic parts of the email message
