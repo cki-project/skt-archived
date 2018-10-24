@@ -150,6 +150,29 @@ class KernelTree(object):
             logging.debug("Adding missing remote 'origin': %s", self.uri)
             self.__git_cmd("remote", "add", "origin", self.uri)
 
+    def get_commit_details(self, ref=None, show_format="%H"):
+        """
+        Get details about a particular commit by specifying an output format.
+        Args:
+            ref: An optional reference to a commit in a git repo to be
+                 inspected. The current commit is used if a ref is not
+                 provided.
+            show_format: A `git show` format string to use to gather details.
+        Returns:
+            The stdout from `git show`.
+        """
+        args = ["show",
+                "--format={}".format(show_format),
+                "-s"]
+
+        # If a ref was specified, append it to the end of the git command.
+        if ref is not None:
+            args.append(ref)
+
+        stdout = self.__git_cmd(*args)
+
+        return stdout.rstrip()
+
     def get_commit_date(self, ref=None):
         """
         Get the committer date of the commit pointed at by the specified
