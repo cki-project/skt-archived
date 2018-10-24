@@ -76,12 +76,15 @@ class KernelTreeTest(unittest.TestCase):
         if os.path.isdir(self.tmpdir):
             shutil.rmtree(self.tmpdir)
 
-    def test_checkout(self):
+    @mock.patch('skt.kerneltree.KernelTree.get_commit_hash')
+    def test_checkout(self, mock_get_commit_hash):
         """Ensure checkout() runs git commands to check out a ref."""
         self.m_popen_good.communicate = Mock(return_value=('stdout', None))
 
         mock_git_cmd = mock.patch('skt.kerneltree.KernelTree.'
                                   '_KernelTree__git_cmd')
+
+        mock_get_commit_hash.return_value = "stdout"
 
         # Test with a fetch depth
         with self.popen_good, mock_git_cmd:
@@ -99,31 +102,32 @@ class KernelTreeTest(unittest.TestCase):
         result = self.kerneltree.getpath()
         self.assertEqual(result, self.tmpdir)
 
-    @mock.patch('subprocess.Popen')
-    def test_get_commit_date(self, mock_popen):
+    @mock.patch('subprocess.check_output')
+    def test_get_commit_date(self, mock_check_output):
         """Ensure that get_commit_date() returns an integer date."""
         # Mock up an integer response that would normally come from the
         # 'git show' command
-        mock_popen.return_value.communicate = Mock(return_value=('100', None))
+        mock_check_output.return_value = "100"
 
         # Test it with a ref
         result = self.kerneltree.get_commit_date(ref='master')
-        call_args = mock_popen.call_args_list[0][0]
+        call_args = mock_check_output.call_args_list[0][0]
         self.assertIn('master', call_args[0])
-        mock_popen.reset_mock()
+        mock_check_output.reset_mock()
 
         self.assertEqual(result, 100)
 
         # Test it without a ref
         result = self.kerneltree.get_commit_date()
-        call_args = mock_popen.call_args_list[0][0]
+        call_args = mock_check_output.call_args_list[0][0]
         self.assertNotIn('master', call_args[0])
 
         self.assertEqual(result, 100)
 
-    def test_get_commit_hash(self):
+    @mock.patch('subprocess.check_output')
+    def test_get_commit_hash(self, mock_check_output):
         """Ensure get_commit_hash() returns a git commit hash."""
-        self.m_popen_good.communicate = Mock(return_value=('abcdef', None))
+        mock_check_output.return_value = "abcdef"
 
         with self.popen_good:
             result = self.kerneltree.get_commit_hash(ref='master')
