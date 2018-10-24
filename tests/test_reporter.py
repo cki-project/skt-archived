@@ -291,7 +291,7 @@ class TestStdioReporter(unittest.TestCase):
         report = testprint.getvalue().strip()
 
         required_strings = [
-            'Subject: FAIL: Report for kernel 3.10.0',
+            'Subject: FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
             'Hardware test: FAILED',
             self.basecfg['basehead'],
@@ -333,7 +333,7 @@ class TestStdioReporter(unittest.TestCase):
         report = testprint.getvalue().strip()
 
         required_strings = [
-            'Subject: PASS: Report for kernel 3.10.0',
+            'Subject: PASS: Test report for kernel 3.10.0 (kernel)',
             'Overall result: PASSED',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
@@ -369,7 +369,7 @@ class TestStdioReporter(unittest.TestCase):
         report = testprint.getvalue().strip()
 
         required_strings = [
-            'Subject: PASS: Report for kernel 3.10.0',
+            'Subject: PASS: Test report for kernel 3.10.0 (kernel)',
             'Overall result: PASSED',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
@@ -412,7 +412,7 @@ class TestStdioReporter(unittest.TestCase):
         report = testprint.getvalue().strip()
 
         required_strings = [
-            'Subject: PASS: Report',
+            'Subject: PASS: Test report',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -442,7 +442,7 @@ class TestStdioReporter(unittest.TestCase):
         report = testprint.getvalue().strip()
 
         required_strings = [
-            'Subject: PASS: Report for kernel 3.10.0',
+            'Subject: PASS: Test report for kernel 3.10.0 (kernel)',
             'Overall result: PASS',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
@@ -493,7 +493,7 @@ class TestStdioReporter(unittest.TestCase):
         report = testprint.getvalue().strip()
 
         required_strings = [
-            'PASS: Report for kernel 3.10.0',
+            'PASS: Test report for kernel 3.10.0 (kernel)',
             'Overall result: PASSED',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
@@ -544,7 +544,7 @@ class TestStdioReporter(unittest.TestCase):
         report = testprint.getvalue().strip()
 
         required_strings = [
-            'FAIL: Report for kernel 3.10.0',
+            'FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
             'Hardware test: FAILED',
             self.basecfg['basehead'],
@@ -602,7 +602,7 @@ class TestStdioReporter(unittest.TestCase):
         report = testprint.getvalue().strip()
 
         required_strings = [
-            'FAIL: Report for kernel 3.10.0',
+            'FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
             'Hardware test: FAILED',
             self.basecfg['basehead'],
