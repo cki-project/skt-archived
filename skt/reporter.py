@@ -412,6 +412,18 @@ class Reporter(object):
         )
         return result
 
+    def _get_repo_name(self, baserepo):
+        """
+        Generate a short repository name based on the contents of 'baserepo'.
+
+        Args:
+            baserepo: A URL to a git repository.
+
+        Returns: A string containing the repository name.
+        """
+        repo_name = os.path.basename(baserepo)
+        return os.path.splitext(repo_name)[0]
+
     def _get_multisubject(self):
         """
         Generate a subject line for the report based on test results.
@@ -419,7 +431,7 @@ class Reporter(object):
         Returns: A string.
         """
         status = 'PASS'
-        detail = 'Report'
+        detail = 'Test report'
         krelease = ''
 
         if self.multireport_failed != MultiReportFailure.PASS:
@@ -432,7 +444,11 @@ class Reporter(object):
 
         # Kernel release should be same for all kernels built
         if self.cfg.get("krelease"):
-            krelease = " for kernel %s" % self.cfg.get("krelease")
+            repo_name = self._get_repo_name(self.cfg.get('baserepo'))
+            krelease = " for kernel {} ({})".format(
+                self.cfg.get("krelease"),
+                repo_name
+            )
 
         return "{}: {}{}".format(status, detail, krelease)
 
