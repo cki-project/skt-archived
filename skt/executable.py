@@ -202,9 +202,11 @@ def cmd_merge(cfg):
         fetch_depth=cfg.get('fetch_depth')
     )
     bhead = ktree.checkout()
+    bsubject = ktree.get_commit_subject(bhead)
     commitdate = ktree.get_commit_date(bhead)
     save_state(cfg, {'baserepo': cfg.get('baserepo'),
                      'basehead': bhead,
+                     'basesubject': bsubject,
                      'commitdate': commitdate})
 
     remove_oldresult(cfg.get('output_dir'), 'merge.')
@@ -296,9 +298,11 @@ def cmd_merge(cfg):
 
     kpath = ktree.getpath()
     buildhead = ktree.get_commit_hash()
+    buildsubject = ktree.get_commit_subject()
 
     save_state(cfg, {'workdir': kpath,
-                     'buildhead': buildhead})
+                     'buildhead': buildhead,
+                     'buildsubject': buildsubject})
 
     report_results(merge_result_path, 'true',
                    merge_report_path, report_string)
