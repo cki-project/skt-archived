@@ -330,7 +330,8 @@ def cmd_build(cfg):
         cfgtype=cfg.get('cfgtype'),
         extra_make_args=cfg.get('makeopts'),
         enable_debuginfo=cfg.get('enable_debuginfo'),
-        rh_configs_glob=cfg.get('rh_configs_glob')
+        rh_configs_glob=cfg.get('rh_configs_glob'),
+        localversion=cfg.get('localversion')
     )
 
     # Clean the kernel source with 'make mrproper' if requested.
@@ -708,6 +709,12 @@ def setup_parser():
             "Glob pattern to use when choosing the correct kernel config "
             "(required if '--cfgtype rh-configs' is used)"
         )
+    )
+    parser_build.add_argument(
+        "--localversion",
+        type=str,
+        default="skt",
+        help=("String to append to kernel version number (LOCALVERSION)")
     )
 
     # These arguments apply to the 'publish' skt command

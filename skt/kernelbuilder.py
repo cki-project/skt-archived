@@ -32,7 +32,7 @@ from skt.misc import join_with_slash
 class KernelBuilder(object):
     def __init__(self, source_dir, basecfg, cfgtype=None,
                  extra_make_args=None, enable_debuginfo=False,
-                 rh_configs_glob=None):
+                 rh_configs_glob=None, localversion=None):
         self.source_dir = source_dir
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
@@ -42,6 +42,7 @@ class KernelBuilder(object):
         self.enable_debuginfo = enable_debuginfo
         self.build_arch = self.__get_build_arch()
         self.rh_configs_glob = rh_configs_glob
+        self.localversion = localversion
 
         self.targz_pkg_argv = [
             "INSTALL_MOD_STRIP=1",
@@ -102,8 +103,12 @@ class KernelBuilder(object):
         if not self.enable_debuginfo:
             self.__adjust_config_option('disable', 'debug_info')
 
-        # Set the CONFIG_LOCALVERSION to '.skt'
-        self.__adjust_config_option('set-str', 'LOCALVERSION', '.skt')
+        # Set CONFIG_LOCALVERSION
+        self.__adjust_config_option(
+            'set-str',
+            'LOCALVERSION',
+            '.{}'.format(self.localversion)
+        )
 
         self._ready = 1
 
