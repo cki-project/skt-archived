@@ -76,7 +76,7 @@ class KernelBuilder(object):
 
     def __glob_escape(self, pathname):
         """Escape any wildcard/glob characters in pathname."""
-        return re.sub(r"[]*?[]", "[\g<0>]", pathname)
+        return re.sub(r"[]*?[]", r"[\g<0>]", pathname)
 
     def __prepare_kernel_config(self):
         """Prepare the kernel config for the compile."""
