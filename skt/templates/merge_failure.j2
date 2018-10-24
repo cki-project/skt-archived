@@ -1,0 +1,5 @@
+{% if cfg.mergelog %}
+When we attempted to merge the {{ patch_plural }}, we received an error:
+
+{{ mergelog | indent(2, first=True) }}
+{% endif %}

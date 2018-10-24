@@ -1,0 +1,11 @@
+We attempted to compile the kernel for multiple architectures, but the compile
+failed on one or more architectures:
+
+{% for job in report_jobs %}
+  {% if job.buildlog %}
+  {{ (job.kernel_arch + ":").ljust(8) }} FAILED (build log attached: {{ job.buildlog }})
+  {% else %}
+  {{ (job.kernel_arch + ":").ljust(8) }} PASSED
+  {% endif %}
+{% endfor %}
+
