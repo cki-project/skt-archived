@@ -4,7 +4,7 @@ defaults: &defaults
     - checkout
     - run:
         name: Install skt using pip
-        command: pip install .
+        command: pip install --user .
     - run:
         name: Prepare git
         command: |
