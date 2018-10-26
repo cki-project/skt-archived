@@ -26,6 +26,12 @@ defaults: &defaults
             skt -vv --state -d workdir --rc sktrc build -c config \
                 --cfgtype tinyconfig
         working_directory: /tmp/skt_test
+    - run:
+        name: Test `skt report`
+        command: |
+            skt -vv --state -d workdir --rc sktrc report \
+                --reporter stdio
+        working_directory: /tmp/skt_test
     - store_artifacts:
         path: /tmp/skt_test/workdir/*.log
     - store_artifacts:
