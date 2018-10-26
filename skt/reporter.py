@@ -394,9 +394,9 @@ class Reporter(object):
                 report_jobs.append(job_data)
                 continue
 
-            # Did the tests fail for this job?
+            # Did the tests run and fail for this job?
             # If yes, get the job results for the report.
-            if self.cfg.get('retcode') != '0':
+            if self.cfg.get('runner') and self.cfg.get('retcode') != '0':
                 self.multireport_failed = MultiReportFailure.TEST
                 job_data['test_results'] = self.__getjobresults()
                 report_jobs.append(job_data)
