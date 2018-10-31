@@ -40,15 +40,15 @@ The results of these automated tests are provided below.
 {% if multireport_failed.name != 'PASS' %}
     {% if multireport_failed.name == 'MERGE' %}
     {# Explain the merge failure. #}
-    {% include 'merge_failure.j2' %}
+    {% include 'partials/merge_failure.j2' %}
     {% endif %}
     {% if multireport_failed.name == 'BUILD' %}
     {# Explain the build failure. #}
-    {% include 'build_failure.j2' %}
+    {% include 'partials/build_failure.j2' %}
     {% endif %}
     {% if multireport_failed.name == 'TEST' %}
     {# Explain the testing failure. #}
-    {% include 'test_failure.j2' %}
+    {% include 'partials/test_failure.j2' %}
     {% endif %}
 We hope that these logs can help you find the problem quickly. For the full
 detail on our testing procedures, please scroll to the bottom of this message.
@@ -68,12 +68,12 @@ ______________________________________________________________________________
 
 Merge testing
 -------------
-{% include "merge_details.j2" %}
+{% include "partials/merge_details.j2" %}
 {% endif %}
 {# Explain what we built if we made it to the compile steps. #}
 {% if multireport_failed.name != 'MERGE' %}
 
 Compile testing
 ---------------
-{% include "build_details.j2" %}
+{% include "partials/build_details.j2" %}
 {% endif %}
