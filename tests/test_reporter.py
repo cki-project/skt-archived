@@ -120,6 +120,7 @@ class TestStdioReporter(unittest.TestCase):
         # Set up a base config dictionary that we can adjust and use for tests
         self.basecfg = {
             'workdir': self.tmpdir,
+            'template': 'full',
             'krelease': '3.10.0',
             'baserepo': 'git://git.example.com/kernel.git',
             'basehead': '1234abcdef',

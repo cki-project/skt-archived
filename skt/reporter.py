@@ -337,7 +337,15 @@ class Reporter(object):
         Returns: A long string of test results suitable for sending via email
                  or displaying directly in a terminal.
         """
-        template = JINJA_ENV.get_template('report.j2')
+        template_name = self.cfg['template']
+
+        # Ensure the template name is valid.
+        assert re.match(r'^[A-Za-z0-9_-]+$', template_name), \
+            "Invalid template name"
+
+        # Set the template filename and load the template.
+        template_file = "report_{}.j2".format(template_name)
+        template = JINJA_ENV.get_template(template_file)
 
         # If we don't have any state files, this is likely a run with a single
         # test. Make a single entry in self.statefiles so we can re-use the
