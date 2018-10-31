@@ -11,10 +11,12 @@ One or more hardware tests failed:
   {% for test_result in job.test_results %}
     {% for failed_task in test_result.failed_tasks %}
     Test name: {{ failed_task.name }}
+      {% if not report_omit_hardware_test_logs %}
     Logs:
-      {% for log in failed_task.logs %}
+        {% for log in failed_task.logs %}
       {{ log }}
-      {% endfor %}
+        {% endfor %}
+      {% endif %}
     {% endfor %}
   {% endfor %}
 
