@@ -362,7 +362,7 @@ def cmd_build(cfg):
         logging.info("tarball path: %s", ttgz)
         save_state(cfg, {'tarpkg': ttgz})
 
-    tconfig = '%s.csv.config' % cfg.get('buildhead')
+    tconfig = '%s.config' % cfg.get('buildhead')
     shutil.copyfile(builder.get_cfgpath(), tconfig)
 
     krelease = builder.getrelease()
