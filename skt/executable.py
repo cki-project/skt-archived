@@ -819,7 +819,7 @@ def setup_parser():
         dest="template",
         type=str,
         default='full',
-        choices=('full'),
+        choices=('full', 'limited'),
         help="Template to use for reports"
     )
     parser_report.set_defaults(func=cmd_report)
