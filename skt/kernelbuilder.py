@@ -41,6 +41,7 @@ class KernelBuilder(object):
         self.make_argv_base = ["make", "-C", self.source_dir]
         self.enable_debuginfo = enable_debuginfo
         self.build_arch = self.__get_build_arch()
+        self.cross_compiler_prefix = self.__get_cross_compiler_prefix()
         self.rh_configs_glob = rh_configs_glob
         self.localversion = localversion
 
