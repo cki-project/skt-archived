@@ -1,11 +1,12 @@
 One or more hardware tests failed:
 
 {% for job in report_jobs %}
+  {% set kernel_arch = job.cross_compiler_prefix.split('-')[0] if job.cross_compiler_prefix else job.kernel_arch %}
   {# If the job has no test results, then it passed. #}
   {% if job.test_results %}
-  {{ job.kernel_arch }}: FAILED
+  {{ kernel_arch }}: FAILED
   {% else %}
-  {{ job.kernel_arch }}: PASSED
+  {{ kernel_arch }}: PASSED
   {% endif %}
   {# Loop over the failed tasks and display them with their logs. #}
   {% for test_result in job.test_results %}
