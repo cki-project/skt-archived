@@ -4,7 +4,8 @@
 We compiled the kernel for {{ jobs_run }} {{ arch_plural }}:
 
   {% for job in report_jobs %}
-  {{ job.kernel_arch }}:
+  {% set kernel_arch = job.kernel_compiler.split('-')[0] if job.kernel_compiler else job.kernel_arch %}
+  {{ kernel_arch }}:
     make options: {{ job.make_opts }}
     configuration: {{ job.cfgurl }}
 
