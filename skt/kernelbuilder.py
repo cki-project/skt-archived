@@ -152,6 +152,13 @@ class KernelBuilder(object):
 
         return platform.machine()
 
+    def __get_build_cross_compiler_prefix(self):
+        """Determine the cross compiler for the kernel build."""
+        if 'CROSS_COMPILE' in os.environ:
+            return os.environ['CROSS_COMPILE']
+
+        return None
+
     def get_cfgpath(self):
         return join_with_slash(self.source_dir, ".config")
 
