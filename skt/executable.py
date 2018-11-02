@@ -367,6 +367,7 @@ def cmd_build(cfg):
 
     krelease = builder.getrelease()
     kernel_arch = builder.build_arch
+    kernel_compiler = builder.build_compiler
     make_opts = ' '.join(builder.make_argv_base
                          + builder.targz_pkg_argv
                          + builder.extra_make_args)
@@ -374,6 +375,7 @@ def cmd_build(cfg):
     save_state(cfg, {'buildconf': tconfig,
                      'krelease': krelease,
                      'kernel_arch': kernel_arch,
+                     'build_compiler': kernel_compiler,
                      'make_opts': make_opts})
 
     report_string = '{} ({{{}}})\n{}\n    {}'.format(
