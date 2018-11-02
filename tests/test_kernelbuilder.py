@@ -96,6 +96,18 @@ class KBuilderTest(unittest.TestCase):
 
         self.assertEqual('s390x', result)
 
+    def test_get_cross_compiler_prefix(self):
+        """
+        Ensure __get_cross_compiler_prefix() returns the CROSS_COMPILE
+        environment variable.
+        """
+        # pylint: disable=W0212,E1101
+        os.environ['CROSS_COMPILE'] = 'powerpc64-linux-gnu-'
+        build = self.kbuilder
+        result = build._KernelBuilder__get_cross_compiler_prefix()
+
+        self.assertEqual('powerpc64-linux-gnu-', result)
+
     def test_mktgz_timeout(self):
         """Ensure the build fails properly when it exceeds the timeout."""
         self.m_popen.poll = Mock(side_effect=[None, None, -15])
