@@ -784,6 +784,18 @@ def setup_parser():
         help="Report recipient's email address"
     )
     parser_report.add_argument(
+        "--mail-cc",
+        action='append',
+        type=str,
+        help="Report copy recipient's email address"
+    )
+    parser_report.add_argument(
+        "--mail-bcc",
+        action='append',
+        type=str,
+        help="Report hidden copy recipient's email address"
+    )
+    parser_report.add_argument(
         "--mail-from",
         type=str,
         help="Report sender's email address"
@@ -970,6 +982,8 @@ def load_config(args):
         cfg['reporter'] = {
             'type': cfg.get('type'),
             'mail_to': cfg.get('mail_to'),
+            'mail_cc': cfg.get('mail_cc'),
+            'mail_bcc': cfg.get('mail_bcc'),
             'mail_from': cfg.get('mail_from'),
             'mail_subject': cfg.get('mail_subject'),
             'mail_header': cfg.get('mail_header')
