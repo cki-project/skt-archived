@@ -498,6 +498,8 @@ class MailReporter(Reporter):
         # Get all of the required fields to send an email
         self.mailfrom = cfg['reporter']['mail_from']
         self.mailto = [to.strip() for to in cfg['reporter']['mail_to']]
+        self.mailcc = [cc.strip() for cc in cfg['reporter']['mail_cc']]
+        self.mailbcc = [bcc.strip() for bcc in cfg['reporter']['mail_bcc']]
         self.headers = [headers.strip() for headers in
                         cfg['reporter']['mail_header']]
         self.subject = cfg['reporter']['mail_subject']
@@ -513,6 +515,7 @@ class MailReporter(Reporter):
         if self.subject:
             msg['Subject'] = self.subject
         msg['To'] = ', '.join(self.mailto)
+        msg['Cc'] = ', '.join(self.mailcc)
         msg['From'] = self.mailfrom
 
         # Add any extra headers
@@ -542,5 +545,7 @@ class MailReporter(Reporter):
             msg.attach(tmp)
 
         mailserver = smtplib.SMTP(self.smtp_url)
-        mailserver.sendmail(self.mailfrom, self.mailto, msg.as_string())
+        mailserver.sendmail(self.mailfrom,
+                            self.mailto + self.mailcc + self.mailbcc,
+                            msg.as_string())
         mailserver.quit()
