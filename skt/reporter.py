@@ -258,10 +258,6 @@ class Reporter(object):
         Returns:
             A list of lines representing results of test runs.
         """
-        # Did the job fail?
-        if self.cfg.get('retcode') == '0':
-            return
-
         result = []
 
         runner = skt.runner.getrunner(*self.cfg.get("runner"))
