@@ -1,0 +1,15 @@
+
+We booted the compiled kernel and ran the following hardware tests:
+
+{% for job in report_jobs %}
+  {{ job.kernel_arch }}:
+    {% for test_result in job.test_results %}
+        {% for task in test_result.passed_tasks %}
+    {{ task }}
+        {% endfor %}
+        {% for task in test_result.failed_tasks %}
+    {{ task.name }}
+        {% endfor %}
+    {% endfor %}
+
+{% endfor %}
