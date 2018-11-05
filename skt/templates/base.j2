@@ -77,3 +77,10 @@ Compile testing
 ---------------
 {% include "partials/build_details.j2" %}
 {% endif %}
+{# Explain what we built if we made it to the compile steps. #}
+{% if report_jobs %}
+
+Hardware testing
+----------------
+{% include "partials/test_details.j2" %}
+{% endif %}
