@@ -5,6 +5,9 @@ One or more hardware tests failed:
   {# If the job has no test results, then it passed. #}
   {% if job.test_results %}
   {{ kernel_arch }}: FAILED
+  {% for job_id in job.jobs if not report_omit_hardware_test_logs %}
+    Beaker results: https://beaker.engineering.redhat.com/jobs/{{ job_id.split(":")[1] }}
+  {% endfor %}
   {% else %}
   {{ kernel_arch }}: PASSED
   {% endif %}
