@@ -294,7 +294,7 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'Subject: FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
-            'Hardware test: FAILED',
+            'Kernel tests: FAILED',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -547,7 +547,7 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
-            'Hardware test: FAILED',
+            'Kernel tests: FAILED',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -605,7 +605,7 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
-            'Hardware test: FAILED',
+            'Kernel tests: FAILED',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
