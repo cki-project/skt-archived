@@ -1,4 +1,4 @@
-One or more hardware tests failed:
+One or more kernel tests failed:
 
 {% for job in report_jobs %}
   {% set kernel_arch = job.cross_compiler_prefix.split('-')[0] if job.cross_compiler_prefix else job.kernel_arch %}
