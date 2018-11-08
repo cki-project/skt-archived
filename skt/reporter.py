@@ -505,8 +505,9 @@ class MailReporter(Reporter):
         # Get all of the required fields to send an email
         self.mailfrom = cfg['reporter']['mail_from']
         self.mailto = [to.strip() for to in cfg['reporter']['mail_to']]
-        self.mailcc = [cc.strip() for cc in cfg['reporter']['mail_cc']]
-        self.mailbcc = [bcc.strip() for bcc in cfg['reporter']['mail_bcc']]
+        self.mailcc = [cc.strip() for cc in cfg['reporter']['mail_cc'] or []]
+        self.mailbcc = [bcc.strip()
+                        for bcc in cfg['reporter']['mail_bcc'] or []]
         self.headers = [headers.strip() for headers in
                         cfg['reporter']['mail_header']]
         self.subject = cfg['reporter']['mail_subject']
