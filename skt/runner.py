@@ -104,6 +104,10 @@ class BeakerRunner(Runner):
             replacements:   A dictionary of placeholder strings with "##"
                             around them, and their replacements.
 
+        Raises:
+            ValueError if the placeholder would be replaced by a non-string
+                       object.
+
         Returns:
             The job XML text with template replacements applied.
         """
@@ -111,9 +115,15 @@ class BeakerRunner(Runner):
         with open(self.template, 'r') as fileh:
             for line in fileh:
                 for match in re.finditer(r"##(\w+)##", line):
-                    if match.group(1) in replacements:
+                    to_replace = match.group(1)
+                    if to_replace in replacements:
+                        if not isinstance(replacements[to_replace], str):
+                            raise ValueError('XML replace: string expected but'
+                                             ' {} is {}'.format(
+                                                 to_replace,
+                                                 replacements[to_replace]))
                         line = line.replace(match.group(0),
-                                            replacements[match.group(1)])
+                                            replacements[to_replace])
 
                 xml += line
 
