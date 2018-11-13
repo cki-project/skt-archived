@@ -311,14 +311,19 @@ class Reporter(object):
                         # Get the XML node of the task and its result.
                         task_node = self.__get_task(recipe, test_name)
                         task_result = task_node.attrib['result']
+                        task_status = task_node.attrib['status']
 
-                        # If this task failed, add it to the list of the failed
-                        # tasks.
-                        if task_result != 'Pass':
-                            failed_tasks.append(task_node)
-                        else:
+                        if task_result == 'Pass':
                             test_name = task_node.attrib.get('name')
                             passed_tasks.append(test_name)
+                        elif (task_result == 'Warn'
+                              and task_status == 'Aborted'):
+                            # Don't add tasks that aborted to the lists
+                            continue
+                        else:
+                            # If this task failed, add it to the list of the
+                            # failed tasks
+                            failed_tasks.append(task_node)
 
                 # Now that we have a list of tasks that failed, go through
                 # the list and gather data for each task. This data will go
