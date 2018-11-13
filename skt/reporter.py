@@ -219,6 +219,7 @@ class Reporter(object):
     def __get_failed_task_log(self, task_node):
         """
         Get logs from a failed task and its subtasks.
+
         Returns: A list of log file URLs.
         """
         useless_logs = ['harness.log', 'setup.log']
@@ -255,6 +256,7 @@ class Reporter(object):
         Every test run has a list of receipe sets that were run. Each set
         can contain one or more recipes. Each recipe has one or more tasks
         that run individual tests.
+
         Returns:
             A list of lines representing results of test runs.
         """
