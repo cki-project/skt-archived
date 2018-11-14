@@ -63,6 +63,15 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner._BeakerRunner__getxml({})
         self.assertEqual(result, self.test_xml)
 
+    def test_getxml_invalid_replace(self):
+        """
+        Ensure BeakerRunner.__getxml() raises ValueError if the replacement is
+        not a string.
+        """
+        # pylint: disable=W0212,E1101
+        with self.assertRaises(ValueError):
+            self.myrunner._BeakerRunner__getxml({"KVER": None})
+
     def test_getxml_replace(self):
         """Ensure BeakerRunner.__getxml() returns xml with replacements."""
         # pylint: disable=W0212,E1101
