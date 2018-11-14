@@ -43,6 +43,10 @@ JINJA_ENV = Environment(
 )
 
 
+class InfrastuctureError(Exception):
+    """Raised when an infrastucture error was found"""
+
+
 class MultiReportFailure(enum.IntEnum):
     """IntEnum to track multireport failure statuses."""
 
@@ -424,6 +428,10 @@ class Reporter(object):
                 # If the tests failed, mark the result as a test failure.
                 if self.cfg.get('retcode') != '0':
                     self.multireport_failed = MultiReportFailure.TEST
+                if self.cfg.get('retcode') == '2':
+                    raise InfrastuctureError(
+                        "Stop processing, an InfrastuctureError was detected"
+                    )
 
                 # Collect the tests results and append them to our list.
                 job_data['test_results'] = self.__getjobresults()

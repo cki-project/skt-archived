@@ -442,6 +442,30 @@ class TestStdioReporter(unittest.TestCase):
     @mock.patch('skt.reporter.load_state_cfg')
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @responses.activate
+    def test_infrastructure_error(self, mock_grt, mock_load):
+        """Verify InfrastuctureError is raised when exit code == 2."""
+        self.mock_patchwork_responses()
+        mock_grt.return_value = self.beaker_fail_results
+
+        self.basecfg['result'] = ['state1', 'state2']
+
+        # Create our two mocked state files for two different arches
+        state1 = self.basecfg.copy()
+        state1['kernel_arch'] = 's390x'
+        state1['retcode'] = '1'
+        state2 = self.basecfg.copy()
+        state2['kernel_arch'] = 'x86_64'
+        state2['retcode'] = '2'
+
+        # Mock the loading of these state files
+        mock_load.side_effect = [state1, state2]
+
+        rptclass = reporter.StdioReporter(self.basecfg)
+        self.assertRaises(reporter.InfrastuctureError, rptclass.report)
+
+    @mock.patch('skt.reporter.load_state_cfg')
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @responses.activate
     def test_multireport_partial_success(self, mock_grt, mock_load):
         """Verify multireport partial success output."""
         # pylint: disable=invalid-name
