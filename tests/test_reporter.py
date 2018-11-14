@@ -152,12 +152,9 @@ class TestStdioReporter(unittest.TestCase):
 
         return tempfilename
 
-    @responses.activate
-    def test_merge_failure(self):
-        """Verify stdio report works with a merge failure.
-
-        Test that log/txt attachments are properly printed as well.
-        """
+    @staticmethod
+    def mock_patchwork_responses():
+        """Helper used on test cases for mocking patchwork responses"""
         responses.add(
             responses.GET,
             "http://patchwork.example.com/patch/1/mbox",
@@ -168,6 +165,14 @@ class TestStdioReporter(unittest.TestCase):
             "http://patchwork.example.com/patch/2/mbox",
             body="Subject: Patch #2"
         )
+
+    @responses.activate
+    def test_merge_failure(self):
+        """Verify stdio report works with a merge failure.
+
+        Test that log/txt attachments are properly printed as well.
+        """
+        self.mock_patchwork_responses()
 
         self.basecfg['mergelog'] = self.make_file(
             'merge.log', 'merge failed\nThe copy of the patch'
@@ -196,16 +201,7 @@ class TestStdioReporter(unittest.TestCase):
     @responses.activate
     def test_merge_failure_empty_log(self):
         """Verify stdio report works with a merge failure w/empty log."""
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/2/mbox",
-            body="Subject: Patch #2"
-        )
+        self.mock_patchwork_responses()
 
         self.basecfg['mergelog'] = self.make_file(
             'merge.log', ''
@@ -233,16 +229,7 @@ class TestStdioReporter(unittest.TestCase):
     @responses.activate
     def test_build_failure(self):
         """Verify stdio report works with a build failure."""
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/2/mbox",
-            body="Subject: Patch #2"
-        )
+        self.mock_patchwork_responses()
 
         self.basecfg['buildlog'] = self.make_file('build.log', 'build failed')
 
@@ -265,24 +252,7 @@ class TestStdioReporter(unittest.TestCase):
     @responses.activate
     def test_run_failure(self, mock_grt):
         """Verify stdio report works with a failed run."""
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/2/mbox",
-            body="Subject: Patch #2"
-        )
-        responses.add(responses.GET,
-                      'http://example.com',
-                      body="Linux version 3.10.0")
-        responses.add(
-            responses.GET,
-            "http://example.com/machinedesc.log",
-            body="Machine information from beaker goes here"
-        )
+        self.mock_patchwork_responses()
         mock_grt.return_value = self.beaker_fail_results
         self.basecfg['retcode'] = '1'
 
@@ -306,24 +276,7 @@ class TestStdioReporter(unittest.TestCase):
     def test_run_success_multiple_patches(self, mock_grt):
         """Verify stdio report works with success + multiple patches."""
         # pylint: disable=invalid-name
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/2/mbox",
-            body="Subject: Patch #2"
-        )
-        responses.add(responses.GET,
-                      'http://example.com/',
-                      body="Linux version 3.10.0")
-        responses.add(
-            responses.GET,
-            "http://example.com/machinedesc.log",
-            body="Machine information from beaker goes here"
-        )
+        self.mock_patchwork_responses()
 
         mock_grt.return_value = self.beaker_pass_results
         self.basecfg['retcode'] = '0'
@@ -346,19 +299,7 @@ class TestStdioReporter(unittest.TestCase):
     @responses.activate
     def test_run_success_single_patch(self, mock_grt):
         """Verify stdio report works with a single patch."""
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(responses.GET,
-                      'http://example.com',
-                      body="Linux version 3.10.0")
-        responses.add(
-            responses.GET,
-            "http://example.com/machinedesc.log",
-            body="Machine information from beaker goes here"
-        )
+        self.mock_patchwork_responses()
         mock_grt.return_value = self.beaker_pass_results
         self.basecfg['retcode'] = '0'
         self.basecfg['localpatches'] = []
@@ -386,21 +327,7 @@ class TestStdioReporter(unittest.TestCase):
         coverage.
 
         """
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/2/mbox",
-            body="Subject: Patch #2"
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/config",
-            body="Config from configurl"
-        )
+        self.mock_patchwork_responses()
 
         self.basecfg['retcode'] = '0'
         self.basecfg['cfgurl'] = "http://example.com/config"
@@ -424,14 +351,6 @@ class TestStdioReporter(unittest.TestCase):
     @responses.activate
     def test_baseline_success(self, mock_grt):
         """Verify stdio report works with a successful baseline run."""
-        responses.add(responses.GET,
-                      'http://example.com',
-                      body="Linux version 3.10.0")
-        responses.add(
-            responses.GET,
-            "http://example.com/machinedesc.log",
-            body="Machine information from beaker goes here"
-        )
         mock_grt.return_value = self.beaker_pass_results
         self.basecfg['retcode'] = '0'
         self.basecfg['localpatches'] = []
@@ -456,24 +375,7 @@ class TestStdioReporter(unittest.TestCase):
     @responses.activate
     def test_multireport_success(self, mock_grt, mock_load):
         """Verify multireport success output."""
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/2/mbox",
-            body="Subject: Patch #2"
-        )
-        responses.add(responses.GET,
-                      'http://example.com',
-                      body="Linux version 3.10.0")
-        responses.add(
-            responses.GET,
-            "http://example.com/machinedesc.log",
-            body="Machine information from beaker goes here"
-        )
+        self.mock_patchwork_responses()
         mock_grt.return_value = self.beaker_pass_results
 
         self.basecfg['retcode'] = '0'
@@ -507,24 +409,7 @@ class TestStdioReporter(unittest.TestCase):
     @responses.activate
     def test_multireport_failure(self, mock_grt, mock_load):
         """Verify multireport failure output."""
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/2/mbox",
-            body="Subject: Patch #2"
-        )
-        responses.add(responses.GET,
-                      'http://example.com',
-                      body="Linux version 3.10.0")
-        responses.add(
-            responses.GET,
-            "http://example.com/machinedesc.log",
-            body="Machine information from beaker goes here"
-        )
+        self.mock_patchwork_responses()
         mock_grt.return_value = self.beaker_fail_results
 
         self.basecfg['retcode'] = '1'
@@ -560,24 +445,7 @@ class TestStdioReporter(unittest.TestCase):
     def test_multireport_partial_success(self, mock_grt, mock_load):
         """Verify multireport partial success output."""
         # pylint: disable=invalid-name
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/1/mbox",
-            body="Subject: Patch #1"
-        )
-        responses.add(
-            responses.GET,
-            "http://patchwork.example.com/patch/2/mbox",
-            body="Subject: Patch #2"
-        )
-        responses.add(responses.GET,
-                      'http://example.com',
-                      body="Linux version 3.10.0")
-        responses.add(
-            responses.GET,
-            "http://example.com/machinedesc.log",
-            body="Machine information from beaker goes here"
-        )
+        self.mock_patchwork_responses()
         mock_grt.side_effect = [
             self.beaker_fail_results,
             self.beaker_fail_results,
