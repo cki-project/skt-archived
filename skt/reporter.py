@@ -331,6 +331,14 @@ class Reporter(object):
                 for task_node in failed_tasks:
                     logs = self.__get_failed_task_log(task_node)
 
+                    # If the task caused a kernel panic, add a link to the
+                    # console log since that's the one containing the actual
+                    # trace.
+                    if task_node.attrib.get('result') == 'Panic':
+                        console = recipe.find("logs/log[@name='console.log']")
+                        if console is not None:
+                            logs.append(console.attrib.get('href'))
+
                     failed_task_detail = {
                         'name': task_node.attrib.get('name'),
                         'logs': logs
