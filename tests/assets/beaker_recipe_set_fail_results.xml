@@ -10,7 +10,7 @@
         TEST RESULT
       </log>
     </logs>
-    <task name='/test/misc/machineinfo'>
+    <task name='/test/misc/machineinfo' result='Pass' status='Completed'>
       <logs>
         <log name='machinedesc.log' href="http://example.com/machinedesc.log">
         </log>
@@ -18,7 +18,7 @@
         </log>
       </logs>
     </task>
-    <task name='/distribution/kpkginstall' result='Pass'></task>
-    <task name='/test/we/ran' result='Fail'></task>
+    <task name='/distribution/kpkginstall' result='Pass' status='Completed'></task>
+    <task name='/test/we/ran' result='Fail' status='Completed'></task>
   </recipe>
 </recipeSet>
