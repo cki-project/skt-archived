@@ -295,14 +295,11 @@ class Reporter(object):
                 # Check if the kernel booted properly. If it failed, add it
                 # to the list of failed tasks and don't bother checking any
                 # other tests.
-                test_name = '/distribution/kpkginstall'
-                task_node = self.__get_task(recipe, test_name)
+                task_node = runner.get_kpkginstall_task(recipe)
                 if task_node.attrib['result'] != 'Pass':
                     failed_tasks.append(task_node)
                 else:
-                    # Add 'boot test' to the kpkginstall task to show that it
-                    # includes booting the kernel, not just installing it.
-                    passed_tasks.append("{} (boot test)".format(test_name))
+                    passed_tasks.append(task_node.attrib.get('name'))
 
                     # Get a list of the tests that were run for this recipe.
                     tests_run = runner.get_recipe_test_list(recipe)
@@ -343,15 +340,6 @@ class Reporter(object):
                         'name': task_node.attrib.get('name'),
                         'logs': logs
                     }
-                    # Add 'boot test' to the kpkginstall task if it failed to
-                    # show that it includes booting the kernel, not just
-                    # installing it. We can't do it earlier because we need the
-                    # original task to work with.
-                    kpkginstall_name = '/distribution/kpkginstall'
-                    if failed_task_detail['name'] == kpkginstall_name:
-                        failed_task_detail['name'] = '{} (boot test)'.format(
-                            kpkginstall_name
-                        )
                     recipe_data['failed_tasks'].append(failed_task_detail)
 
                 # Add the passed tasks to the recipe_data dictionary.
