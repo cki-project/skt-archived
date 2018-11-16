@@ -312,22 +312,17 @@ class BeakerRunner(Runner):
                     # Something in the recipe set really reported failure
                     test_failure = False
 
-                    kpkginstall_task = self.get_kpkginstall_task(recipe)
-                    if not kpkginstall_task:
+                    if not self.get_kpkginstall_task(recipe):
                         # Assume the kernel was installed by default and
                         # everything is a test
                         test_failure = True
                     else:
-                        kpkginstall_name = kpkginstall_task.attrib.get('name')
+                        test_list = self.get_recipe_test_list(recipe)
 
                         for task in recipe.findall('task'):
-                            if task.attrib.get('name') == kpkginstall_name:
-                                if task.attrib.get('result') in \
-                                        ['Pass', 'Panic']:
+                            if task.attrib.get('result') != 'Pass':
+                                if task.attrib.get('name') in test_list:
                                     test_failure = True
-                                else:
-                                    break
-                            elif task.attrib.get('result') != 'Pass':
                                 break
 
                     if not test_failure:
@@ -364,8 +359,8 @@ class BeakerRunner(Runner):
     def get_recipe_test_list(self, recipe_node):
         """
         Retrieve the list of tests which ran for a particular recipe. All tasks
-        after kpkginstall, which were not skipped, are interpreted as ran
-        tests.
+        after kpkginstall (including the kpkginstall task itself), which were
+        not skipped, are interpreted as ran tests.
 
         Args:
             recipe_node: ElementTree node representing the recipe, extracted
@@ -378,13 +373,13 @@ class BeakerRunner(Runner):
         after_kpkg = False
 
         for test_task in recipe_node.findall('task'):
-            if after_kpkg and test_task.attrib.get('result') != 'Skip':
-                test_list.append(test_task.attrib.get('name'))
-
             fetch = test_task.find('fetch')
             if fetch is not None and \
                     'kpkginstall' in fetch.attrib.get('url', ''):
                 after_kpkg = True
+
+            if after_kpkg and test_task.attrib.get('result') != 'Skip':
+                test_list.append(test_task.attrib.get('name'))
 
         return test_list
 
