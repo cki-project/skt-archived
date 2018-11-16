@@ -292,35 +292,25 @@ class Reporter(object):
                     'failed_tasks': [],
                 }
 
-                # Check if the kernel booted properly. If it failed, add it
-                # to the list of failed tasks and don't bother checking any
-                # other tests.
-                task_node = runner.get_kpkginstall_task(recipe)
-                if task_node.attrib['result'] != 'Pass':
-                    failed_tasks.append(task_node)
-                else:
-                    passed_tasks.append(task_node.attrib.get('name'))
+                # Get a list of the tests that were run for this recipe.
+                tests_run = runner.get_recipe_test_list(recipe)
+                for test_name in tests_run:
 
-                    # Get a list of the tests that were run for this recipe.
-                    tests_run = runner.get_recipe_test_list(recipe)
-                    for test_name in tests_run:
+                    # Get the XML node of the task and its result.
+                    task_node = self.__get_task(recipe, test_name)
+                    task_result = task_node.attrib['result']
+                    task_status = task_node.attrib['status']
 
-                        # Get the XML node of the task and its result.
-                        task_node = self.__get_task(recipe, test_name)
-                        task_result = task_node.attrib['result']
-                        task_status = task_node.attrib['status']
-
-                        if task_result == 'Pass':
-                            test_name = task_node.attrib.get('name')
-                            passed_tasks.append(test_name)
-                        elif (task_result == 'Warn'
-                              and task_status == 'Aborted'):
-                            # Don't add tasks that aborted to the lists
-                            continue
-                        else:
-                            # If this task failed, add it to the list of the
-                            # failed tasks
-                            failed_tasks.append(task_node)
+                    if task_result == 'Pass':
+                        test_name = task_node.attrib.get('name')
+                        passed_tasks.append(test_name)
+                    elif (task_result == 'Warn' and task_status == 'Aborted'):
+                        # Don't add tasks that aborted to the lists
+                        continue
+                    else:
+                        # If this task failed, add it to the list of the
+                        # failed tasks
+                        failed_tasks.append(task_node)
 
                 # Now that we have a list of tasks that failed, go through
                 # the list and gather data for each task. This data will go
