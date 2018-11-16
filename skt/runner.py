@@ -360,7 +360,9 @@ class BeakerRunner(Runner):
         """
         Retrieve the list of tests which ran for a particular recipe. All tasks
         after kpkginstall (including the kpkginstall task itself), which were
-        not skipped, are interpreted as ran tests.
+        not skipped, are interpreted as ran tests. If the kpkginstall task
+        doesn't exist, assume every task is a test and the kernel was installed
+        by default.
 
         Args:
             recipe_node: ElementTree node representing the recipe, extracted
@@ -370,7 +372,10 @@ class BeakerRunner(Runner):
             List of test names that ran.
         """
         test_list = []
-        after_kpkg = False
+        if self.get_kpkginstall_task(recipe_node) is None:
+            after_kpkg = True
+        else:
+            after_kpkg = False
 
         for test_task in recipe_node.findall('task'):
             fetch = test_task.find('fetch')
