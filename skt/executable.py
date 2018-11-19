@@ -363,18 +363,22 @@ def cmd_build(cfg):
         save_state(cfg, {'tarpkg': ttgz})
 
     tconfig = '%s.config' % cfg.get('buildhead')
-    shutil.copyfile(builder.get_cfgpath(), tconfig)
+    try:
+        shutil.copyfile(builder.get_cfgpath(), tconfig)
+        krelease = builder.getrelease()
+        save_state(cfg, {'buildconf': tconfig,
+                         'krelease': krelease})
+    except IOError:  # Kernel config failed to build
+        tconfig = ''
+        logging.error('No config file to copy found!')
 
-    krelease = builder.getrelease()
     kernel_arch = builder.build_arch
     cross_compiler_prefix = builder.cross_compiler_prefix
     make_opts = ' '.join(builder.make_argv_base
                          + builder.targz_pkg_argv
                          + builder.extra_make_args)
 
-    save_state(cfg, {'buildconf': tconfig,
-                     'krelease': krelease,
-                     'kernel_arch': kernel_arch,
+    save_state(cfg, {'kernel_arch': kernel_arch,
                      'cross_compiler_prefix': cross_compiler_prefix,
                      'make_opts': make_opts})
 
