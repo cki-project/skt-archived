@@ -5,10 +5,16 @@ We booted each kernel and ran the following tests:
   {{ job.kernel_arch }}:
     {% for test_result in job.test_results %}
         {% for task in test_result.passed_tasks %}
-    {{ task }}
+    {{ task.name }}
+          {% if task.url %}
+      - URL: {{ task.url }}
+          {% endif %}
         {% endfor %}
         {% for task in test_result.failed_tasks %}
     {{ task.name }}
+          {% if task.url %}
+      - URL: {{ task.url }}
+          {% endif %}
         {% endfor %}
     {% endfor %}
 
