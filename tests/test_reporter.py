@@ -116,6 +116,9 @@ class TestStdioReporter(unittest.TestCase):
         self.beaker_fail_results = fromstring(
             read_asset("beaker_recipe_set_fail_results.xml")
         )
+        self.beaker_panic_results = fromstring(
+            read_asset("beaker_recipe_set_panic_results.xml")
+        )
 
         # Set up a base config dictionary that we can adjust and use for tests
         self.basecfg = {
@@ -623,6 +626,60 @@ class TestStdioReporter(unittest.TestCase):
             'distribution/kpkginstall',
             '/test/we/ran',
             'We compiled the kernel for 2 architectures:',
+            self.basecfg['basehead'],
+            self.basecfg['baserepo'],
+        ]
+        for required_string in required_strings:
+            self.assertIn(required_string, report)
+
+    @mock.patch('skt.reporter.load_state_cfg')
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @responses.activate
+    def test_multireport_panic(self, mock_grt, mock_load):
+        """Verify multireport works with a kernel panic result."""
+        responses.add(
+            responses.GET,
+            "http://patchwork.example.com/patch/1/mbox",
+            body="Subject: Patch #1"
+        )
+        responses.add(
+            responses.GET,
+            "http://patchwork.example.com/patch/2/mbox",
+            body="Subject: Patch #2"
+        )
+        responses.add(responses.GET,
+                      'http://example.com',
+                      body="Linux version 3.10.0")
+        responses.add(
+            responses.GET,
+            "http://example.com/machinedesc.log",
+            body="Machine information from beaker goes here"
+        )
+        mock_grt.return_value = self.beaker_panic_results
+
+        self.basecfg['retcode'] = '1'
+        self.basecfg['result'] = ['state']
+
+        state = self.basecfg.copy()
+        state['kernel_arch'] = 'x86_64'
+        mock_load.side_effect = [state]
+
+        testprint = StringIO.StringIO()
+        rptclass = reporter.StdioReporter(self.basecfg)
+        rptclass.report(printer=testprint)
+        report = testprint.getvalue().strip()
+
+        required_strings = [
+            'FAIL: Test report for kernel 3.10.0 (kernel)',
+            'Overall result: FAILED',
+            'Kernel tests: FAILED',
+            'x86_64: FAILED',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            'http://example.com/console',
+            'We compiled the kernel for 1 architecture:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
