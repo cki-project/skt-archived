@@ -1,0 +1,25 @@
+<recipeSet>
+  <recipe system='machine.beaker.org' result='Fail' status='Completed'>
+    <hostRequires>
+      <and>
+        <arch op="=" value="x86_64"/>
+      </and>
+    </hostRequires>
+    <logs>
+      <log name='console.log' href="http://example.com/console">
+        TEST RESULT
+      </log>
+    </logs>
+    <task name='/test/misc/machineinfo' result='Pass' status='Completed'>
+      <logs>
+        <log name='machinedesc.log' href="http://example.com/machinedesc.log">
+        </log>
+        <log name='lshw.log' href="http://example.com/lshw.log">
+        </log>
+      </logs>
+    </task>
+    <task name='/distribution/kpkginstall' result='Panic' status='Aborted'>
+      <fetch url="https://github.com/CKI-project/tests-beaker/archive/master.zip#distribution/kpkginstall"/>
+    </task>
+  </recipe>
+</recipeSet>
