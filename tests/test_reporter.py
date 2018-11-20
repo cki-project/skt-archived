@@ -187,6 +187,11 @@ class TestStdioReporter(unittest.TestCase):
             'Subject: FAIL: Patch application failed',
             'Overall result: FAILED',
             'Patch merge: FAILED',
+            'Repo: git://git.example.com/kernel.git',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            'When we attempted to merge the patches, we received an error:',
+            'merge failed',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -224,6 +229,10 @@ class TestStdioReporter(unittest.TestCase):
             'Subject: FAIL: Patch application failed',
             'Overall result: FAILED',
             'Patch merge: FAILED',
+            'Repo: git://git.example.com/kernel.git',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            'When we attempted to merge the patches, we received an error:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -254,7 +263,12 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'Subject: FAIL: Build failed',
             'Overall result: FAILED',
+            'Patch merge: OK',
             'Compile: FAILED',
+            'Repo: git://git.example.com/kernel.git',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            'We compiled the kernel for 1 architecture:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -294,7 +308,18 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'Subject: FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
+            'Patch merge: OK',
+            'Compile: OK',
             'Kernel tests: FAILED',
+            'Beaker results:',
+            'https://beaker.engineering.redhat.com/jobs/2547021',
+            'Repo: git://git.example.com/kernel.git',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            '/test/we/ran',
+            'We compiled the kernel for 1 architecture:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -336,6 +361,16 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'Subject: PASS: Test report for kernel 3.10.0 (kernel)',
             'Overall result: PASSED',
+            'Patch merge: OK',
+            'Compile: OK',
+            'Kernel tests: OK',
+            'Repo: git://git.example.com/kernel.git',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            '/test/we/ran',
+            'We compiled the kernel for 1 architecture:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -372,6 +407,14 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'Subject: PASS: Test report for kernel 3.10.0 (kernel)',
             'Overall result: PASSED',
+            'Patch merge: OK',
+            'Compile: OK',
+            'Kernel tests: OK',
+            'Kernel repo: git://git.example.com/kernel.git',
+            'We compiled the kernel for 1 architecture:',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            '/test/we/ran',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -402,9 +445,7 @@ class TestStdioReporter(unittest.TestCase):
             body="Config from configurl"
         )
 
-        self.basecfg['retcode'] = '0'
         self.basecfg['cfgurl'] = "http://example.com/config"
-        del self.basecfg['krelease']
         del self.basecfg['runner']
 
         testprint = StringIO.StringIO()
@@ -414,6 +455,14 @@ class TestStdioReporter(unittest.TestCase):
 
         required_strings = [
             'Subject: PASS: Test report',
+            'Commit: 1234abcdef None',
+            'Kernel repo: git://git.example.com/kernel.git',
+            'Overall result: PASS',
+            'Patch merge: OK',
+            'Compile: OK',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            'We then merged the following patches with `git am`:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -445,6 +494,14 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'Subject: PASS: Test report for kernel 3.10.0 (kernel)',
             'Overall result: PASS',
+            'Patch merge: OK',
+            'Compile: OK',
+            'Kernel tests: OK',
+            'Kernel repo: git://git.example.com/kernel.git',
+            'We compiled the kernel for 1 architecture:',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            '/test/we/ran',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -496,6 +553,16 @@ class TestStdioReporter(unittest.TestCase):
         required_strings = [
             'PASS: Test report for kernel 3.10.0 (kernel)',
             'Overall result: PASSED',
+            'Patch merge: OK',
+            'Compile: OK',
+            'Repo: git://git.example.com/kernel.git',
+            'Kernel tests: OK',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            '/test/we/ran',
+            'We compiled the kernel for 2 architectures:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -548,6 +615,14 @@ class TestStdioReporter(unittest.TestCase):
             'FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
             'Kernel tests: FAILED',
+            's390x: FAILED',
+            'x86_64: FAILED',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            '/test/we/ran',
+            'We compiled the kernel for 2 architectures:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
@@ -580,8 +655,6 @@ class TestStdioReporter(unittest.TestCase):
         )
         mock_grt.side_effect = [
             self.beaker_fail_results,
-            self.beaker_fail_results,
-            self.beaker_pass_results,
             self.beaker_pass_results,
         ]
 
@@ -606,6 +679,16 @@ class TestStdioReporter(unittest.TestCase):
             'FAIL: Test report for kernel 3.10.0 (kernel)',
             'Overall result: FAILED',
             'Kernel tests: FAILED',
+            's390x: FAILED',
+            'x86_64: PASSED',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            '/test/we/ran',
+            'We compiled the kernel for 2 architectures:',
+            'Beaker results:',
+            'https://beaker.engineering.redhat.com/jobs/2547021',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
