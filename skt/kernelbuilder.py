@@ -80,21 +80,26 @@ class KernelBuilder(object):
         """Escape any wildcard/glob characters in pathname."""
         return re.sub(r"[]*?[]", r"[\g<0>]", pathname)
 
-    def __prepare_kernel_config(self):
+    def __prepare_kernel_config(self, stdout=None, stderr=None):
         """Prepare the kernel config for the compile."""
         if self.cfgtype == 'rh-configs':
             # Build Red Hat configs and copy the correct one into place
-            self.__make_redhat_config()
+            self.__make_redhat_config(stdout, stderr)
         elif self.cfgtype == 'tinyconfig':
             # Build an extremely small config file for quick testing
-            self.__make_tinyconfig()
+            self.__make_tinyconfig(stdout, stderr)
         else:
-            # Copy the existing config file into place
-            shutil.copyfile(self.basecfg,
-                            join_with_slash(self.source_dir, ".config"))
+            # Copy the existing config file into place. Use a subprocess call
+            # for it just for the nice logs and exception in case the call
+            # fails.
+            subprocess.check_call(
+                ['cp', self.basecfg, join_with_slash(self.source_dir,
+                                                     ".config")],
+                stdout=stdout, stderr=stderr
+            )
             args = self.make_argv_base + [self.cfgtype]
             logging.info("prepare config: %s", args)
-            subprocess.check_call(args)
+            subprocess.check_call(args, stdout=stdout, stderr=stderr)
 
         # NOTE(mhayden): Building kernels with debuginfo can increase the
         # final kernel tarball size by 3-4x and can increase build time
@@ -113,11 +118,11 @@ class KernelBuilder(object):
 
         self._ready = 1
 
-    def __make_redhat_config(self):
+    def __make_redhat_config(self, stdout=None, stderr=None):
         """Prepare the Red Hat kernel config files."""
         args = self.make_argv_base + ['rh-configs']
         logging.info("building Red Hat configs: %s", args)
-        subprocess.check_call(args)
+        subprocess.check_call(args, stdout=stdout, stderr=stderr)
 
         # Copy the correct kernel config into place
         escaped_source_dir = self.__glob_escape(self.source_dir)
@@ -139,11 +144,11 @@ class KernelBuilder(object):
             join_with_slash(self.source_dir, ".config")
         )
 
-    def __make_tinyconfig(self):
+    def __make_tinyconfig(self, stdout=None, stderr=None):
         """Make the smallest kernel config file possible for quick testing."""
         args = self.make_argv_base + ['tinyconfig']
         logging.info("building tinyconfig: %s", args)
-        subprocess.check_call(args)
+        subprocess.check_call(args, stdout=stdout, stderr=stderr)
 
     def __get_build_arch(self):
         """Determine the build architecture for the kernel build."""
@@ -205,7 +210,6 @@ class KernelBuilder(object):
         """
         fpath = None
         stdout_list = []
-        self.__prepare_kernel_config()
 
         # Set up the arguments and options for the kernel build
         kernel_build_argv = (
@@ -218,6 +222,8 @@ class KernelBuilder(object):
 
         with io.open(self.buildlog, 'wb') as writer, \
                 io.open(self.buildlog, 'rb') as reader:
+            self.__prepare_kernel_config(stdout=writer,
+                                         stderr=subprocess.STDOUT)
             make = subprocess.Popen(kernel_build_argv,
                                     stdout=writer,
                                     stderr=subprocess.STDOUT)
