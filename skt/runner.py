@@ -312,7 +312,7 @@ class BeakerRunner(Runner):
                     # Something in the recipe set really reported failure
                     test_failure = False
 
-                    if not self.get_kpkginstall_task(recipe):
+                    if self.get_kpkginstall_task(recipe) is None:
                         # Assume the kernel was installed by default and
                         # everything is a test
                         test_failure = True
