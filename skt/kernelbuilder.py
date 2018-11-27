@@ -122,7 +122,11 @@ class KernelBuilder(object):
         """Prepare the Red Hat kernel config files."""
         args = self.make_argv_base + ['rh-configs']
         logging.info("building Red Hat configs: %s", args)
-        subprocess.check_call(args, stdout=stdout, stderr=stderr)
+        # Unset CROSS_COMPILE because rh-configs doesn't handle the cross
+        # compile args correctly in some cases
+        environ = os.environ.copy()
+        environ.pop('CROSS_COMPILE', None)
+        subprocess.check_call(args, stdout=stdout, stderr=stderr, env=environ)
 
         # Copy the correct kernel config into place
         escaped_source_dir = self.__glob_escape(self.source_dir)
