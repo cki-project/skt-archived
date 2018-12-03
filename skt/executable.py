@@ -69,11 +69,9 @@ def report_results(result_path, result_string, report_path, report_string):
         report_path:    A full path of report log.
         report_string:  The content of string report.
     """
-    with os.fdopen(os.open(result_path, os.O_CREAT | os.O_WRONLY),
-                   'w') as result_file:
+    with open(result_path, 'w') as result_file:
         result_file.write(result_string)
-    with os.fdopen(os.open(report_path, os.O_CREAT | os.O_WRONLY),
-                   'w') as report_file:
+    with open(result_path, 'w') as report_file:
         report_file.write(report_string)
 
 
