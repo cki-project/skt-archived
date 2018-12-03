@@ -17,6 +17,7 @@ import os
 import platform
 import re
 import subprocess
+import sys
 import time
 import xml.etree.ElementTree as etree
 
@@ -72,6 +73,9 @@ class BeakerRunner(Runner):
         self.aborted_count = 0
         # Set up the default, allowing for overrides with each run
         self.max_aborted = 3
+
+        # determines if termination cleanup was done and all jobs terminated
+        self.cleanup_done = False
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -243,6 +247,21 @@ class BeakerRunner(Runner):
         newroot.append(tmp)
 
         return newroot
+
+    def cleanup_handler(self):
+        # don't run cleanup handler twice by accident
+        if self.cleanup_done:
+            return
+
+        # skt is being terminated, cancel its jobs
+        self.cancel_pending_jobs()
+
+        self.cleanup_done = True
+
+    def signal_handler(self, signal, frame):
+        self.cleanup_handler()
+
+        sys.exit(1)
 
     def cancel_pending_jobs(self):
         """
