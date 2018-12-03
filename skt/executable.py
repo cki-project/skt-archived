@@ -16,12 +16,14 @@ from __future__ import print_function
 import ConfigParser
 import argparse
 import ast
+import atexit
 import datetime
 import importlib
 import json
 import logging
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -443,6 +445,10 @@ def cmd_run(cfg):
     run_report_path = join_with_slash(cfg.get('output_dir'), 'run.report')
 
     runner = skt.runner.getrunner(*cfg.get('runner'))
+
+    atexit.register(runner.cleanup_handler)
+    signal.signal(signal.SIGINT, runner.signal_handler)
+    signal.signal(signal.SIGTERM, runner.signal_handler)
     retcode, report_string = runner.run(cfg.get('buildurl'),
                                         cfg.get('max_aborted_count'),
                                         cfg.get('krelease'),
