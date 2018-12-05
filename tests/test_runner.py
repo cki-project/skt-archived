@@ -13,10 +13,13 @@
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for runner module."""
 import os
+import re
 import subprocess
+import tempfile
 import unittest
 
 from defusedxml.ElementTree import fromstring
+from defusedxml.ElementTree import tostring
 import mock
 
 from skt import runner
@@ -120,6 +123,58 @@ class TestRunner(unittest.TestCase):
         """Ensure getrunner() can create a runner subclass."""
         result = runner.getrunner('beaker', {'jobtemplate': 'test'})
         self.assertIsInstance(result, runner.BeakerRunner)
+
+    def test_load_blacklist(self):
+        """Ensure BeakerRunner.__load_blacklist() works"""
+        # pylint: disable=W0212,E1101
+        hostnames = ['host1', 'host2']
+        with tempfile.NamedTemporaryFile() as temp:
+            temp.write('\n'.join(hostnames) + '\n')
+            temp.seek(0)
+
+            myrunner = self.myrunner
+
+            myrunner.blacklisted = self.myrunner._BeakerRunner__load_blacklist(
+                temp.name)
+
+        self.assertEqual(hostnames, self.myrunner.blacklisted)
+
+    def test_blacklist_hreq_nohostnames(self):
+        """ Ensure blacklist_hreq works without hostnames."""
+        # pylint: disable=W0212,E1101
+        initial = """<hostRequires><system_type value="Machine"/><and>
+        <hypervisor op="=" value=""/></and></hostRequires>"""
+
+        exp_result = """<hostRequires><system_type value="Machine"/><and>
+        <hypervisor op="=" value=""/></and></hostRequires>"""
+
+        hreq_node = fromstring(initial)
+
+        self.myrunner.blacklisted = []
+        etree_result = self.myrunner._BeakerRunner__blacklist_hreq(hreq_node)
+        result = tostring(etree_result)
+        self.assertEqual(re.sub(r'[\s]+', '', exp_result),
+                         re.sub(r'[\s]+', '', result))
+
+    def test_blacklist_hreq_whnames(self):
+        """ Ensure blacklist_hreq works with hostnames."""
+        # pylint: disable=W0212,E1101
+        initial = """<hostRequires><system_type value="Machine"/><and>
+        <hypervisor op="=" value=""/></and></hostRequires>"""
+
+        exp_result = """<hostRequires><system_type value="Machine"/><and>
+        <hypervisor op="=" value=""/><hostname op="!=" value="host1"/>
+        <hostname op="!=" value="host2"/></and></hostRequires>"""
+
+        hreq_node = fromstring(initial)
+
+        # load blacklist ['host1', 'host2']
+        self.test_load_blacklist()
+
+        etree_result = self.myrunner._BeakerRunner__blacklist_hreq(hreq_node)
+        result = tostring(etree_result)
+        self.assertEqual(re.sub(r'[\s]+', '', exp_result),
+                         re.sub(r'[\s]+', '', result))
 
     def test_invalid_getrunner(self):
         """Ensure getrunner() throws an exception for an invalid runner."""
