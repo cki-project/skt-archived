@@ -13,6 +13,7 @@
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for runner module."""
 import os
+import subprocess
 import unittest
 
 from defusedxml.ElementTree import fromstring
@@ -40,6 +41,23 @@ class TestRunner(unittest.TestCase):
             self.test_xml = fileh.read()
 
         self.max_aborted = 3
+
+    @mock.patch('subprocess.Popen')
+    def test_jobsubmit(self, mock_popen):
+        """ Ensure __jobsubmit works."""
+        self.myrunner.jobowner = 'beaker-gods'
+
+        args = ["bkr", "job-submit", "--job-owner=beaker-gods", "-"]
+
+        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = \
+            ("Submitted: ['123']", '')
+
+        # pylint: disable=W0212,E1101
+        self.myrunner._BeakerRunner__jobsubmit('<xml />')
+
+        mock_popen.assert_called_once_with(args, stdin=subprocess.PIPE,
+                                           stdout=subprocess.PIPE)
 
     @mock.patch('subprocess.Popen')
     def test_cancel_pending_jobs(self, mock_popen):
