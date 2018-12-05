@@ -41,6 +41,22 @@ class TestRunner(unittest.TestCase):
 
         self.max_aborted = 3
 
+    @mock.patch('subprocess.Popen')
+    def test_cancel_pending_jobs(self, mock_popen):
+        """ Ensure cancel_pending_jobs works."""
+        self.myrunner.watchlist = {'1', '2', '3'}
+
+        binary = 'bkr'
+        args = ['job-cancel'] + [s for s in self.myrunner.watchlist]
+
+        attrs = {'communicate.return_value': ('output', 'error'),
+                 'returncode': 0}
+        mock_popen.configure_mock(**attrs)
+
+        self.myrunner.cancel_pending_jobs()
+
+        mock_popen.assert_called_once_with([binary] + args)
+
     def test_getrunner(self):
         """Ensure getrunner() can create a runner subclass."""
         result = runner.getrunner('beaker', {'jobtemplate': 'test'})
