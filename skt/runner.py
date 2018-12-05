@@ -210,10 +210,11 @@ class BeakerRunner(Runner):
             host_requires.append(and_node)
 
         for disabled in self.blacklisted:
-            hostname = etree.Element('hostname')
+            hostname = etree.SubElement(and_node, 'hostname')
             hostname.set('op', '!=')
             hostname.set('value', disabled)
-            and_node.append(hostname)
+
+        host_requires.append(and_node)
 
         return host_requires
 
