@@ -274,7 +274,7 @@ class BeakerRunner(Runner):
             if ret:
                 logging.info('Failed to cancel the remaining recipe sets!')
 
-        for job_id in self.job_to_recipe_set_map:
+        for job_id in set(self.job_to_recipe_set_map):
             self.__forget_taskspec(job_id)
 
     def __watchloop(self):
