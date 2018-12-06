@@ -42,6 +42,47 @@ class TestRunner(unittest.TestCase):
 
         self.max_aborted = 3
 
+    def test_get_kpkginstall_task(self):
+        """ Ensure get_kpkginstall_task works."""
+        recipe_xml = """<recipe><task name="Boot test">
+        <fetch url="kpkginstall"/></task>
+        <task><fetch url="kpkginstall"/></task></recipe>"""
+        recipe_node = fromstring(recipe_xml)
+
+        ret_node = self.myrunner.get_kpkginstall_task(recipe_node)
+        self.assertEqual(ret_node.attrib['name'], 'Boot test')
+        self.assertEqual(ret_node.find('fetch').attrib['url'], 'kpkginstall')
+
+    def test_get_recipe_test_list_1st(self):
+        """ Ensure get_recipe_test_list works. First task is skipped."""
+        recipe_xml = """<recipe><task result="Skip" /><task name="good2" />
+        </recipe>"""
+
+        recipe_node = fromstring(recipe_xml)
+
+        ret_list = self.myrunner.get_recipe_test_list(recipe_node)
+        self.assertEqual(ret_list, ['good2'])
+
+    def test_get_recipe_test_list_2nd(self):
+        """ Ensure get_recipe_test_list works. Second task is skipped."""
+        recipe_xml = """<recipe><task name="good1" /><task result="Skip" />
+        </recipe>"""
+
+        recipe_node = fromstring(recipe_xml)
+
+        ret_list = self.myrunner.get_recipe_test_list(recipe_node)
+        self.assertEqual(ret_list, ['good1'])
+
+    def test_get_recipe_test_list(self):
+        """ Ensure get_recipe_test_list works. No task skipped."""
+        recipe_xml = """<recipe><task name="good1" /><task name="good2" />
+           </recipe>"""
+
+        recipe_node = fromstring(recipe_xml)
+
+        ret_list = self.myrunner.get_recipe_test_list(recipe_node)
+        self.assertEqual(ret_list, ['good1', 'good2'])
+
     @mock.patch('subprocess.Popen')
     def test_jobsubmit(self, mock_popen):
         """ Ensure __jobsubmit works."""
