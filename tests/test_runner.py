@@ -124,6 +124,36 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(result, expected_xml)
 
     @mock.patch('subprocess.Popen')
+    def test_add_to_watchlist(self, mock_popen):
+        """Ensure __add_to_watchlist() works."""
+        # pylint: disable=W0212,E1101
+        j_jobid = 'J:123'
+        setid = '456'
+        s_setid = 'RS:{}'.format(setid)
+        test_xml = """<xml><whiteboard>yeah-that-whiteboard</whiteboard>
+        <recipeSet id="{}" /></xml>""".format(setid)
+
+        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = (test_xml, '')
+
+        self.myrunner._BeakerRunner__add_to_watchlist(j_jobid)
+        mock_popen.assert_called_once_with(["bkr", "job-results", j_jobid],
+                                           stdout=subprocess.PIPE)
+
+        # test that whiteboard was parsed OK
+        self.assertEqual(self.myrunner.whiteboard, 'yeah-that-whiteboard')
+
+        # test that job_to_recipe mapping was updated
+        self.assertEqual(self.myrunner.job_to_recipe_set_map[j_jobid],
+                         {s_setid})
+
+        # test that watchlist contains RS
+        self.assertIn(s_setid, self.myrunner.watchlist)
+
+        # test that no recipes completed
+        self.assertEqual(self.myrunner.completed_recipes[s_setid], set())
+
+    @mock.patch('subprocess.Popen')
     def test_getresultstree(self, mock_popen):
         """Ensure getresultstree() works."""
         test_xml = "<xml><test>TEST</test></xml>"
