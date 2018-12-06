@@ -14,8 +14,11 @@
 """Test cases for runner module."""
 import os
 import re
+import signal
 import subprocess
 import tempfile
+import threading
+import time
 import unittest
 
 from defusedxml.ElementTree import fromstring
@@ -277,6 +280,33 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner._BeakerRunner__getxml({'ARCH': 's390x'})
         expected_xml = self.test_xml.replace("##ARCH##", "s390x")
         self.assertEqual(result, expected_xml)
+
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_cleanup_called(self, mock_jobsubmit):
+        """Ensure BeakerRunner.signal_handler works."""
+        # pylint: disable=W0613
+        def trigger_signal():
+            """ Send SIGTERM to self after 2 seconds."""
+            time.sleep(2)
+            pid = os.getpid()
+            os.kill(pid, signal.SIGTERM)
+
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = True
+        mock_jobsubmit.return_value = "J:0001"
+
+        signal.signal(signal.SIGINT, self.myrunner.signal_handler)
+        signal.signal(signal.SIGTERM, self.myrunner.signal_handler)
+
+        thread = threading.Thread(target=trigger_signal)
+
+        thread.start()
+        with self.assertRaises(SystemExit):
+            self.myrunner.run(url, self.max_aborted, release, wait)
+            thread.join()
+
+        self.assertTrue(self.myrunner.cleanup_done)
 
     @mock.patch('subprocess.Popen')
     def test_add_to_watchlist(self, mock_popen):
