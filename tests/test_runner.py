@@ -153,6 +153,17 @@ class TestRunner(unittest.TestCase):
         result = runner.getrunner('beaker', {'jobtemplate': 'test'})
         self.assertIsInstance(result, runner.BeakerRunner)
 
+    @mock.patch('logging.error')
+    def test_load_blacklist_fail(self, mock_logging_err):
+        """Ensure BeakerRunner.__load_blacklist() works"""
+        # pylint: disable=W0212,E1101,W0613
+        r_nr = self.myrunner
+        inv = 'blah-such-files-dont-usually-exist'
+        with self.assertRaises(Exception) as exc:
+            r_nr.blacklisted = self.myrunner._BeakerRunner__load_blacklist(inv)
+
+            self.assertEqual(exc.message, ('Can\'t access %s!', inv))
+
     def test_load_blacklist(self):
         """Ensure BeakerRunner.__load_blacklist() works"""
         # pylint: disable=W0212,E1101
