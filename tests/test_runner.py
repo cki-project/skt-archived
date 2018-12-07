@@ -104,6 +104,24 @@ class TestRunner(unittest.TestCase):
                                            stdout=subprocess.PIPE)
 
     @mock.patch('subprocess.Popen')
+    def test_jobsubmit_exc(self, mock_popen):
+        """ Ensure __jobsubmit doesn't parse invalid bkr output."""
+        # pylint: disable=W0212,E1101
+        self.myrunner.jobowner = 'beaker-gods'
+
+        args = ["bkr", "job-submit", "--job-owner=beaker-gods", "-"]
+
+        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = \
+            ("Submitted: a horse", '')
+
+        with self.assertRaises(Exception) as exc:
+            self.myrunner._BeakerRunner__jobsubmit('<xml />')
+            self.assertEqual(exc.message, 'Unable to submit the job!')
+            mock_popen.assert_called_once_with(args, stdin=subprocess.PIPE,
+                                               stdout=subprocess.PIPE)
+
+    @mock.patch('subprocess.Popen')
     def test_cancel_pending_jobs(self, mock_popen):
         """ Ensure cancel_pending_jobs works."""
         # pylint: disable=W0212,E1101
