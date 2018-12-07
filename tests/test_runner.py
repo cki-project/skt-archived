@@ -373,6 +373,20 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner.run(url, self.max_aborted, release, wait)
         self.assertEqual(result, (0, '\nSuccessfully submitted test job!'))
 
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__getxml')
+    def test_run_fail(self, mock_logging_err, mock_getxml):
+        """Ensure BeakerRunner.run errors on invalid xml."""
+        # pylint: disable=W0613
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = True
+
+        mock_getxml.return_value = '<xml >'
+
+        result = self.myrunner.run(url, self.max_aborted, release, wait)
+        self.assertEqual(result, (2, ''))
+
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run_wait(self, mock_jobsubmit, mock_getresultstree):
