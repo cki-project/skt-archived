@@ -287,7 +287,7 @@ class BeakerRunner(Runner):
 
             for recipe_set_id in self.watchlist.copy():
                 root = self.getresultstree(recipe_set_id)
-                recipes = root.findall('recipe')
+                recipes = root.findall('.//recipe')
 
                 for recipe in recipes:
                     result = recipe.attrib.get('result')
