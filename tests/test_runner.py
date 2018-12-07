@@ -179,6 +179,25 @@ class TestRunner(unittest.TestCase):
 
         self.assertEqual(hostnames, self.myrunner.blacklisted)
 
+    def test_blacklist_hreq_noand(self):
+        """ Ensure blacklist_hreq works without <and> element."""
+        # pylint: disable=W0212,E1101
+        initial = """<hostRequires></hostRequires>"""
+
+        exp_result = """<hostRequires><and>
+        <hostname op="!=" value="host1"/>
+        <hostname op="!=" value="host2"/></and></hostRequires>"""
+
+        hreq_node = fromstring(initial)
+
+        # load blacklist ['host1', 'host2']
+        self.test_load_blacklist()
+
+        etree_result = self.myrunner._BeakerRunner__blacklist_hreq(hreq_node)
+        result = tostring(etree_result)
+        self.assertEqual(re.sub(r'[\s]+', '', exp_result),
+                         re.sub(r'[\s]+', '', result))
+
     def test_blacklist_hreq_nohostnames(self):
         """ Ensure blacklist_hreq works without hostnames."""
         # pylint: disable=W0212,E1101
