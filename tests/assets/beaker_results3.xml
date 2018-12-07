@@ -11,8 +11,8 @@
           TEST RESULT
         </log>
       </logs>
-      <task name="/test/misc/boottest" result="Failed"><fetch url="kpkginstall"/></task>
-      <task name='/test/misc/machineinfo' result="Failed">
+      <task name="/test/misc/boottest" result="Pass"><fetch url="kpkginstall"/></task>
+      <task name='/test/misc/machineinfo' result="Pass">
         <logs>
           <log name='machinedesc.log' href="http://example.com/machinedesc.log">
           </log>
@@ -20,6 +20,8 @@
           </log>
         </logs>
       </task>
+
     </recipe>
   </recipeSet>
+
 </job>
