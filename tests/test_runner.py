@@ -106,7 +106,18 @@ class TestRunner(unittest.TestCase):
     @mock.patch('subprocess.Popen')
     def test_cancel_pending_jobs(self, mock_popen):
         """ Ensure cancel_pending_jobs works."""
-        self.myrunner.watchlist = {'1', '2', '3'}
+        # pylint: disable=W0212,E1101
+        j_jobid = 'J:123'
+        setid = '456'
+        test_xml = """<xml><whiteboard>yeah-that-whiteboard</whiteboard>
+        <recipeSet id="{}" /></xml>""".format(setid)
+
+        mock_popen.return_value.returncode = 0
+        mock_popen.return_value.communicate.return_value = (test_xml, '')
+
+        self.myrunner._BeakerRunner__add_to_watchlist(j_jobid)
+
+        mock_popen.assert_called()
 
         binary = 'bkr'
         args = ['job-cancel'] + [s for s in self.myrunner.watchlist]
@@ -117,7 +128,7 @@ class TestRunner(unittest.TestCase):
 
         self.myrunner.cancel_pending_jobs()
 
-        mock_popen.assert_called_once_with([binary] + args)
+        mock_popen.assert_called_with([binary] + args)
 
     def test_getrunner(self):
         """Ensure getrunner() can create a runner subclass."""
