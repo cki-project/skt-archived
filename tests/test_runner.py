@@ -448,3 +448,75 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner.run(url, self.max_aborted, release, wait)
         # Don't compare the report strings
         self.assertEqual(result[0], 0)
+
+    @mock.patch('logging.warning')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_run_wait2(self, mock_logging, mock_logging_err, mock_jobsubmit):
+        """Ensure BeakerRunner.run works."""
+        # pylint: disable=W0613
+
+        misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_results.xml', 1,
+                     'Completed')
+
+    @mock.patch('logging.warning')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_run_wait3(self, mock_logging, mock_logging_err, mock_jobsubmit):
+        """Ensure BeakerRunner.run works."""
+        # pylint: disable=W0613
+
+        misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_results2.xml', 1,
+                     'Completed')
+
+    @mock.patch('logging.warning')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_run_wait4(self, mock_logging, mock_logging_err, mock_jobsubmit):
+        """Ensure BeakerRunner.run works."""
+        # pylint: disable=W0613
+
+        misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_results3.xml', 1,
+                     'Completed')
+
+    @mock.patch('logging.warning')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_run_wait5(self, mock_logging, mock_logging_err, mock_jobsubmit):
+        """Ensure BeakerRunner.run works."""
+        # pylint: disable=W0613
+
+        misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_results3.xml', 2,
+                     'Completed')
+
+    @mock.patch('logging.warning')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_run_wait6(self, mock_logging, mock_logging_err, mock_jobsubmit):
+        """Ensure BeakerRunner.run works."""
+        # pylint: disable=W0613
+
+        # abort right-away ( 0 allowed)
+        misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_aborted_some.xml',
+                     0)
+
+    @mock.patch('logging.warning')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_run_wait7(self, mock_logging, mock_logging_err, mock_jobsubmit):
+        """Ensure BeakerRunner.run works."""
+        # pylint: disable=W0613
+
+        # abort later on, change last recipe to Aborted
+        misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_aborted_some.xml',
+                     2, 'Aborted')
+
+    @mock.patch('logging.warning')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_run_wait8(self, mock_logging, mock_logging_err, mock_jobsubmit):
+        """Ensure BeakerRunner.run works."""
+        # pylint: disable=W0613
+
+        misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_aborted_some.xml',
+                     5, 'Cancelled')
