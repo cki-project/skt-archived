@@ -261,7 +261,7 @@ class BeakerRunner(Runner):
     def signal_handler(self, signal, frame):
         self.cleanup_handler()
 
-        sys.exit(1)
+        sys.exit(SKT_ERROR)
 
     def cancel_pending_jobs(self):
         """
@@ -507,6 +507,9 @@ class BeakerRunner(Runner):
                 ret = self.__getresults()
         except Exception as exc:
             logging.error(exc)
+            if isinstance(exc, SystemExit):
+                # call cleanup handler to kill submitted jobs
+                self.cleanup_handler()
             ret = SKT_ERROR
 
         if ret == SKT_ERROR:
