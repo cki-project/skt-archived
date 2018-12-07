@@ -391,6 +391,18 @@ class TestRunner(unittest.TestCase):
                                                                 samehost=True)
         self.assertEqual(result.tag, 'job')
 
+    def test_recipe_set_to_job_whst(self):
+        """Ensure __recipe_set_to_job() works with hostname."""
+        # pylint: disable=W0212,E1101
+        beaker_xml = """<recipeSet><recipe><hostRequires>
+        <hostname op="!=" value="hst1"/></hostRequires></recipe></recipeSet>"""
+        xml_parsed = fromstring(beaker_xml)
+
+        result = self.myrunner._BeakerRunner__recipe_set_to_job(xml_parsed)
+
+        # check that <hostname op="!=" value="hst1"/> was removed
+        self.assertEqual(result.findall('.//hostname'), [])
+
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run(self, mock_jobsubmit):
         """Ensure BeakerRunner.run works."""
