@@ -12,13 +12,16 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for runner module."""
-from StringIO import StringIO
-from io import BytesIO
+import logging
 import os
 import sys
 import unittest
 
+from io import BytesIO
+from StringIO import StringIO
+
 import mock
+
 from skt import executable
 
 
@@ -291,3 +294,21 @@ class TestExecutable(unittest.TestCase):
             result = executable.addtstamp(path, stamp)
 
             self.assertEqual(result, testdata[key])
+
+    def test_setup_logging(self):
+        """Ensure that setup_logging works and sets-up to what we expect."""
+        verbose = False
+        executable.setup_logging(verbose)
+
+        requests_lgr = logging.getLogger('requests')
+        urllib3_lgr = logging.getLogger('urllib3')
+
+        requests_level = logging.getLevelName(requests_lgr.getEffectiveLevel())
+        urllib3_level = logging.getLevelName(urllib3_lgr.getEffectiveLevel())
+
+        self.assertEqual(requests_level, 'WARNING')
+        self.assertEqual(urllib3_level, 'WARNING')
+
+        current_logger = logging.getLogger('executable')
+        self.assertEqual(current_logger.getEffectiveLevel(), logging.WARNING -
+                         (verbose * 10))
