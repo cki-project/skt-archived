@@ -238,3 +238,28 @@ class TestExecutable(unittest.TestCase):
             cfg['patchworks']
         )
         self.assertEqual('some_value', cfg['some_other_state'])
+
+    def test_save_state(self):
+        """Ensure save_state works."""
+        def merge_two_dicts(dict1, dict2):
+            """Given two dicts, merge them into json_data new dict as
+            json_data shallow copy."""
+            result = dict1.copy()
+            result.update(dict2)
+            return result
+
+        # cfg has to have 'state', otherwise it returns None
+        self.assertIsNone(executable.save_state({}, {}))
+
+        config_file = []
+        args = ['--rc', '/tmp/testing.ini', '--workdir', '/tmp/workdir',
+                '--state', 'run', '--runner', 'myrunner', '{"key": "value"}']
+        cfg = self.load_config_tester(config_file, args)
+
+        state = {'a': 0, 'b': 1, 'c': 1}
+
+        result = merge_two_dicts(cfg, state)
+
+        executable.save_state(cfg, state)
+
+        self.assertEqual(cfg, result)
