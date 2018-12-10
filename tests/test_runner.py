@@ -413,7 +413,7 @@ class TestRunner(unittest.TestCase):
         mock_jobsubmit.return_value = "J:0001"
 
         result = self.myrunner.run(url, self.max_aborted, release, wait)
-        self.assertEqual(result, (0, '\nSuccessfully submitted test job!'))
+        self.assertEqual(result, 0)
 
     @mock.patch('logging.error')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__getxml')
@@ -427,7 +427,7 @@ class TestRunner(unittest.TestCase):
         mock_getxml.return_value = '<xml >'
 
         result = self.myrunner.run(url, self.max_aborted, release, wait)
-        self.assertEqual(result, (2, ''))
+        self.assertEqual(result, 2)
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
@@ -446,8 +446,8 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
         result = self.myrunner.run(url, self.max_aborted, release, wait)
-        # Don't compare the report strings
-        self.assertEqual(result[0], 0)
+
+        self.assertEqual(result, 0)
 
     @mock.patch('logging.warning')
     @mock.patch('logging.error')
