@@ -147,15 +147,22 @@ class TestExecutable(unittest.TestCase):
     def test_load_config(self):
         """Test load_config() with some arguments."""
         config_file = [
+            '[state]',
+            'recipesetid_1234=RS:1234',
             '[config]',
             'foo=bar',
             'workdir=/tmp/workdir',
             'basecfg=.config',
             'buildconf=value',
             'tarpkg=value',
+            'output_dir=/tmp/whatever',
             '[merge-1]',
             'url = repourl',
-            'ref = master'
+            'ref = master',
+            '[runner]',
+            'type=beaker',
+            'blacklist=150',
+
         ]
         args = ['--rc', '/tmp/testing.ini', '--workdir', '/tmp/workdir',
                 '--state', '--junit', '/tmp/junit', 'report', '--reporter',
