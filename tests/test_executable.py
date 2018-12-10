@@ -263,3 +263,18 @@ class TestExecutable(unittest.TestCase):
         executable.save_state(cfg, state)
 
         self.assertEqual(cfg, result)
+
+    @mock.patch('skt.publisher.ScpPublisher.publish')
+    def test_cmd_publish(self, mock_publish):
+        """Ensure cmd_publish() works and publisher object method."""
+        # pylint: disable=no-self-use
+        cfg = {'publisher': ['scp', 'a', 'b'], 'buildconf': 'a'}
+
+        mock_publish.return_value = "stdout"
+
+        executable.cmd_publish(cfg)
+        mock_publish.assert_called()
+
+        cfg['tarpkg'] = 'b'
+        executable.cmd_publish(cfg)
+        mock_publish.assert_called()
