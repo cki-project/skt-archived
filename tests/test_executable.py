@@ -28,6 +28,7 @@ from skt import executable
 class TestExecutable(unittest.TestCase):
     """Test cases for executable module."""
 
+    # pylint: disable=too-many-public-methods
     def check_args_tester(self, args, expected_fail=True,
                           expected_stdout=None, expected_stderr=None):
         """Reusable method to test the check_args() method."""
@@ -312,3 +313,47 @@ class TestExecutable(unittest.TestCase):
         current_logger = logging.getLogger('executable')
         self.assertEqual(current_logger.getEffectiveLevel(), logging.WARNING -
                          (verbose * 10))
+
+    def test_junit(self):
+        """Ensure junit works and creates a callable wrapper."""
+        def test_func(cfg):
+            """ A function to wrap and run."""
+            cfg['called'] = True
+            return cfg
+
+        cfg = {'junit': 'whatever', '_testcases': ['test_setup_logging']}
+        func_wrapper = executable.junit(test_func)
+        func_wrapper(cfg)
+        self.assertTrue(cfg['called'])
+
+    @mock.patch('logging.error')
+    def test_junit_raise(self, mock_logging):
+        """Ensure junit works and creates a callable wrapper and
+            returns SKT_ERROR (2) on exception. """
+        # pylint: disable=unused-argument
+        def test_func(cfg):
+            """ A function to wrap and run."""
+            raise RuntimeError('Objectiooooooon!')
+
+        cfg = {'junit': 'whatever', '_testcases': ['test_setup_logging']}
+
+        func_wrapper = executable.junit(test_func)
+
+        func_wrapper(cfg)
+        self.assertEqual(executable.retcode, 2)
+
+    @mock.patch('logging.error')
+    def test_junit_set_errcode(self, mock_logging):
+        """Ensure junit works and creates a callable wrapper and
+            that the method may modify retcode. """
+        # pylint: disable=unused-argument
+        def test_func(cfg):
+            """ A function to wrap and run."""
+            executable.retcode = 1
+
+        cfg = {'junit': 'whatever', '_testcases': ['test_setup_logging']}
+
+        func_wrapper = executable.junit(test_func)
+
+        func_wrapper(cfg)
+        self.assertEqual(executable.retcode, 1)
