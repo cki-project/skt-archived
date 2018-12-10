@@ -278,3 +278,16 @@ class TestExecutable(unittest.TestCase):
         cfg['tarpkg'] = 'b'
         executable.cmd_publish(cfg)
         mock_publish.assert_called()
+
+    def test_addtstamp(self):
+        """Ensure addtstamp works."""
+        testdata = {
+            ('/etc/shadow', '45-10'): '/etc/45-10-shadow',
+            ('/etc/rc.d/e', '45-10'): '/etc/rc.d/45-10-e'
+        }
+
+        for key in testdata:
+            path, stamp = key
+            result = executable.addtstamp(path, stamp)
+
+            self.assertEqual(result, testdata[key])
