@@ -39,8 +39,7 @@ import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
-from skt.misc import (join_with_slash, get_patch_name, get_patch_mbox,
-                      SKT_SUCCESS, SKT_FAIL, SKT_ERROR)
+from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
@@ -196,7 +195,7 @@ def cmd_merge(cfg):
     # idx[1]: counter of patch option.
     # idx[2]: counter of pw option.
     idx = [0, 0, 0]
-    previous_merge = ''
+
     ktree = KernelTree(
         cfg.get('baserepo'),
         ref=cfg.get('ref'),
@@ -211,45 +210,23 @@ def cmd_merge(cfg):
                      'basesubject': bsubject,
                      'commitdate': commitdate})
 
-    remove_oldresult(cfg.get('output_dir'), 'merge.')
-
-    report_string = '\n'.join(['We cloned the git tree and checked out %s '
-                               'from the repository at' % bhead[:12],
-                               '  %s' % cfg.get('baserepo')])
-    merge_result_path = join_with_slash(cfg.get('output_dir'),
-                                        'merge.result')
-    merge_report_path = join_with_slash(cfg.get('output_dir'),
-                                        'merge.report')
-
     for thing_to_merge in cfg.get('merge_queue', []):
         try:
             if thing_to_merge[0] == 'merge_ref':
-                if previous_merge != 'merge_ref':
-                    report_string += '\nWe merged the following references ' \
-                        'into the tree:'
                 mb = thing_to_merge[1].split()
                 save_state(cfg, {'mergerepo_%02d' % idx[0]: mb[0],
                                  'mergehead_%02d' % idx[0]: bhead})
                 (retcode, bhead) = ktree.merge_git_ref(*mb)
 
                 if retcode:
-                    if retcode != SKT_ERROR:
-                        report_results(merge_result_path, 'false',
-                                       merge_report_path, report_string)
-
                     return
-                report_string += '\n  - %s\n    into commit %s' % (mb[0],
-                                                                   bhead[:12])
-                previous_merge = thing_to_merge[0]
+
                 idx[0] += 1
 
             else:
-                if previous_merge not in ['patch', 'pw']:
-                    report_string += '\nWe applied the following patch(es):'
                 if thing_to_merge[0] == 'patch':
                     patch = os.path.abspath(thing_to_merge[1])
                     save_state(cfg, {'localpatch_%02d' % idx[1]: patch})
-                    report_string += '\n  - %s' % patch
 
                     ktree.merge_patch_file(patch)
                     idx[1] += 1
@@ -257,41 +234,14 @@ def cmd_merge(cfg):
                 elif thing_to_merge[0] == 'pw':
                     patch = thing_to_merge[1]
                     save_state(cfg, {'patchwork_%02d' % idx[2]: patch})
-                    report_string += '\n  - %s,\n' % get_patch_name(
-                        get_patch_mbox(patch)
-                    )
-                    report_string += '    grabbed from %s' % patch
 
                     ktree.merge_patchwork_patch(patch)
                     idx[2] += 1
-
-                previous_merge = thing_to_merge[0]
 
         except PatchApplicationError as patch_exc:
             retcode = SKT_FAIL
             logging.error(patch_exc)
             save_state(cfg, {'mergelog': ktree.mergelog})
-
-            report_string += '\n'.join([
-                '\nHowever, the application of the last patch above failed '
-                ' with the',
-                'following output:\n\n'
-            ])
-            with open(ktree.mergelog, 'r') as mergelog:
-                for line in mergelog:
-                    # Skip the useless part of the 'git am' output
-                    if ("The copy of the patch" in line) \
-                            or ('see the failed patch' in line):
-                        break
-                    report_string += '    %s\n' % line.strip()
-
-            report_string += '\n'.join([
-                '\nPlease note that if there are subsequent patches in the'
-                'series, they weren\'t',
-                'applied because of the error message stated above.\n'
-            ])
-            report_results(merge_result_path, 'false',
-                           merge_report_path, report_string)
 
             return
         except Exception:
@@ -306,9 +256,6 @@ def cmd_merge(cfg):
                      'buildhead': buildhead,
                      'buildsubject': buildsubject})
 
-    report_results(merge_result_path, 'true',
-                   merge_report_path, report_string)
-
 
 @junit
 def cmd_build(cfg):
@@ -321,13 +268,6 @@ def cmd_build(cfg):
     global retcode
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
                                         "%Y%m%d%H%M%S")
-
-    remove_oldresult(cfg.get('output_dir'), 'build.')
-
-    build_result_path = join_with_slash(cfg.get('output_dir'),
-                                        'build.result')
-    build_report_path = join_with_slash(cfg.get('output_dir'),
-                                        'build.report')
 
     tgz = None
     builder = KernelBuilder(
@@ -384,24 +324,6 @@ def cmd_build(cfg):
                      'cross_compiler_prefix': cross_compiler_prefix,
                      'make_opts': make_opts})
 
-    report_string = '{} ({{{}}})\n{}\n    {}'.format(
-        'The kernel was built with the attached configuration',
-        tconfig,
-        'and the following command: ',
-        make_opts
-    )
-    if retcode:
-        report_string += '\n'.join([
-            '\nHowever, the build failed. We are attaching the build output '
-            'for',
-            'more information ({{{}}})'.format(
-                os.path.basename(builder.buildlog)
-            )
-        ])
-
-    report_results(build_result_path, 'true' if not retcode else 'false',
-                   build_report_path, report_string)
-
 
 @junit
 def cmd_publish(cfg):
@@ -438,22 +360,16 @@ def cmd_run(cfg):
     """
     global retcode
 
-    remove_oldresult(cfg.get('output_dir'), 'run.')
-
-    report_string = ''
-    run_result_path = join_with_slash(cfg.get('output_dir'), 'run.result')
-    run_report_path = join_with_slash(cfg.get('output_dir'), 'run.report')
-
     runner = skt.runner.getrunner(*cfg.get('runner'))
 
     atexit.register(runner.cleanup_handler)
     signal.signal(signal.SIGINT, runner.signal_handler)
     signal.signal(signal.SIGTERM, runner.signal_handler)
-    retcode, report_string = runner.run(cfg.get('buildurl'),
-                                        cfg.get('max_aborted_count'),
-                                        cfg.get('krelease'),
-                                        cfg.get('wait'),
-                                        arch=cfg.get("kernel_arch"))
+    retcode = runner.run(cfg.get('buildurl'),
+                         cfg.get('max_aborted_count'),
+                         cfg.get('krelease'),
+                         cfg.get('wait'),
+                         arch=cfg.get("kernel_arch"))
 
     recipe_set_index = 0
     for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
@@ -466,10 +382,6 @@ def cmd_run(cfg):
     cfg['jobs'] = runner.job_to_recipe_set_map.keys()
 
     save_state(cfg, {'retcode': retcode})
-
-    if retcode != SKT_ERROR:
-        report_results(run_result_path, 'true' if retcode else 'false',
-                       run_report_path, report_string)
 
 
 def cmd_report(cfg):

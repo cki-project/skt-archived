@@ -468,15 +468,13 @@ class BeakerRunner(Runner):
                          if not specified.
 
         Returns:
-            Tuple (ret, report_string) where ret can be
+            ret where ret can be
                    SKT_SUCCESS if everything passed
                    SKT_FAIL if testing failed
                    SKT_ERROR in case of infrastructure error (exceptions are
                                                               logged)
-            and report_string is a string describing tests and results.
         """
         ret = SKT_SUCCESS
-        report_string = ''
         self.watchlist = set()
         self.job_to_recipe_set_map = {}
         self.recipe_set_results = {}
@@ -506,90 +504,11 @@ class BeakerRunner(Runner):
             ret = SKT_ERROR
 
         if ret == SKT_ERROR:
-            return (ret, report_string)
+            return ret
         if not wait:
-            return (ret, '\nSuccessfully submitted test job!')
+            return ret
 
-        recipe_set_ids = set.union(*self.job_to_recipe_set_map.values())
-        for recipe_set_id in recipe_set_ids:
-            recipe_set_result = self.recipe_set_results[recipe_set_id]
-            for recipe in recipe_set_result.findall('recipe'):
-                failed_tasks = []
-                recipe_result = recipe.attrib.get('result')
-
-                report_string += '\n\n{} R:{} ({} arch): {}\n\n'.format(
-                    'Test result for recipe',
-                    recipe.attrib.get('id'),
-                    recipe.find('hostRequires/and/arch').attrib.get('value'),
-                    recipe_result.upper()
-                )
-
-                kpkginstall_task = self.get_kpkginstall_task(recipe)
-                if kpkginstall_task.attrib.get('result') != 'Pass':
-                    report_string += 'Kernel failed to boot!\n\n'
-                    failed_tasks.append(kpkginstall_task.attrib.get('name'))
-                else:
-                    recipe_tests = self.get_recipe_test_list(recipe)
-                    if recipe_tests:
-                        report_string += 'We ran the following tests:\n'
-                        for test_name in recipe_tests:
-                            task_node = recipe.find(
-                                "task[@name='{}']".format(test_name)
-                            )
-                            test_result = task_node.attrib.get('result')
-                            report_string += '  - {}: {}\n'.format(
-                                test_name, test_result.upper()
-                            )
-                            if test_result != 'Pass':
-                                failed_tasks.append(test_name)
-
-                            if task_node.find('fetch') is not None:
-                                report_string += '    - Test URL: {}\n'.format(
-                                    task_node.find('fetch').attrib.get('url')
-                                )
-
-                if failed_tasks:
-                    report_string += '\n{}\n{}\n'.format(
-                        'For more information about the failures, here are '
-                        'links for the logs of',
-                        'failed tests and their subtasks:'
-                    )
-                for failed_task in failed_tasks:
-                    task_node = recipe.find(
-                        "task[@name='{}']".format(failed_task)
-                    )
-                    report_string += '- {}\n'.format(failed_task)
-                    for log in task_node.findall('logs/log'):
-                        if any(log_name in log.attrib.get('name') for
-                               log_name in ['harness', 'setup']):
-                            continue
-
-                        report_string += '  {}\n'.format(
-                            log.attrib.get('href')
-                        )
-                    for subtask in task_node.findall('results/result'):
-                        if any(subtask_name in subtask.attrib.get('path') for
-                               subtask_name in ['install']) or \
-                                subtask.attrib.get('result') == 'Pass':
-                            continue
-
-                        for subtask_log in subtask.findall('logs/log'):
-                            report_string += '  {}\n'.format(
-                                subtask_log.attrib.get('href')
-                            )
-                    report_string += '\n'
-
-                    report_string += '\n{}\n\n'.format(
-                        'Hardware parameters of the machine are available at:'
-                    )
-                for hwinfo_log in['machinedesc.log', 'lshw.log']:
-                    hwinfo_url = recipe.find(
-                        "task[@name='/test/misc/machineinfo']/logs/"
-                        "log[@name='{}']".format(hwinfo_log)
-                    ).attrib.get('href')
-                    report_string += '{}\n'.format(hwinfo_url)
-
-        return (ret, report_string)
+        return ret
 
 
 def getrunner(rtype, rarg):
