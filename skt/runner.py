@@ -267,10 +267,16 @@ class BeakerRunner(Runner):
         """
         Cancel all recipe sets from self.watchlist and remove their IDs from
         self.job_to_recipe_set_map.
+        Cancelling a part of a job leads to cancelling the entire job.
+        So we cancel a job if any of its recipesets is in the watchlist.
         """
         sets_to_cancel = [recipe_set for recipe_set in self.watchlist.copy()]
         if sets_to_cancel:
-            ret = subprocess.call(['bkr', 'job-cancel'] + sets_to_cancel)
+            jobs2cancel = filter(lambda job_id: self.job_to_recipe_set_map[
+                job_id].intersection(self.watchlist),
+                                 self.job_to_recipe_set_map)
+
+            ret = subprocess.call(['bkr', 'job-cancel'] + jobs2cancel)
             if ret:
                 logging.info('Failed to cancel the remaining recipe sets!')
 

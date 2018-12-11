@@ -138,7 +138,7 @@ class TestRunner(unittest.TestCase):
         mock_popen.assert_called()
 
         binary = 'bkr'
-        args = ['job-cancel'] + [s for s in self.myrunner.watchlist]
+        args = ['job-cancel', j_jobid]
 
         attrs = {'communicate.return_value': ('output', 'error'),
                  'returncode': 0}
