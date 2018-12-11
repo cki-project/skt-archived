@@ -47,6 +47,9 @@ retcode = SKT_SUCCESS
 
 
 class AppendMergeArgument(argparse.Action):
+    """Special type of argument/action that puts multiple parsed argument
+    values into Namespace.'merge_queue', with the argument name saved."""
+    # pylint: disable=too-few-public-methods
     def __call__(self, parser, namespace, values, option_string=None):
         if 'merge_queue' not in namespace:
             setattr(namespace, 'merge_queue', [])
@@ -148,6 +151,13 @@ def junit(func):
         The created function.
     """
     def wrapper(cfg):
+        """
+        Outer wrapper of a @junit function.
+        Args:
+            cfg: A dictionary of skt configuration
+
+        """
+        # pylint: disable=broad-except
         global retcode
         if cfg.get('junit'):
             tstart = time.time()
@@ -213,10 +223,10 @@ def cmd_merge(cfg):
     for thing_to_merge in cfg.get('merge_queue', []):
         try:
             if thing_to_merge[0] == 'merge_ref':
-                mb = thing_to_merge[1].split()
-                save_state(cfg, {'mergerepo_%02d' % idx[0]: mb[0],
+                mbranch_ref = thing_to_merge[1].split()
+                save_state(cfg, {'mergerepo_%02d' % idx[0]: mbranch_ref[0],
                                  'mergehead_%02d' % idx[0]: bhead})
-                (retcode, bhead) = ktree.merge_git_ref(*mb)
+                (retcode, bhead) = ktree.merge_git_ref(*mbranch_ref)
 
                 if retcode:
                     return
@@ -573,21 +583,21 @@ def setup_parser():
         type=str,
         action=AppendMergeArgument,
         help="Path to a local patch to apply "
-             + "(use multiple times for multiple patches)"
+        + "(use multiple times for multiple patches)"
     )
     parser_merge.add_argument(
         "--pw",
         type=str,
         action=AppendMergeArgument,
         help="URL to Patchwork patch to apply "
-             + "(use multiple times for multiple patches)"
+        + "(use multiple times for multiple patches)"
     )
     parser_merge.add_argument(
         "-m",
         "--merge-ref",
         action=AppendMergeArgument,
         help="Merge ref format: 'url [ref]' "
-             + "(use multiple times for multiple merge refs)"
+        + "(use multiple times for multiple merge refs)"
     )
     parser_merge.add_argument(
         "--fetch-depth",
@@ -683,7 +693,7 @@ def setup_parser():
         '--max-aborted-count',
         type=int,
         help='Ignore <count> aborted jobs to work around temporary '
-             + 'infrastructure issues. Defaults to 3.'
+        + 'infrastructure issues. Defaults to 3.'
     )
     parser_run.add_argument(
         "--wait",
@@ -773,8 +783,8 @@ def setup_parser():
         action='append',
         default=[],
         help='URL or path to console log to parse, local file may be gzipped. '
-             + 'Can be specified multiple times to parse more logs with the '
-             + 'same krelease.'
+        + 'Can be specified multiple times to parse more logs with the '
+        + 'same krelease.'
     )
 
     parser_all = subparsers.add_parser(
@@ -975,6 +985,7 @@ def load_config(args):
 
 
 def check_args(parser, args):
+    # pylint: disable=protected-access
     """Check the arguments provided to ensure all requirements are met.
 
     Args:
@@ -1007,6 +1018,8 @@ def check_args(parser, args):
 
 
 def main():
+    """This is the main entry point used by setup.cfg."""
+    # pylint: disable=protected-access
     try:
         global retcode
 
