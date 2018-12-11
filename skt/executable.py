@@ -1004,27 +1004,3 @@ def check_args(parser, args):
                 'the stdio reporter was selected but arguments for the mail '
                 'reporter were provided'
             )
-
-
-def main():
-    try:
-        global retcode
-
-        parser = setup_parser()
-        args = parser.parse_args()
-        check_args(parser, args)
-
-        setup_logging(args.verbose)
-        cfg = load_config(args)
-
-        args.func(cfg)
-        if cfg.get('junit'):
-            testsuite = junit_xml.TestSuite("skt", cfg.get('_testcases'))
-            with open("%s/%s.xml" % (cfg.get('junit'), args._name),
-                      'w') as fileh:
-                junit_xml.TestSuite.to_file(fileh, [testsuite])
-
-        sys.exit(retcode)
-    except KeyboardInterrupt:
-        print("\nExited at user request.")
-        sys.exit(130)
