@@ -507,6 +507,12 @@ class MailReporter(Reporter):
         self.subject = cfg['reporter']['mail_subject']
         self.smtp_url = cfg.get('smtp_url') or 'localhost'
 
+        # Enable debugging for the SMTP server connection if skt was run with
+        # verbose logging enabled.
+        self.debug = False
+        if cfg.get('verbose', 0) > 0:
+            self.debug = True
+
         super(MailReporter, self).__init__(cfg)
 
     def report(self):
@@ -547,6 +553,10 @@ class MailReporter(Reporter):
             msg.attach(tmp)
 
         mailserver = smtplib.SMTP(self.smtp_url)
+
+        # Enable SMTP debugging if skt is running in verbose mode.
+        mailserver.set_debuglevel(self.debug)
+
         mailserver.sendmail(self.mailfrom,
                             self.mailto + self.mailcc + self.mailbcc,
                             msg.as_string())
