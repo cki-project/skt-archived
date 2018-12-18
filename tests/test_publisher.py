@@ -21,5 +21,6 @@ class TestPublisher(unittest.TestCase):
     """Test cases for publisher.Publisher class."""
     def test_geturl(self):
         """Check if the source url is built correctly."""
-        pub = publisher.Publisher('dest', 'file:///tmp/test')
-        self.assertEqual(pub.geturl('source'), 'file:///tmp/test/source')
+        for cls in publisher.Publisher.__subclasses__():
+            pub = cls('dest', 'file:///tmp/test')
+            self.assertEqual(pub.geturl('source'), 'file:///tmp/test/source')
