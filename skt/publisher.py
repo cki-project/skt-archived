@@ -17,13 +17,15 @@ import os
 import shutil
 import subprocess
 
+from abc import ABCMeta, abstractmethod
+
 from skt.misc import join_with_slash
 
 
 class Publisher(object):
     """An abstract result publisher."""
-    # TODO This probably shouldn't be here as we never use it, and it should
-    # not be inherited
+    __metaclass__ = ABCMeta
+
     TYPE = 'default'
 
     def __init__(self, dest, url):
@@ -53,10 +55,22 @@ class Publisher(object):
         """
         return join_with_slash(self.baseurl, os.path.basename(source))
 
-    # TODO Define abstract "publish" method.
+    @abstractmethod
+    def publish(self, source):
+        """
+        Override this method to publish results in Publisher super-class
+        specific way.
 
+        Args:
+            source: Source file path.
+
+        Returns:
+            Published URL corresponding to the specified source.
+        """
+        pass
 
 class CpPublisher(Publisher):
+    """A copy publisher that copies source to destination."""
     TYPE = 'cp'
 
     def publish(self, source):
@@ -75,6 +89,7 @@ class CpPublisher(Publisher):
 
 
 class ScpPublisher(Publisher):
+    """A SCP publisher that copies source to (remote) destination."""
     TYPE = 'scp'
 
     def publish(self, source):
@@ -93,6 +108,7 @@ class ScpPublisher(Publisher):
 
 
 class SftpPublisher(Publisher):
+    """A sftp publisher that copies source to (remote) destination."""
     TYPE = 'sftp'
 
     def publish(self, source):
@@ -105,11 +121,11 @@ class SftpPublisher(Publisher):
         Returns:
             Published URL corresponding to the specified source.
         """
-        sp = subprocess.Popen(['sftp', self.destination],
-                              stdin=subprocess.PIPE)
-        sp.stdin.write("put -r %s\n" % source)
-        sp.stdin.close()
-        sp.wait()
+        proc = subprocess.Popen(['sftp', self.destination],
+                                stdin=subprocess.PIPE)
+        proc.stdin.write("put -r %s\n" % source)
+        proc.stdin.close()
+        proc.wait()
         return self.geturl(source)
 
 
