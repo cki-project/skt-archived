@@ -134,6 +134,11 @@ class KernelTree(object):
         return status, output
 
     def getpath(self):
+        """ Get workdir path.
+
+        Returns:
+            workdir path like '/tmp/xyz'
+        """
         return self.wdir
 
     def __setup_repository(self):
