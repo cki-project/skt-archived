@@ -69,6 +69,7 @@ class Publisher(object):
         """
         pass
 
+
 class CpPublisher(Publisher):
     """A copy publisher that copies source to destination."""
     TYPE = 'cp'

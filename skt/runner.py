@@ -21,6 +21,7 @@ import sys
 import time
 import xml.etree.ElementTree as etree
 
+from abc import ABCMeta, abstractmethod
 from defusedxml.ElementTree import fromstring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
@@ -28,15 +29,42 @@ from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 
 class Runner(object):
     """An abstract test runner"""
-    # TODO This probably shouldn't be here as we never use it, and it should
-    # not be inherited
+    # pylint: disable=too-many-arguments,too-few-public-methods
+    __metaclass__ = ABCMeta
+
     TYPE = 'default'
 
-    # TODO Define abstract "run" method.
+    @abstractmethod
+    def run(self, url, max_aborted, release, wait=False,
+            arch=platform.machine()):
+        """
+        Abstract method, override this to run tests in <implement. specific>
+
+        Args:
+            url:         URL pointing to kernel tarball.
+            max_aborted: Maximum number of allowed aborted jobs. Abort the
+                         whole stage if the number is reached.
+            release:     NVR of the tested kernel.
+            wait:        False if skt should exit after submitting the jobs,
+                         True if it should wait for them to finish.
+            arch:        Architecture of the machine the tests should run on,
+                         in a format accepted by Beaker. Defaults to
+                         architecture of the current machine skt is running on
+                         if not specified.
+
+        Returns:
+            ret where ret can be
+                   SKT_SUCCESS if everything passed
+                   SKT_FAIL if testing failed
+                   SKT_ERROR in case of infrastructure error (exceptions are
+                                                              logged)
+        """
+        pass
 
 
 class BeakerRunner(Runner):
     """Beaker test runner"""
+    # pylint: disable=too-many-instance-attributes
     TYPE = 'beaker'
 
     def __init__(self, jobtemplate, jobowner=None, blacklist=None):
@@ -80,7 +108,8 @@ class BeakerRunner(Runner):
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
 
-    def __load_blacklist(self, filepath):
+    @classmethod
+    def __load_blacklist(cls, filepath):
         hostnames = []
 
         try:
@@ -133,7 +162,8 @@ class BeakerRunner(Runner):
 
         return xml
 
-    def getresultstree(self, taskspec):
+    @classmethod
+    def getresultstree(cls, taskspec):
         """
         Retrieve Beaker results for taskspec in Beaker's native XML format.
 
@@ -249,6 +279,12 @@ class BeakerRunner(Runner):
         return newroot
 
     def cleanup_handler(self):
+        """
+        Call cancel_pending_jobs() to cancel all pending jobs
+
+        Returns:
+             None
+        """
         # don't run cleanup handler twice by accident
         if self.cleanup_done:
             return
@@ -259,6 +295,10 @@ class BeakerRunner(Runner):
         self.cleanup_done = True
 
     def signal_handler(self, signal, frame):
+        # pylint: disable=unused-argument
+        """
+        Handle SIGTERM|SIGINT: call cleanup_handler() and exit.
+        """
         self.cleanup_handler()
 
         sys.exit(SKT_ERROR)
@@ -378,6 +418,13 @@ class BeakerRunner(Runner):
             logging.info("added %s to watchlist", set_id)
 
     def wait(self, jobid):
+        """
+        Add jobid to watchlist, enter watchloop and wait for jobid to finish.
+
+        Args:
+            jobid: id of a Beaker job like 1234
+
+        """
         self.__add_to_watchlist(jobid)
         self.__watchloop()
 
@@ -397,10 +444,8 @@ class BeakerRunner(Runner):
             List of test names that ran.
         """
         test_list = []
-        if self.get_kpkginstall_task(recipe_node) is None:
-            after_kpkg = True
-        else:
-            after_kpkg = False
+        after_kpkg = True if self.get_kpkginstall_task(recipe_node) is None \
+            else False
 
         for test_task in recipe_node.findall('task'):
             fetch = test_task.find('fetch')
@@ -413,7 +458,8 @@ class BeakerRunner(Runner):
 
         return test_list
 
-    def get_kpkginstall_task(self, recipe_node):
+    @classmethod
+    def get_kpkginstall_task(cls, recipe_node):
         """
         Return a kpkginstall task node for a given recipe.
 
@@ -430,6 +476,7 @@ class BeakerRunner(Runner):
         return None
 
     def __jobsubmit(self, xml):
+        # pylint: disable=no-self-use
         jobid = None
         args = ["bkr", "job-submit"]
 
@@ -480,6 +527,7 @@ class BeakerRunner(Runner):
                    SKT_ERROR in case of infrastructure error (exceptions are
                                                               logged)
         """
+        # pylint: disable=too-many-arguments
         ret = SKT_SUCCESS
         self.watchlist = set()
         self.job_to_recipe_set_map = {}
