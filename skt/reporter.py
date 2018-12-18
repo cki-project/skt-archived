@@ -106,8 +106,7 @@ def load_state_cfg(statefile):
 
 class Reporter(object):
     """Abstract test result reporter"""
-    # TODO This probably shouldn't be here as we never use it, and it should
-    # not be inherited
+    # pylint: disable=too-few-public-methods
     TYPE = 'default'
 
     def __init__(self, cfg):
@@ -123,7 +122,13 @@ class Reporter(object):
         # List of attachment tuples, each containing attachment file name and
         # contents.
         self.attach = list()
-        # TODO Describe
+        # mergedata: a dict containing following keys:
+        # 'baserepo'     - repo URL
+        # 'basehead'     - base commit SHA
+        # 'basesubject'  - subject for 'basehead' commit
+        # 'merge_git'    - (merge repo, head) tuples
+        # 'localpatch'   - an array of paths to files like ['/tmp/patch.txt']
+        # 'patchwork'    - (link to patchwork patch, patchname) tuples
         self.mergedata = None
         # Save list of state files because self.cfg will be overwritten. This
         # can be changed to access a specific parameter after the FIXME with
@@ -216,7 +221,8 @@ class Reporter(object):
 
         return attachment_name
 
-    def __get_failed_task_log(self, task_node):
+    @classmethod
+    def __get_failed_task_log(cls, task_node):
         """
         Get logs from a failed task and its subtasks.
 
@@ -241,7 +247,8 @@ class Reporter(object):
 
         return task_logs
 
-    def __get_task(self, recipe, task_name):
+    @classmethod
+    def __get_task(cls, recipe, task_name):
         """
         Get the task XML node for a task.
         Returns: An XML element for a particular task.
@@ -359,7 +366,7 @@ class Reporter(object):
         report_jobs = []
 
         # Loop through each of the statefiles provided.
-        for idx, statefile in enumerate(self.statefiles):
+        for statefile in self.statefiles:
             # If the statefile is none, this is a single run report and the
             # state information has already been loaded into self.cfg.
             if statefile:
@@ -424,7 +431,8 @@ class Reporter(object):
         )
         return result
 
-    def _get_repo_name(self, baserepo):
+    @classmethod
+    def _get_repo_name(cls, baserepo):
         """
         Generate a short repository name based on the contents of 'baserepo'.
 
@@ -467,7 +475,7 @@ class Reporter(object):
 
 class StdioReporter(Reporter):
     """Generate test result output and print directly to the terminal."""
-
+    # pylint: disable=too-few-public-methods
     TYPE = 'stdio'
 
     def report(self, printer=sys.stdout):
@@ -492,6 +500,7 @@ class StdioReporter(Reporter):
 
 class MailReporter(Reporter):
     """Generate and send an email message with the results of the test."""
+    # pylint: disable=too-few-public-methods
     TYPE = 'mail'
 
     def __init__(self, cfg):
