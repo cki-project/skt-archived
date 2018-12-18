@@ -30,6 +30,11 @@ from skt.misc import join_with_slash
 
 
 class KernelBuilder(object):
+    """
+    KernelBuilder - a class used to build a kernel, e.g. call 'make',
+    clean kernel source tree, etc.
+    """
+    # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(self, source_dir, basecfg, cfgtype=None,
                  extra_make_args=None, enable_debuginfo=False,
                  rh_configs_glob=None, localversion=None):
@@ -72,11 +77,13 @@ class KernelBuilder(object):
 
     def clean_kernel_source(self):
         """Clean the kernel source directory with 'make mrproper'."""
+        # pylint: disable=no-self-use
         args = self.make_argv_base + ["mrproper"]
         logging.info("cleaning up tree: %s", args)
         subprocess.check_call(args)
 
-    def __glob_escape(self, pathname):
+    @classmethod
+    def __glob_escape(cls, pathname):
         """Escape any wildcard/glob characters in pathname."""
         return re.sub(r"[]*?[]", r"[\g<0>]", pathname)
 
@@ -150,19 +157,22 @@ class KernelBuilder(object):
 
     def __make_tinyconfig(self, stdout=None, stderr=None):
         """Make the smallest kernel config file possible for quick testing."""
+        # pylint: disable=no-self-use
         args = self.make_argv_base + ['tinyconfig']
         logging.info("building tinyconfig: %s", args)
         subprocess.check_call(args, stdout=stdout, stderr=stderr)
 
     def __get_build_arch(self):
         """Determine the build architecture for the kernel build."""
+        # pylint: disable=no-self-use
         # Detect cross-compiling via the ARCH= environment variable
         if 'ARCH' in os.environ:
             return os.environ['ARCH']
 
         return platform.machine()
 
-    def __get_cross_compiler_prefix(self):
+    @classmethod
+    def __get_cross_compiler_prefix(cls):
         """
         Determine the cross compiler prefix for the kernel build.
 
@@ -175,9 +185,21 @@ class KernelBuilder(object):
         return None
 
     def get_cfgpath(self):
+        """
+        Get path to kernel .config file.
+
+        Returns:
+            Absolute path to kernel .config.
+        """
         return join_with_slash(self.source_dir, ".config")
 
     def getrelease(self):
+        """
+        Get kernel release.
+
+        Returns:
+             kernel release like '4.17.0-rc6+'.
+        """
         krelease = None
         if not self._ready:
             self.__prepare_kernel_config()
