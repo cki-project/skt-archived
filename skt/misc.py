@@ -20,7 +20,7 @@ import re
 import requests
 
 
-"""SKT Result"""
+# SKT Result
 SKT_SUCCESS = 0
 SKT_FAIL = 1
 SKT_ERROR = 2
@@ -42,7 +42,7 @@ def join_with_slash(base, *suffix_tuple):
     parts = [base.rstrip('/')]
     for arg in suffix_tuple:
         parts.append(arg.strip('/'))
-    ending = '/' if arg.endswith('/') else ''
+    ending = '/' if suffix_tuple[-1].endswith('/') else ''
     return '/'.join(parts) + ending
 
 
@@ -91,6 +91,7 @@ def get_patch_mbox(url):
     Raises:
         Exception in case the URL is currently unavailable or invalid
     """
+    # pylint: disable=no-member
     mbox_url = join_with_slash(url, 'mbox')
 
     try:
