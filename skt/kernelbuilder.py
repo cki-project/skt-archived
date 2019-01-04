@@ -92,9 +92,9 @@ class KernelBuilder(object):
         if self.cfgtype == 'rh-configs':
             # Build Red Hat configs and copy the correct one into place
             self.__make_redhat_config(stdout, stderr)
-        elif self.cfgtype == 'tinyconfig':
-            # Build an extremely small config file for quick testing
-            self.__make_tinyconfig(stdout, stderr)
+        elif self.cfgtype in ['tinyconfig', 'allyesconfig', 'allmodconfig']:
+            # Use the cfgtype provided with the kernel's Makefile.
+            self.__make_config(stdout, stderr)
         else:
             # Copy the existing config file into place. Use a subprocess call
             # for it just for the nice logs and exception in case the call
@@ -155,11 +155,10 @@ class KernelBuilder(object):
             join_with_slash(self.source_dir, ".config")
         )
 
-    def __make_tinyconfig(self, stdout=None, stderr=None):
-        """Make the smallest kernel config file possible for quick testing."""
-        # pylint: disable=no-self-use
-        args = self.make_argv_base + ['tinyconfig']
-        logging.info("building tinyconfig: %s", args)
+    def __make_config(self, stdout=None, stderr=None):
+        """Make a config using the kernels Makefile."""
+        args = self.make_argv_base + [self.cfgtype]
+        logging.info("building %s: %s", self.cfgtype, args)
         subprocess.check_call(args, stdout=stdout, stderr=stderr)
 
     def __get_build_arch(self):
