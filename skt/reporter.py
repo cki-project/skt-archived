@@ -155,7 +155,10 @@ class Reporter(object):
                 mergedata['merge_git'].append((mrl_item, mhl[idx]))
 
         if self.cfg.get("localpatches"):
-            mergedata['localpatch'] = self.cfg.get("localpatches")
+            mergedata['localpatch'] = [
+                os.path.basename(patch_path) for patch_path
+                in self.cfg.get("localpatches")
+            ]
 
         if self.cfg.get("patchworks"):
             for purl in self.cfg.get("patchworks"):
