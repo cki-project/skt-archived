@@ -735,6 +735,11 @@ def setup_parser():
         help="Report sender's email address"
     )
     parser_report.add_argument(
+        "--mail-subject-pfx",
+        type=str,
+        help="Prefix to add to the subject of the report email"
+    )
+    parser_report.add_argument(
         "--mail-subject",
         type=str,
         help="Subject of the report email"
@@ -919,6 +924,7 @@ def load_config(args):
             'mail_cc': cfg.get('mail_cc'),
             'mail_bcc': cfg.get('mail_bcc'),
             'mail_from': cfg.get('mail_from'),
+            'mail_subject_pfx': cfg.get('mail_subject_pfx'),
             'mail_subject': cfg.get('mail_subject'),
             'mail_header': cfg.get('mail_header')
         }

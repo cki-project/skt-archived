@@ -516,6 +516,7 @@ class MailReporter(Reporter):
                         for bcc in cfg['reporter']['mail_bcc'] or []]
         self.headers = [headers.strip() for headers in
                         cfg['reporter']['mail_header']]
+        self.subject_pfx = cfg['reporter']['mail_subject_pfx']
         self.subject = cfg['reporter']['mail_subject']
         self.smtp_url = cfg.get('smtp_url') or 'localhost'
 
@@ -532,8 +533,6 @@ class MailReporter(Reporter):
         msg = MIMEMultipart()
 
         # Add the most basic parts of the email message
-        if self.subject:
-            msg['Subject'] = self.subject
         msg['To'] = ', '.join(self.mailto)
         msg['Cc'] = ', '.join(self.mailcc)
         msg['From'] = self.mailfrom
@@ -546,8 +545,16 @@ class MailReporter(Reporter):
         # We need to run the reporting function first to get aggregates to
         # build subject from
         msg.attach(MIMEText(self._get_multireport()))
-        if not msg['Subject']:
-            msg['Subject'] = self._get_multisubject()
+
+        # Assign subject
+        if self.subject:
+            subject = self.subject
+        else:
+            subject = self._get_multisubject()
+        if self.subject_pfx:
+            subject = self.subject_pfx + subject
+        msg['Subject'] = subject
+
         # Add the SKT job IDs so we can correlate emails to jobs
         msg['X-SKT-JIDS'] = ' '.join(self.multi_job_ids)
 
