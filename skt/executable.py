@@ -40,7 +40,7 @@ import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
 from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL, SKT_ERROR
-from skt.state_file import update_state
+from skt.state_file import get_state, update_state
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
@@ -312,12 +312,12 @@ def cmd_merge(args):
 
 
 @junit
-def cmd_build(cfg):
+def cmd_build(args):
     """
     Build the kernel with specified configuration and put it into a tarball.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        args:    Command line arguments
     """
     global retcode
     tstamp = datetime.datetime.strftime(datetime.datetime.now(),
@@ -325,58 +325,90 @@ def cmd_build(cfg):
 
     tgz = None
     builder = KernelBuilder(
-        source_dir=cfg.get('workdir'),
-        basecfg=cfg.get('baseconfig'),
-        cfgtype=cfg.get('cfgtype'),
-        extra_make_args=cfg.get('makeopts'),
-        enable_debuginfo=cfg.get('enable_debuginfo'),
-        rh_configs_glob=cfg.get('rh_configs_glob'),
-        localversion=cfg.get('localversion')
+        source_dir=args.get('workdir'),
+        basecfg=args.get('baseconfig'),
+        cfgtype=args.get('cfgtype'),
+        extra_make_args=args.get('makeopts'),
+        enable_debuginfo=args.get('enable_debuginfo'),
+        rh_configs_glob=args.get('rh_configs_glob'),
+        localversion=args.get('localversion')
     )
 
     # Clean the kernel source with 'make mrproper' if requested.
-    if cfg.get('wipe'):
+    if args.get('wipe'):
         builder.clean_kernel_source()
 
-    try:
-        tgz = builder.mktgz()
-    except (CommandTimeoutError, subprocess.CalledProcessError, ParsingError,
-            IOError) as exc:
-        logging.error(exc)
-        save_state(cfg, {'buildlog': builder.buildlog})
-        retcode = SKT_FAIL
-    except Exception:
-        (exc, exc_type, trace) = sys.exc_info()
-        raise exc, exc_type, trace
-
-    if tgz:
-        if cfg.get('buildhead'):
-            ttgz = "%s.tar.gz" % cfg.get('buildhead')
-        else:
-            ttgz = addtstamp(tgz, tstamp)
-        shutil.move(tgz, ttgz)
-        logging.info("tarball path: %s", ttgz)
-        save_state(cfg, {'tarpkg': ttgz})
-
-    tconfig = '%s.config' % cfg.get('buildhead')
-    try:
-        shutil.copyfile(builder.get_cfgpath(), tconfig)
-        krelease = builder.getrelease()
-        save_state(cfg, {'buildconf': tconfig,
-                         'krelease': krelease})
-    except IOError:  # Kernel config failed to build
-        tconfig = ''
-        logging.error('No config file to copy found!')
-
+    # Gather additional details about the build and save them to the state
+    # file.
     kernel_arch = builder.build_arch
     cross_compiler_prefix = builder.cross_compiler_prefix
     make_opts = ' '.join(builder.make_argv_base
                          + builder.targz_pkg_argv
                          + builder.extra_make_args)
+    state = {
+        'kernel_arch': kernel_arch,
+        'cross_compiler_prefix': cross_compiler_prefix,
+        'make_opts': make_opts
+    }
+    update_state(args['rc'], state)
 
-    save_state(cfg, {'kernel_arch': kernel_arch,
-                     'cross_compiler_prefix': cross_compiler_prefix,
-                     'make_opts': make_opts})
+    # Attempt to compile the kernel.
+    try:
+        tgz = builder.mktgz()
+    # Handle a failure if the build times out, fails, or if the build
+    # artifacts can't be found.
+    except (CommandTimeoutError, subprocess.CalledProcessError, ParsingError,
+            IOError) as exc:
+        logging.error(exc)
+
+        # Update the state file with the path to the build log.
+        state = {'buildlog': builder.buildlog}
+        update_state(args['rc'], state)
+
+        # Set the return code.
+        retcode = SKT_FAIL
+    # Re-raise any unexpected exceptions.
+    except Exception:
+        (exc, exc_type, trace) = sys.exc_info()
+        raise exc, exc_type, trace
+
+    # Get the SHA of the commit from the repo that we just compiled.
+    buildhead = get_state(args['rc'], 'buildhead')
+
+    if tgz:
+        if buildhead:
+            # Replace the filename with the SHA of the last commit in the repo.
+            ttgz = "{}.tar.gz".format(buildhead)
+        else:
+            # Add a timestamp to the path if we have no commit to reference.
+            ttgz = addtstamp(tgz, tstamp)
+
+        # Rename the kernel tarball.
+        shutil.move(tgz, ttgz)
+        logging.info("tarball path: %s", ttgz)
+
+        # Save our tarball path to the state file.
+        state = {'tarpkg': ttgz}
+        update_state(args['rc'], state)
+
+    # Set a filename for the kernel config file based on the SHA of the last
+    # commit in the repo.
+    tconfig = '{}.config'.format(buildhead)
+
+    try:
+        # Rename the config file and save its location to our state file.
+        shutil.copyfile(builder.get_cfgpath(), tconfig)
+        state = {'buildconf': tconfig}
+        update_state(args['rc'], state)
+
+        # Get the kernel version string.
+        krelease = builder.getrelease()
+        state = {'krelease': krelease}
+        update_state(args['rc'], state)
+
+    except IOError:  # Kernel config failed to build
+        tconfig = ''
+        logging.error('No config file to copy found!')
 
 
 @junit
@@ -1079,7 +1111,9 @@ def main():
 
         setup_logging(args.verbose)
 
-        if args.func in ['cmd_merge']:
+        # We are gradually migrating away from messing with cfg and passing
+        # it everywhere.
+        if args.func in ['cmd_merge', 'cmd_build']:
             args.func(args)
         else:
             cfg = load_config(args)
