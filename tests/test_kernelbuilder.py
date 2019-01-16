@@ -27,6 +27,7 @@ import skt.kernelbuilder as kernelbuilder
 
 class KBuilderTest(unittest.TestCase):
     # (Too many instance attributes) pylint: disable=R0902
+    # pylint: disable=too-many-public-methods
     """Test cases for KernelBuilder class."""
 
     def setUp(self):
