@@ -40,6 +40,7 @@ import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
 from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+from skt.state_file import update_state
 
 DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
@@ -191,13 +192,13 @@ def junit(func):
 
 
 @junit
-def cmd_merge(cfg):
+def cmd_merge(args):
     """
     Fetch a kernel repository, checkout particular references, and optionally
     apply patches from patchwork instances.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        args:    Command line arguments
     """
     global retcode
     # Counter merge patch following:
@@ -206,65 +207,108 @@ def cmd_merge(cfg):
     # idx[2]: counter of pw option.
     idx = [0, 0, 0]
 
+    # Clone the kernel tree and check out the proper ref.
     ktree = KernelTree(
-        cfg.get('baserepo'),
-        ref=cfg.get('ref'),
-        wdir=cfg.get('workdir'),
-        fetch_depth=cfg.get('fetch_depth')
+        args.get('baserepo'),
+        ref=args.get('ref'),
+        wdir=full_path(args.get('workdir')),
+        fetch_depth=args.get('fetch_depth')
     )
     bhead = ktree.checkout()
+
+    # Gather the subject and date of the commit that is currently checked out.
     bsubject = ktree.get_commit_subject(bhead)
     commitdate = ktree.get_commit_date(bhead)
-    save_state(cfg, {'baserepo': cfg.get('baserepo'),
-                     'basehead': bhead,
-                     'basesubject': bsubject,
-                     'commitdate': commitdate})
 
-    for thing_to_merge in cfg.get('merge_queue', []):
+    # Update the state file with what we know so far.
+    state = {
+        'baserepo': args.get('baserepo'),
+        'basehead': bhead,
+        'basesubject': bsubject,
+        'commitdate': commitdate,
+        'workdir': full_path(args.get('workdir')),
+    }
+    update_state(args['rc'], state)
+
+    # Loop over what we have been asked to merge (if applicable).
+    for thing_to_merge in args.get('merge_queue', []):
         try:
             if thing_to_merge[0] == 'merge_ref':
                 mbranch_ref = thing_to_merge[1].split()
-                save_state(cfg, {'mergerepo_%02d' % idx[0]: mbranch_ref[0],
-                                 'mergehead_%02d' % idx[0]: bhead})
+
+                # Update the state file with our merge_ref data.
+                state = {
+                    'mergerepo_%02d' % idx[0]: mbranch_ref[0],
+                    'mergehead_%02d' % idx[0]: bhead
+                }
+                update_state(args['rc'], state)
+
+                # Merge the git ref.
                 (retcode, bhead) = ktree.merge_git_ref(*mbranch_ref)
 
                 if retcode:
                     return
 
+                # Increment the counter.
                 idx[0] += 1
 
             else:
+                # Attempt to merge a local patch.
                 if thing_to_merge[0] == 'patch':
+                    # Get the full path to the patch to merge.
                     patch = os.path.abspath(thing_to_merge[1])
-                    save_state(cfg, {'localpatch_%02d' % idx[1]: patch})
 
+                    # Update the state file with our local patch data.
+                    state = {'localpatch_%02d' % idx[1]: patch}
+                    update_state(args['rc'], state)
+
+                    # Merge the patch.
                     ktree.merge_patch_file(patch)
+
+                    # Increment the counter.
                     idx[1] += 1
 
+                # Attempt to merge a patch from patchwork.
                 elif thing_to_merge[0] == 'pw':
                     patch = thing_to_merge[1]
-                    save_state(cfg, {'patchwork_%02d' % idx[2]: patch})
 
+                    # Update the state file with our patchwork patch data.
+                    state = {'patchwork_%02d' % idx[2]: patch}
+                    update_state(args['rc'], state)
+
+                    # Merge the patch.
                     ktree.merge_patchwork_patch(patch)
+
+                    # Increment the counter.
                     idx[2] += 1
 
+        # If the patch application failed, we should set the return code,
+        # log an error, and update our state file.
         except PatchApplicationError as patch_exc:
             retcode = SKT_FAIL
             logging.error(patch_exc)
-            save_state(cfg, {'mergelog': ktree.mergelog})
+
+            # Update the state.
+            state = {'mergelog': ktree.mergelog}
+            update_state(args['rc'], state)
 
             return
+
+        # If something else unexpected happened, re-raise the exception.
         except Exception:
             (exc, exc_type, trace) = sys.exc_info()
             raise exc, exc_type, trace
 
-    kpath = ktree.getpath()
+    # Get the SHA and subject of the repo after applying patches.
     buildhead = ktree.get_commit_hash()
     buildsubject = ktree.get_commit_subject()
 
-    save_state(cfg, {'workdir': kpath,
-                     'buildhead': buildhead,
-                     'buildsubject': buildsubject})
+    # Update the state file with the data about the current repo commit.
+    state = {
+        'buildhead': buildhead,
+        'buildsubject': buildsubject
+    }
+    update_state(args['rc'], state)
 
 
 @junit
@@ -1034,9 +1078,13 @@ def main():
         check_args(parser, args)
 
         setup_logging(args.verbose)
-        cfg = load_config(args)
 
-        args.func(cfg)
+        if args.func in ['cmd_merge']:
+            args.func(args)
+        else:
+            cfg = load_config(args)
+            args.func(cfg)
+
         if cfg.get('junit'):
             testsuite = junit_xml.TestSuite("skt", cfg.get('_testcases'))
             with open("%s/%s.xml" % (cfg.get('junit'), args._name),

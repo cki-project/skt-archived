@@ -12,6 +12,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for state_file functions."""
+import ConfigParser
 import os
 import shutil
 import tempfile
@@ -87,7 +88,7 @@ class TestStateFile(unittest.TestCase):
 
         mock_logging.assert_called_once()
 
-    def test_update_state_file(self):
+    def test_update(self):
         """Ensure update() updates the state file."""
         # Write some new state
         new_state = {'foo2': 'bar2'}
@@ -104,7 +105,7 @@ class TestStateFile(unittest.TestCase):
 
     @mock.patch('logging.error')
     @mock.patch('yaml.dump', side_effect=exception_maker)
-    def test_update_state_file_failure(self, mock_yaml, mock_logging):
+    def test_update__failure(self, mock_yaml, mock_logging):
         """Ensure update() fails when the state file cannot be updated."""
         # pylint: disable=W0613
         # Write some new state
@@ -113,3 +114,25 @@ class TestStateFile(unittest.TestCase):
             state_file.update(self.cfg, new_state)
 
         mock_logging.assert_called_once()
+
+    def test_update_state(self):
+        """Ensure update_state() writes a state file."""
+        temp_state = "{}/temp_sktrc".format(self.tmpdir)
+        new_state = {
+            'foo': 'bar',
+            'foo2': 'bar2',
+        }
+        state_file.update_state(temp_state, new_state)
+
+        config = ConfigParser.RawConfigParser()
+        config.read(temp_state)
+        self.assertEqual(config.get('state', 'foo'), 'bar')
+        self.assertEqual(config.get('state', 'foo2'), 'bar2')
+
+        # Test a write with an existing state file.
+        state_file.update_state(temp_state, new_state)
+
+        config = ConfigParser.RawConfigParser()
+        config.read(temp_state)
+        self.assertEqual(config.get('state', 'foo'), 'bar')
+        self.assertEqual(config.get('state', 'foo2'), 'bar2')
