@@ -56,6 +56,15 @@ class KBuilderTest(unittest.TestCase):
         """Tear down test fixtures."""
         shutil.rmtree(self.tmpdir)
 
+    def test_assemble_make_options(self):
+        """Ensure assemble_make_options() provides valid make options."""
+        make_opts = self.kbuilder.assemble_make_options()
+
+        self.assertIsInstance(make_opts, list)
+        self.assertIn('make', make_opts)
+        self.assertIn('-C', make_opts)
+        self.assertIn('INSTALL_MOD_STRIP=1', make_opts)
+
     def test_clean_kernel_source(self):
         """Ensure clean_kernel_source() calls 'make mrproper'."""
         with self.ctx_check_call as m_check_call:
