@@ -217,6 +217,15 @@ class KernelBuilder(object):
 
         return krelease
 
+    def assemble_make_options(self):
+        """Assemble all of the make options into a list."""
+        kernel_build_argv = (
+            self.make_argv_base
+            + self.targz_pkg_argv
+            + self.extra_make_args
+        )
+        return kernel_build_argv
+
     def mktgz(self, timeout=60 * 60 * 12):
         """
         Build kernel and modules, after that, pack everything into a tarball.
@@ -236,19 +245,15 @@ class KernelBuilder(object):
         fpath = None
         stdout_list = []
 
-        # Set up the arguments and options for the kernel build
-        kernel_build_argv = (
-            self.make_argv_base
-            + self.targz_pkg_argv
-            + self.extra_make_args
-        )
-
-        logging.info("building kernel: %s", kernel_build_argv)
-
         with io.open(self.buildlog, 'wb') as writer, \
                 io.open(self.buildlog, 'rb') as reader:
             self.__prepare_kernel_config(stdout=writer,
                                          stderr=subprocess.STDOUT)
+            # Get the kernel build options.
+            kernel_build_argv = self.assemble_make_options()
+            logging.info("building kernel: %r", kernel_build_argv)
+
+            # Compile the kernel.
             make = subprocess.Popen(kernel_build_argv,
                                     stdout=writer,
                                     stderr=subprocess.STDOUT)

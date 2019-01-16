@@ -342,9 +342,7 @@ def cmd_build(args):
     # file.
     kernel_arch = builder.build_arch
     cross_compiler_prefix = builder.cross_compiler_prefix
-    make_opts = ' '.join(builder.make_argv_base
-                         + builder.targz_pkg_argv
-                         + builder.extra_make_args)
+    make_opts = builder.assemble_make_options()
     state = {
         'kernel_arch': kernel_arch,
         'cross_compiler_prefix': cross_compiler_prefix,
