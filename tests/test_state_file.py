@@ -40,6 +40,34 @@ class TestStateFile(unittest.TestCase):
         if os.path.isdir(self.tmpdir):
             shutil.rmtree(self.tmpdir)
 
+    def test_get_state(self):
+        """Ensure get_state() can get a value from a state file."""
+        temp_state = "{}/temp_sktrc".format(self.tmpdir)
+
+        # Start with an empty state file.
+        self.assertIsNone(state_file.get_state(temp_state, 'foo'))
+
+        # Create an empty state file.
+        with open(temp_state, 'w') as fileh:
+            fileh.write('')
+
+        # Test with the empty state file.
+        self.assertIsNone(state_file.get_state(temp_state, 'foo'))
+
+        # Write a normal state file.
+        new_state = {
+            'foo': 'bar',
+            'foo2': 'bar2',
+        }
+        state_file.update_state(temp_state, new_state)
+
+        # Test that we get the right data.
+        self.assertEqual(state_file.get_state(temp_state, 'foo'), 'bar')
+        self.assertEqual(state_file.get_state(temp_state, 'foo2'), 'bar2')
+
+        # Try to get an option that doesn't exist.
+        self.assertIsNone(state_file.get_state(temp_state, 'toot'))
+
     def test_update_state(self):
         """Ensure update_state() writes a state file."""
         temp_state = "{}/temp_sktrc".format(self.tmpdir)
