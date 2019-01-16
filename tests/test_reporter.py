@@ -24,6 +24,7 @@ import mock
 import responses
 
 from skt import reporter
+from tests.misc import FakeRedisEmpty, FakeRedis
 
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -100,9 +101,13 @@ class TestReporterFunctions(unittest.TestCase):
 
 class TestStdioReporter(unittest.TestCase):
     """Test cases for StdioReporter class."""
+    # pylint: disable=too-many-instance-attributes
 
     def setUp(self):
         """Set up test fixtures."""
+        # Mock-patch redis db
+        self.mock_redis = mock.patch('redis.Redis', FakeRedisEmpty)
+        self.mock_redis.start()
         # Write a kernel .config file
         self.tmpdir = tempfile.mkdtemp()
         self.tempconfig = "{}/.config".format(self.tmpdir)
@@ -139,13 +144,25 @@ class TestStdioReporter(unittest.TestCase):
                     'jobtemplate': 'foo',
                     'jobowner': 'mhayden'
                 }
-            )
+            ),
+            'soak': 'True'
         }
+        mock_env_vars = {
+            'REDIS_SERVICE': 'MY_REDIS',
+            'MY_REDIS_SERVICE_HOST': '127.0.0.1',
+            'MY_REDIS_SERVICE_PORT': '6379',
+            'GITLAB_PRIVATE_TOKEN': 'secrete',
+        }
+        self.mock_env = mock.patch.dict('os.environ', mock_env_vars)
+        self.mock_env.start()
 
     def tearDown(self):
         """Tear down text fixtures."""
         if os.path.isdir(self.tmpdir):
             shutil.rmtree(self.tmpdir)
+
+        self.mock_redis.stop()
+        self.mock_env.stop()
 
     def make_file(self, filename, content="Test file"):
         """Create test files, such as a logs, configs, etc."""
@@ -300,6 +317,7 @@ class TestStdioReporter(unittest.TestCase):
             "http://example.com/machinedesc.log",
             body="Machine information from beaker goes here"
         )
+
         mock_grt.return_value = self.beaker_fail_results
         self.basecfg['retcode'] = '1'
 
@@ -328,6 +346,73 @@ class TestStdioReporter(unittest.TestCase):
         ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
+
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @responses.activate
+    def test_run_soak_hidden(self, mock_grt):
+        """ Verify stdio report works and that soaking tests are not
+            present in results and that failure on test soaking doesn't
+            mean a failed run."""
+        responses.add(
+            responses.GET,
+            "http://patchwork.example.com/patch/1/mbox",
+            body="Subject: Patch #1"
+        )
+        responses.add(
+            responses.GET,
+            "http://patchwork.example.com/patch/2/mbox",
+            body="Subject: Patch #2"
+        )
+        responses.add(responses.GET,
+                      'http://example.com',
+                      body="Linux version 3.10.0")
+        responses.add(
+            responses.GET,
+            "http://example.com/machinedesc.log",
+            body="Machine information from beaker goes here"
+        )
+
+        # Expected values:
+        # the return xml has fails, but retcode is 0, because soaking tests
+        # are hidden
+        mock_grt.return_value = self.beaker_fail_results
+        self.basecfg['retcode'] = '0'
+
+        testprint = StringIO.StringIO()
+
+        with mock.patch('redis.Redis', FakeRedis):
+            rptclass = reporter.StdioReporter(self.basecfg)
+            rptclass.report(printer=testprint)
+
+            report = testprint.getvalue().strip()
+
+        required_strings = [
+            'Subject: PASS: Test report for kernel 3.10.0 (kernel)',
+            'Overall result: PASSED',
+            'Patch merge: OK',
+            'Compile: OK',
+            'Kernel tests: OK',
+            'Repo: git://git.example.com/kernel.git',
+            'http://patchwork.example.com/patch/1',
+            'http://patchwork.example.com/patch/2',
+            '- URL: https://github.com/CKI-project/tests-beaker/',
+            'distribution/kpkginstall',
+            'We compiled the kernel for 1 architecture:',
+            self.basecfg['basehead'],
+            self.basecfg['baserepo'],
+        ]
+
+        # this mustn't be in report, it's soaking and hidden
+        missing_strings = [
+            '/test/we/ran',
+            'Beaker results:',
+            'https://beaker.engineering.redhat.com/jobs/2547021'
+        ]
+        for required_string in required_strings:
+            self.assertIn(required_string, report)
+
+        for should_miss in missing_strings:
+            self.assertNotIn(should_miss, report)
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @responses.activate
