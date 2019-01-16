@@ -27,6 +27,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from skt.console import gzipdata
 from skt.misc import get_patch_name, get_patch_mbox
+from skt.misc import taskname2soak
 import skt.runner
 
 # Determine the absolute path to this script and the directory which holds
@@ -106,7 +107,7 @@ def load_state_cfg(statefile):
 
 class Reporter(object):
     """Abstract test result reporter"""
-    # pylint: disable=too-few-public-methods
+    # pylint: disable=too-few-public-methods,too-many-instance-attributes
     TYPE = 'default'
 
     def __init__(self, cfg):
@@ -141,6 +142,11 @@ class Reporter(object):
         # We need to save the job IDs when iterating over state files when
         # multireporting
         self.multi_job_ids = []
+        # We need to know if we're looking for soaking tests in xml using redis
+        # or not
+        self.soak = cfg.get('soak')
+        # Here's our redis object instance
+        self.redis_inst = None if not self.soak else skt.misc.connect_redis()
 
     def __stateconfigdata(self, mergedata):
         # Store the repo URL, base commit SHA, and subject for that commit.
@@ -308,10 +314,18 @@ class Reporter(object):
                     task_status = task_node.attrib['status']
                     task_url = ''
 
+                    # None or '1' or '0'
+                    task_soaking = taskname2soak(self.redis_inst, task_name,
+                                                 'enabled')
+
                     # Find git source, if any
                     fetch = task_node.find('fetch')
                     if fetch is not None:
                         task_url = fetch.attrib.get('url')
+
+                    if task_soaking is not None and task_result != 'Pass':
+                        # Don't add unsucessful tasks that are soaking.
+                        continue
 
                     if task_result == 'Pass':
                         passed_tasks.append({'name': task_name,

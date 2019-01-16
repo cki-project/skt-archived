@@ -25,6 +25,7 @@ from abc import ABCMeta, abstractmethod
 from defusedxml.ElementTree import fromstring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+from skt.misc import connect_redis, taskname2soak
 
 
 class Runner(object):
@@ -36,7 +37,7 @@ class Runner(object):
 
     @abstractmethod
     def run(self, url, max_aborted, release, wait=False,
-            arch=platform.machine()):
+            arch=platform.machine(), soak=True):
         """
         Abstract method, override this to run tests in <implement. specific>
 
@@ -104,6 +105,11 @@ class BeakerRunner(Runner):
 
         # determines if termination cleanup was done and all jobs terminated
         self.cleanup_done = False
+
+        # if True, keep soaking tests hidden for this run
+        self.soak = None
+        # redis instance
+        self.redis_inst = None
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -202,7 +208,34 @@ class BeakerRunner(Runner):
         else:
             raise ValueError("Unknown taskspec type: %s" % taskspec)
 
-    def __getresults(self):
+    def err_on_failing_tasks(self, recipe_result, result):
+        """ Find failing tasks. If they are not soaking or redis isn't used,
+            return SKT_FAIL, otherwise None.
+
+            Args:
+                recipe_result: a defused
+                result:        a list of expected tasks results that are to
+                               be ignored if the task is soaking
+
+            Returns:
+                SKT_FAIL if the tasks isn't failing with expected result,
+                         or isn't soaking or redis isn't used
+                None     otherwise - no error
+        """
+        for task in recipe_result.findall('task'):
+            # get task name ...
+            name = task.attrib.get('name')
+            # look it up by redis to see if soaking is enabled, or just
+            # assume this is a normal test
+            soaking = taskname2soak(self.redis_inst, name, 'enabled')
+
+            if task.attrib.get('result') in result and soaking is not None:
+
+                return None
+
+        return SKT_FAIL
+
+    def __getresults(self, ignr_soak_fails):
         """
         Get return code based on the job results.
 
@@ -219,10 +252,15 @@ class BeakerRunner(Runner):
         for _, recipe_sets in self.job_to_recipe_set_map.items():
             for recipe_set_id in recipe_sets:
                 results = self.recipe_set_results[recipe_set_id]
-                for recipe_result in results.findall('recipe'):
+                for recipe_result in results.findall('.//recipe'):
                     if recipe_result.attrib.get('result') != 'Pass':
-                        logging.info('Failure in a recipe detected!')
-                        return SKT_FAIL
+                        ret = SKT_FAIL if not ignr_soak_fails else \
+                            self.err_on_failing_tasks(recipe_result,
+                                                      ['Failed'])
+
+                        if ret is not None:
+                            logging.info('Failure in a recipe detected!')
+                            return ret
 
         logging.info('Testing passed!')
         return SKT_SUCCESS
@@ -323,6 +361,57 @@ class BeakerRunner(Runner):
         for job_id in set(self.job_to_recipe_set_map):
             self.__forget_taskspec(job_id)
 
+    def __handle_test_abort(self, recipe, recipe_id, recipe_set_id, root):
+        if self.err_on_failing_tasks(recipe, ['Warn', 'Panic']) is None:
+            # A task that is soaking aborted or panicked. Soaking tasks are
+            # appended to the end of the recipe, so we should be able to
+            # safely ignore this.
+            return
+
+        logging.warning('%s from %s aborted!',
+                        recipe_id,
+                        recipe_set_id)
+        self.__forget_taskspec(recipe_set_id)
+        self.aborted_count += 1
+
+        if self.aborted_count < self.max_aborted:
+            logging.warning('Resubmitting aborted %s',
+                            recipe_set_id)
+            newjob = self.__recipe_set_to_job(root)
+            newjobid = self.__jobsubmit(etree.tostring(newjob))
+            self.__add_to_watchlist(newjobid)
+
+    def __handle_test_fail(self, recipe):
+        # Something in the recipe set really reported failure
+        test_failure = False
+        # set to True when test failed, but is soaking
+        soak_skip = False
+
+        if self.get_kpkginstall_task(recipe) is None:
+            # we don't soak kernel-install task :-)
+            # Assume the kernel was installed by default and
+            # everything is a test
+            test_failure = True
+
+        elif self.err_on_failing_tasks(recipe, ['Failed']) is None:
+            # A task that is soaking failed. Soaking tasks are
+            # appended to the end of the recipe, so we should be able to
+            # safely ignore this.
+            soak_skip = True
+            # set this just fyi - we will continue anyway
+            test_failure = True
+        else:
+            test_list = self.get_recipe_test_list(recipe)
+
+            for task in recipe.findall('task'):
+                if task.attrib.get('result') != 'Pass':
+                    if task.attrib.get('name') in test_list:
+                        test_failure = True
+
+                    break
+
+        return test_failure, soak_skip
+
     def __watchloop(self):
         while self.watchlist:
             time.sleep(self.watchdelay)
@@ -341,6 +430,7 @@ class BeakerRunner(Runner):
                     recipe_id = 'R:' + recipe.attrib.get('id')
                     if status not in ['Completed', 'Aborted', 'Cancelled'] or \
                             recipe_id in self.completed_recipes[recipe_set_id]:
+                        # continue watching unfinished recipes
                         continue
 
                     logging.info("%s status changed to %s", recipe_id, status)
@@ -351,44 +441,28 @@ class BeakerRunner(Runner):
                         self.recipe_set_results[recipe_set_id] = root
 
                     if result == 'Pass':
+                        # some recipe passed, nothing to do here
                         continue
 
                     if status == 'Cancelled':
+                        # job got cancelled for some reason, there's probably
+                        # an external reason
                         logging.error('Cancelled run detected! Cancelling the '
                                       'rest of runs and aborting!')
                         self.cancel_pending_jobs()
                         return
 
                     if result == 'Warn' and status == 'Aborted':
-                        logging.warning('%s from %s aborted!',
-                                        recipe_id,
-                                        recipe_set_id)
-                        self.__forget_taskspec(recipe_set_id)
-                        self.aborted_count += 1
-
-                        if self.aborted_count < self.max_aborted:
-                            logging.warning('Resubmitting aborted %s',
-                                            recipe_set_id)
-                            newjob = self.__recipe_set_to_job(root)
-                            newjobid = self.__jobsubmit(etree.tostring(newjob))
-                            self.__add_to_watchlist(newjobid)
+                        self.__handle_test_abort(recipe, recipe_id,
+                                                 recipe_set_id, root)
                         continue
 
-                    # Something in the recipe set really reported failure
-                    test_failure = False
-
-                    if self.get_kpkginstall_task(recipe) is None:
-                        # Assume the kernel was installed by default and
-                        # everything is a test
-                        test_failure = True
-                    else:
-                        test_list = self.get_recipe_test_list(recipe)
-
-                        for task in recipe.findall('task'):
-                            if task.attrib.get('result') != 'Pass':
-                                if task.attrib.get('name') in test_list:
-                                    test_failure = True
-                                break
+                    # check for test failure
+                    test_failure, soak_skip = self.__handle_test_fail(recipe)
+                    if soak_skip:
+                        logging.info("recipe %s task(s) failed soaking",
+                                     recipe_id)
+                        continue
 
                     if not test_failure:
                         # Recipe failed before the tested kernel was installed
@@ -504,7 +578,7 @@ class BeakerRunner(Runner):
         return jobid
 
     def run(self, url, max_aborted, release, wait=False,
-            arch=platform.machine()):
+            arch=platform.machine(), soak=True):
         """
         Run tests in Beaker.
 
@@ -519,6 +593,7 @@ class BeakerRunner(Runner):
                          in a format accepted by Beaker. Defaults to
                          architecture of the current machine skt is running on
                          if not specified.
+            soak:        Hide tests that are soaking
 
         Returns:
             ret where ret can be
@@ -535,6 +610,8 @@ class BeakerRunner(Runner):
         self.completed_recipes = {}
         self.aborted_count = 0
         self.max_aborted = max_aborted
+        self.soak = soak
+        self.redis_inst = connect_redis() if soak else None
 
         try:
             job_xml_tree = fromstring(self.__getxml(
@@ -552,7 +629,7 @@ class BeakerRunner(Runner):
 
             if wait:
                 self.wait(jobid)
-                ret = self.__getresults()
+                ret = self.__getresults(soak)
         except Exception as exc:
             logging.error(exc)
             if isinstance(exc, SystemExit):

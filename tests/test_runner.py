@@ -26,8 +26,10 @@ from defusedxml.ElementTree import tostring
 import mock
 
 from skt import runner
+from skt.misc import SKT_FAIL, SKT_SUCCESS
 
 from tests import misc
+from tests.misc import FakeRedisEmpty, FakeRedis
 
 SCRIPT_PATH = os.path.dirname(__file__)
 
@@ -42,11 +44,25 @@ class TestRunner(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
+        self.mock_redis = mock.patch('redis.Redis', FakeRedisEmpty)
+        self.mock_redis.start()
+
         self.myrunner = runner.BeakerRunner(**DEFAULT_ARGS)
+
         with open('{}/assets/test.xml'.format(SCRIPT_PATH), 'r') as fileh:
             self.test_xml = fileh.read()
 
         self.max_aborted = 3
+        mock_env_vars = {
+            'REDIS_SERVICE': 'MY_REDIS',
+            'MY_REDIS_SERVICE_HOST': '127.0.0.1',
+            'MY_REDIS_SERVICE_PORT': '6379',
+            'GITLAB_PRIVATE_TOKEN': 'secrete',
+        }
+        self.mock_env = mock.patch.dict('os.environ', mock_env_vars)
+
+    def tearDown(self):
+        self.mock_redis.stop()
 
     def test_get_kpkginstall_task(self):
         """ Ensure get_kpkginstall_task works."""
@@ -386,7 +402,7 @@ class TestRunner(unittest.TestCase):
             misc.get_asset_content('beaker_recipe_set_results.xml')
         )
 
-        result = self.myrunner._BeakerRunner__getresults()
+        result = self.myrunner._BeakerRunner__getresults(False)
         self.assertEqual(result, 0)
         mock_logging.assert_called()
 
@@ -394,7 +410,7 @@ class TestRunner(unittest.TestCase):
     def test_getresults_aborted(self, mock_logging):
         """Ensure __getresults() handles all aborted / cancelled jobs."""
         # pylint: disable=W0212,E1101
-        result = self.myrunner._BeakerRunner__getresults()
+        result = self.myrunner._BeakerRunner__getresults(False)
         self.assertEqual(result, 2)
         mock_logging.assert_called()
 
@@ -407,7 +423,7 @@ class TestRunner(unittest.TestCase):
             misc.get_asset_content('beaker_fail_results.xml')
         )
 
-        result = self.myrunner._BeakerRunner__getresults()
+        result = self.myrunner._BeakerRunner__getresults(False)
         self.assertEqual(result, 1)
         mock_logging.assert_called()
 
@@ -553,3 +569,68 @@ class TestRunner(unittest.TestCase):
 
         misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_aborted_some.xml',
                      5, 'Cancelled')
+
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_soak_hidden(self, mock_jobsubmit, mock_getresultstree):
+        """ Ensure that soaking tests in redis database don't affect overall
+            test result."""
+
+        beaker_xml = misc.get_asset_content('beaker_results.xml')
+        mock_getresultstree.return_value = fromstring(beaker_xml)
+        mock_jobsubmit.return_value = "J:0001"
+
+        # no need to wait 60 seconds
+        # though beaker_pass_results.xml only needs one iteration
+        self.myrunner.watchdelay = 0.1
+
+        with self.mock_env:
+            # use redis that has soaking set for certain tasks
+            with mock.patch('redis.Redis', FakeRedis):
+                result = misc.exec_on(self.myrunner, mock_jobsubmit,
+                                      'beaker_results.xml', 5, 'Completed')
+                self.assertEqual(SKT_SUCCESS, result)
+
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_soak_fails(self, mock_jobsubmit, mock_getresultstree):
+        """ Ensure that soaking tests in redis database don't affect overall
+            test result. This tests test failure."""
+
+        beaker_xml = misc.get_asset_content('beaker_results.xml')
+        mock_getresultstree.return_value = fromstring(beaker_xml)
+        mock_jobsubmit.return_value = "J:0001"
+
+        # no need to wait 60 seconds
+        # though beaker_pass_results.xml only needs one iteration
+        self.myrunner.watchdelay = 0.1
+
+        with self.mock_env:
+            # use a empty redis - no tests soaking, failure will show
+            result = misc.exec_on(self.myrunner, mock_jobsubmit,
+                                  'beaker_results.xml', 5, 'Completed')
+
+        self.assertEqual(result, SKT_FAIL)
+
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_soak_fails2(self, mock_jobsubmit, mock_getresultstree):
+        """ Ensure that soaking tests in redis database don't affect overall
+            test result. This tests test abort."""
+
+        beaker_xml = misc.get_asset_content('beaker_aborted_some.xml')
+        mock_getresultstree.return_value = fromstring(beaker_xml)
+        mock_jobsubmit.return_value = "J:0001"
+
+        # no need to wait 60 seconds
+        # though beaker_pass_results.xml only needs one iteration
+        self.myrunner.watchdelay = 0.1
+
+        with mock.patch('redis.Redis', FakeRedis):
+            with self.mock_env:
+                # use a empty redis - no tests soaking, failure will show
+                result = misc.exec_on(self.myrunner, mock_jobsubmit,
+                                      'beaker_aborted_some.xml', 5,
+                                      'Completed')
+
+        self.assertEqual(result, SKT_FAIL)

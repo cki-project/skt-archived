@@ -15,8 +15,12 @@
 from email.errors import HeaderParseError
 import email.header
 import email.parser
+import json
+import logging
+import os
 import re
 
+import redis
 import requests
 
 
@@ -24,6 +28,56 @@ import requests
 SKT_SUCCESS = 0
 SKT_FAIL = 1
 SKT_ERROR = 2
+
+
+def connect_redis():
+    """ Connect to redis service inside the container using <REDIS_SERVICE>
+    {_SERVICE_HOST,_SERVICE_PORT}.
+    Returns:
+        connected redis.Redis instance
+    """
+
+    redis_inst = None
+    redis_service = os.environ.get('REDIS_SERVICE', None)
+    if redis_service:
+        # Two environment variables should be present:
+        #   _SERVICE_HOST -> IP address of redis server
+        #   _SERVICE_PORT -> port that redis server listens on
+        redis_host = os.environ.get('{}_SERVICE_HOST'.format(redis_service))
+        redis_port = os.environ.get('{}_SERVICE_PORT'.format(redis_service))
+        logging.info(
+            "Found REDIS_SERVICE environment variable -- "
+            "skt will hide failing soaking tests"
+        )
+        redis_inst = redis.Redis(host=redis_host, port=redis_port, db=0)
+    else:
+        logging.info(
+            "Cannot find REDIS_SERVICE environment variable -- "
+            "skt will NOT hide failing soaking tests"
+        )
+
+    return redis_inst
+
+
+def taskname2soak(redis_inst, task_name, attr):
+    """ Returns soaking information attribute attr for task_name
+        if redis instance exists. Otherwise returns None.
+
+    Args:
+        redis_inst: connected redis.Redis instance
+        task_name:  name of the task to get soaking information for
+        attr:       attribute of soaking to return
+    Returns:
+        soaking attribute (str) or None
+    """
+    try:
+        val = redis_inst.get(task_name)
+        res = json.loads(val)['soaking'][attr]
+
+    except (KeyError, AttributeError, TypeError):
+        res = None
+
+    return res
 
 
 def join_with_slash(base, *suffix_tuple):

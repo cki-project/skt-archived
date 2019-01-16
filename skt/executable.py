@@ -385,7 +385,8 @@ def cmd_run(cfg):
                          cfg.get('max_aborted_count'),
                          cfg.get('krelease'),
                          cfg.get('wait'),
-                         arch=cfg.get("kernel_arch"))
+                         arch=cfg.get("kernel_arch"),
+                         soak=cfg.get('soak'))
 
     recipe_set_index = 0
     for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
@@ -563,6 +564,14 @@ def setup_parser():
         ),
         action="store_true",
         default=False
+    )
+    parser.add_argument(
+        "--soak",
+        help=(
+            "Hide soaking tests."
+        ),
+        type=lambda x: (str(x).lower() == 'true'),
+        default=True
     )
 
     subparsers = parser.add_subparsers()
