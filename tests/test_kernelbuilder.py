@@ -48,6 +48,12 @@ class KBuilderTest(unittest.TestCase):
         self.m_io_open.__exit__ = lambda *args: None
         self.ctx_io_open = mock.patch('io.open',
                                       Mock(return_value=self.m_io_open))
+
+        self.m_multipipe = mock.patch(
+            'skt.kernelbuilder.KernelBuilder.run_multipipe',
+            Mock(return_value=0)
+        )
+
         self.kernel_tarball = 'linux-4.16.0.tar.gz'
         self.success_str = 'Tarball successfully created in ./{}\n'
         self.success_str = self.success_str.format(self.kernel_tarball)
@@ -67,10 +73,10 @@ class KBuilderTest(unittest.TestCase):
 
     def test_clean_kernel_source(self):
         """Ensure clean_kernel_source() calls 'make mrproper'."""
-        with self.ctx_check_call as m_check_call:
+        with self.m_multipipe as m_multipipe:
             self.kbuilder.clean_kernel_source()
             self.assertEqual(
-                m_check_call.mock_calls[0],
+                m_multipipe.mock_calls[0],
                 mock.call(self.kbuilder.make_argv_base + ['mrproper'])
             )
 
@@ -90,11 +96,13 @@ class KBuilderTest(unittest.TestCase):
             "some_option"
         ]
 
-        with self.ctx_check_call as m_check_call:
-            self.kbuilder._KernelBuilder__adjust_config_option('disable',
-                                                               'some_option')
+        with self.m_multipipe as m_multipipe:
+            self.kbuilder._KernelBuilder__adjust_config_option(
+                'disable',
+                'some_option'
+            )
             self.assertEqual(
-                m_check_call.mock_calls[0],
+                m_multipipe.mock_calls[0],
                 mock.call(expected_args)
             )
 
@@ -123,27 +131,23 @@ class KBuilderTest(unittest.TestCase):
         with open(self.kbuilder.buildlog, 'w') as fileh:
             fileh.write("log1\nlog2\nlog3")
 
-        self.m_io_open.readlines = Mock(return_value=['foo\n', 'bar\n'])
-        with self.ctx_popen, self.ctx_check_call, self.ctx_io_open:
-            self.assertRaises(
-                kernelbuilder.ParsingError,
-                self.kbuilder_mktgz_silent
-            )
+        with self.m_multipipe:
+            with self.assertRaises(kernelbuilder.ParsingError):
+                self.kbuilder.mktgz()
 
-    def test_mktgz_ioerror(self):
-        """Check if IOError is raised when tarball path does not exist."""
-        self.m_io_open.readlines = Mock(
-            return_value=['foo\n', self.success_str]
-        )
-        with self.ctx_io_open, self.ctx_popen, self.ctx_check_call:
-            self.assertRaises(IOError, self.kbuilder_mktgz_silent)
+    # @mock.patch('skt.kernelbuilder.KernelBuilder.run_multipipe')
+    # def test_mktgz_ioerror(self, mock_multipipe):
+    #     """Check if IOError is raised when tarball path does not exist."""
+    #     mock_multipipe.return_value = self.m_popen
+    #     with self.assertRaises(IOError):
+    #         self.kbuilder.mktgz()
 
     def test_mktgz_make_fail(self):
         """Ensure exception is raised when make command fails to spawn."""
-        self.m_popen.returncode = 1
-        with self.ctx_popen:
-            self.assertRaises(subprocess.CalledProcessError,
-                              self.kbuilder_mktgz_silent)
+        with self.m_multipipe as m_multipipe:
+            m_multipipe.return_value = 1
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.kbuilder_mktgz_silent()
 
     def test_mktgz_success(self):
         """Check if mktgz can finish successfully."""
@@ -154,16 +158,15 @@ class KBuilderTest(unittest.TestCase):
                 "./linux-4.16.0.tar.gz\n"
             )
 
-        self.m_io_open.readlines = Mock(
-            return_value=['foo\n', self.success_str, 'bar']
-        )
-        self.m_popen.returncode = 0
-        with self.ctx_io_open, self.ctx_popen, self.ctx_check_call:
-            with open(os.path.join(self.tmpdir, self.kernel_tarball), 'w'):
-                pass
+        self.m_multipipe.returncode = 0
+        with open(os.path.join(self.tmpdir, self.kernel_tarball), 'w'):
+            pass
+        with self.m_multipipe:
             full_path = self.kbuilder_mktgz_silent()
-            self.assertEqual(os.path.join(self.tmpdir, self.kernel_tarball),
-                             full_path)
+            self.assertEqual(
+                os.path.join(self.tmpdir, self.kernel_tarball),
+                full_path
+            )
 
     def test_mktgz_missing_kernel(self):
         """Ensure an IOError appears if the kernel package is missing."""
@@ -174,15 +177,11 @@ class KBuilderTest(unittest.TestCase):
                 "./linux-4.16.0.tar.gz-missing\n"
             )
 
-        self.m_io_open.readlines = Mock(
-            return_value=['foo\n', self.success_str, 'bar']
-        )
-        self.m_popen.returncode = 0
-        with self.ctx_io_open, self.ctx_popen, self.ctx_check_call:
+        with self.m_multipipe:
             with open(os.path.join(self.tmpdir, self.kernel_tarball), 'w'):
                 pass
             with self.assertRaises(IOError):
-                self.kbuilder_mktgz_silent()
+                self.kbuilder.mktgz()
 
     def kbuilder_mktgz_silent(self, *args, **kwargs):
         """Run self.kbuilder.mktgz with disabled output."""
@@ -243,8 +242,7 @@ class KBuilderTest(unittest.TestCase):
                 "_KernelBuilder__adjust_config_option")
     @mock.patch('shutil.copyfile')
     @mock.patch("glob.glob")
-    @mock.patch("subprocess.check_call")
-    def test_prep_config_redhat(self, mock_check_call, mock_glob, mock_shutil,
+    def test_prep_config_redhat(self, mock_glob, mock_shutil,
                                 mock_adjust_cfg):
         """Ensure KernelBuilder handles Red Hat configs."""
         # pylint: disable=W0212,E1101
@@ -252,12 +250,14 @@ class KBuilderTest(unittest.TestCase):
         self.kbuilder.enable_debuginfo = True
         self.kbuilder.rh_configs_glob = "redhat/configs/kernel-*-x86_64.config"
         mock_glob.return_value = ['configs/config-3.10.0-x86_64.config']
-        self.kbuilder._KernelBuilder__prepare_kernel_config()
 
-        # Ensure the configs were built using the correct command
-        check_call_args = mock_check_call.call_args[0]
-        expected_args = self.kbuilder.make_argv_base + ['rh-configs']
-        self.assertEqual(expected_args, check_call_args[0])
+        with self.m_multipipe as m_multipipe:
+            self.kbuilder._KernelBuilder__prepare_kernel_config()
+
+            # Ensure the configs were built using the correct command
+            check_call_args = m_multipipe.call_args[0]
+            expected_args = self.kbuilder.make_argv_base + ['rh-configs']
+            self.assertEqual(expected_args, check_call_args[0])
 
         mock_shutil.assert_called_once()
         mock_adjust_cfg.assert_called_once()
@@ -281,16 +281,16 @@ class KBuilderTest(unittest.TestCase):
 
     @mock.patch("skt.kernelbuilder.KernelBuilder."
                 "_KernelBuilder__adjust_config_option")
-    @mock.patch("subprocess.check_call")
-    def test_prep_config_tinyconfig(self, mock_check_call, mock_adjust_cfg):
+    def test_prep_config_tinyconfig(self, mock_adjust_cfg):
         """Ensure KernelBuilder handles tinyconfig."""
         # pylint: disable=W0212,E1101
         self.kbuilder.cfgtype = 'tinyconfig'
-        self.kbuilder._KernelBuilder__prepare_kernel_config()
+        with self.m_multipipe as m_multipipe:
+            self.kbuilder._KernelBuilder__prepare_kernel_config()
 
-        # Ensure the config was built using the correct command
-        check_call_args = mock_check_call.call_args[0]
-        expected_args = self.kbuilder.make_argv_base + ['tinyconfig']
-        self.assertEqual(expected_args, check_call_args[0])
+            # Ensure the config was built using the correct command
+            check_call_args = m_multipipe.call_args[0]
+            expected_args = self.kbuilder.make_argv_base + ['tinyconfig']
+            self.assertEqual(expected_args, check_call_args[0])
 
         mock_adjust_cfg.assert_called()
