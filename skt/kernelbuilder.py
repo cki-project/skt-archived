@@ -13,7 +13,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Class for building kernels"""
 import glob
-import io
 import logging
 import multiprocessing
 import os
@@ -23,7 +22,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import time
 
 from skt.misc import join_with_slash
 
@@ -77,40 +75,42 @@ class KernelBuilder(object):
             "--{}".format(action)
         ] + list(options)
         logging.info("%s config option '%s': %s", action, options, args)
-        subprocess.check_call(args)
+        self.run_multipipe(args)
 
     def clean_kernel_source(self):
         """Clean the kernel source directory with 'make mrproper'."""
         # pylint: disable=no-self-use
         args = self.make_argv_base + ["mrproper"]
         logging.info("cleaning up tree: %s", args)
-        subprocess.check_call(args)
+        self.run_multipipe(args)
 
     @classmethod
     def __glob_escape(cls, pathname):
         """Escape any wildcard/glob characters in pathname."""
         return re.sub(r"[]*?[]", r"[\g<0>]", pathname)
 
-    def __prepare_kernel_config(self, stdout=None, stderr=None):
+    def __prepare_kernel_config(self):
         """Prepare the kernel config for the compile."""
         if self.cfgtype == 'rh-configs':
             # Build Red Hat configs and copy the correct one into place
-            self.__make_redhat_config(stdout, stderr)
+            self.__make_redhat_config()
         elif self.cfgtype in ['tinyconfig', 'allyesconfig', 'allmodconfig']:
             # Use the cfgtype provided with the kernel's Makefile.
-            self.__make_config(stdout, stderr)
+            self.__make_config()
         else:
             # Copy the existing config file into place. Use a subprocess call
             # for it just for the nice logs and exception in case the call
             # fails.
-            subprocess.check_call(
-                ['cp', self.basecfg, join_with_slash(self.source_dir,
-                                                     ".config")],
-                stdout=stdout, stderr=stderr
-            )
+            args = [
+                'cp',
+                self.basecfg,
+                join_with_slash(self.source_dir, ".config")
+            ]
+            self.run_multipipe(args)
+
             args = self.make_argv_base + [self.cfgtype]
             logging.info("prepare config: %s", args)
-            subprocess.check_call(args, stdout=stdout, stderr=stderr)
+            self.run_multipipe(args)
 
         # NOTE(mhayden): Building kernels with debuginfo can increase the
         # final kernel tarball size by 3-4x and can increase build time
@@ -129,15 +129,16 @@ class KernelBuilder(object):
 
         self._ready = 1
 
-    def __make_redhat_config(self, stdout=None, stderr=None):
+    def __make_redhat_config(self):
         """Prepare the Red Hat kernel config files."""
         args = self.make_argv_base + ['rh-configs']
         logging.info("building Red Hat configs: %s", args)
+
         # Unset CROSS_COMPILE because rh-configs doesn't handle the cross
         # compile args correctly in some cases
         environ = os.environ.copy()
         environ.pop('CROSS_COMPILE', None)
-        subprocess.check_call(args, stdout=stdout, stderr=stderr, env=environ)
+        self.run_multipipe(args, env=environ)
 
         # Copy the correct kernel config into place
         escaped_source_dir = self.__glob_escape(self.source_dir)
@@ -159,11 +160,11 @@ class KernelBuilder(object):
             join_with_slash(self.source_dir, ".config")
         )
 
-    def __make_config(self, stdout=None, stderr=None):
+    def __make_config(self):
         """Make a config using the kernels Makefile."""
         args = self.make_argv_base + [self.cfgtype]
         logging.info("building %s: %s", self.cfgtype, args)
-        subprocess.check_call(args, stdout=stdout, stderr=stderr)
+        self.run_multipipe(args)
 
     def __get_build_arch(self):
         """Determine the build architecture for the kernel build."""
@@ -284,45 +285,35 @@ class KernelBuilder(object):
         """
         fpath = None
 
-        with io.open(self.buildlog, 'wb') as writer, \
-                io.open(self.buildlog, 'rb') as reader:
-            self.__prepare_kernel_config(stdout=writer,
-                                         stderr=subprocess.STDOUT)
-            # Get the kernel build options.
-            kernel_build_argv = self.assemble_make_options()
-            logging.info("building kernel: %s", kernel_build_argv)
+        self.__prepare_kernel_config()
 
-            # Prepend a timeout to the make options.
-            kernel_build_argv = (
-                ['timeout', str(timeout)]
-                + kernel_build_argv
-            )
+        # Get the kernel build options.
+        kernel_build_argv = self.assemble_make_options()
+        logging.info("building kernel: %s", kernel_build_argv)
 
-            # Compile the kernel.
-            make = subprocess.Popen(kernel_build_argv,
-                                    stdout=writer,
-                                    stderr=subprocess.STDOUT)
+        # Prepend a timeout to the make options.
+        kernel_build_argv = (
+            ['timeout', str(timeout)]
+            + kernel_build_argv
+        )
 
-            # Watch for output and append it to the log and to stdout.
-            while make.poll() is None:
-                self.log2stdout(reader.readlines())
-                time.sleep(1)
-            self.log2stdout(reader.readlines())
+        # Compile the kernel.
+        returncode = self.run_multipipe(kernel_build_argv)
 
-            # The timeout command exits with 124 if a timeout occurred.
-            if make.returncode == 124:
-                raise CommandTimeoutError(
-                    "'{}' was taking too long".format(
-                        ' '.join(kernel_build_argv)
-                    )
-                )
-
-            # The build failed for a reason other than a timeout.
-            if make.returncode != 0:
-                raise subprocess.CalledProcessError(
-                    make.returncode,
+        # The timeout command exits with 124 if a timeout occurred.
+        if returncode == 124:
+            raise CommandTimeoutError(
+                "'{}' was taking too long".format(
                     ' '.join(kernel_build_argv)
                 )
+            )
+
+        # The build failed for a reason other than a timeout.
+        if returncode != 0:
+            raise subprocess.CalledProcessError(
+                returncode,
+                ' '.join(kernel_build_argv)
+            )
 
         # Search the build log for a tarball file.
         fpath = self.find_tarball()
@@ -338,16 +329,71 @@ class KernelBuilder(object):
 
         return fpath
 
-    @staticmethod
-    def log2stdout(lines):
+    def run_multipipe(self, args, env=os.environ.copy()):
         """
-        Show `lines` on stdout.
+        Run a process while writing to stdout/file simultaneously.
 
         Args:
-            lines:      list of strings.
+            args:   A command to run in list format.
+            env:    An option environment to set for the subcommand. The
+                    existing environment is used if one is not specified.
+
+        Returns:
+            The return code from the Popen call.
+
         """
-        sys.stdout.write(''.join(lines))
-        sys.stdout.flush()
+        # Set up a basic logger.
+        root = logging.getLogger('multipipe')
+
+        # Don't adjust the parent logger's settings with the changes we make
+        # here.
+        root.propagate = False
+
+        # Set up a handler that writes directly to the build log.
+        file_handler = logging.FileHandler(self.buildlog)
+        file_handler.setLevel(logging.DEBUG)
+
+        # Set up another handler that writes to stdout.
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setLevel(logging.DEBUG)
+
+        # Ensure that the log format is unaltered -- just messages are
+        # written without any time prefixes.
+        formatter = logging.Formatter('%(message)s')
+        file_handler.setFormatter(formatter)
+        stdout_handler.setFormatter(formatter)
+
+        # Add the file and stdout handlers to our logger.
+        root.addHandler(file_handler)
+        root.addHandler(stdout_handler)
+
+        # Run the command.
+        logging.debug("Running multipipe command: %s" % ' '.join(args))
+        root.info("$ %s" % ' '.join(args))
+        process = subprocess.Popen(
+            args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=1
+        )
+
+        # Loop over the buffered stdout/stderr from the command and write the
+        # output to our logger.
+        for line in iter(process.stdout.readline, ''):
+            root.info(line.strip())
+
+        # Ensure the process has exited.
+        exit_code = process.wait()
+
+        # Remove the extra handlers we added.
+        # NOTE(mhayden): Removing this step will cause all log lines to be
+        #                written *twice* to stdout/log. This was very annoying
+        #                to debug, so please don't remove these unless you
+        #                know what you're doing.
+        for handler in root.handlers[:]:
+            root.removeHandler(handler)
+
+        return exit_code
 
 
 class CommandTimeoutError(Exception):
