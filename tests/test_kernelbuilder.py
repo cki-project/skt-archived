@@ -118,24 +118,6 @@ class KBuilderTest(unittest.TestCase):
 
         self.assertEqual('powerpc64-linux-gnu-', result)
 
-    def test_mktgz_timeout(self):
-        """Ensure the build fails properly when it exceeds the timeout."""
-        self.m_popen.poll = Mock(side_effect=[None, None, -15])
-        self.m_popen.returncode = -15
-        from time import sleep as real_sleep
-
-        def m_sleep(seconds):
-            """Sleep function but acelerated 100x."""
-            real_sleep(seconds/100)
-
-        ctx_sleep = mock.patch('time.sleep', m_sleep)
-        with ctx_sleep, self.ctx_check_call, self.ctx_popen:
-            self.assertRaises(
-                kernelbuilder.CommandTimeoutError,
-                self.kbuilder_mktgz_silent,
-                timeout=0.001
-            )
-
     def test_mktgz_parsing_error(self):
         """Check if ParsingError is raised when no kernel found in stdout."""
         self.m_io_open.readlines = Mock(return_value=['foo\n', 'bar\n'])
