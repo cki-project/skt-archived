@@ -63,6 +63,9 @@ class KernelBuilder(object):
         else:
             self.extra_make_args = []
 
+        # Truncate the buildlog, if it exists.
+        self.__reset_build_log()
+
         logging.info("basecfg: %s", self.basecfg)
         logging.info("cfgtype: %s", self.cfgtype)
 
@@ -170,6 +173,12 @@ class KernelBuilder(object):
             return os.environ['ARCH']
 
         return platform.machine()
+
+    def __reset_build_log(self):
+        """Truncate the build log."""
+        if os.path.isfile(self.buildlog):
+            with open(self.buildlog, 'w') as fileh:
+                fileh.write('')
 
     @classmethod
     def __get_cross_compiler_prefix(cls):
