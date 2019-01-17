@@ -331,6 +331,7 @@ def cmd_build(args):
         extra_make_args=args.get('makeopts'),
         enable_debuginfo=args.get('enable_debuginfo'),
         rh_configs_glob=args.get('rh_configs_glob'),
+        make_target=args.get('make_target'),
         localversion=args.get('localversion')
     )
 
@@ -718,6 +719,14 @@ def setup_parser():
         "--makeopts",
         type=str,
         help="Additional options to pass to make"
+    )
+    parser_build.add_argument(
+        "--make-target",
+        dest="make_target",
+        type=str,
+        default='targz-pkg',
+        choices=('targz-pkg', 'binrpm-pkg'),
+        help="Make target from kernel Makefile"
     )
     parser_build.add_argument(
         "--rh-configs-glob",
