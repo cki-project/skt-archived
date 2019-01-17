@@ -281,8 +281,9 @@ class TestRunner(unittest.TestCase):
         expected_xml = self.test_xml.replace("##ARCH##", "s390x")
         self.assertEqual(result, expected_xml)
 
+    @mock.patch('subprocess.call')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_cleanup_called(self, mock_jobsubmit):
+    def test_cleanup_called(self, mock_jobsubmit, mock_call):
         """Ensure BeakerRunner.signal_handler works."""
         # pylint: disable=W0613
         def trigger_signal():
@@ -295,6 +296,8 @@ class TestRunner(unittest.TestCase):
         release = "4.17.0-rc1"
         wait = True
         mock_jobsubmit.return_value = "J:0001"
+
+        mock_call.return_value = 0
 
         signal.signal(signal.SIGINT, self.myrunner.signal_handler)
         signal.signal(signal.SIGTERM, self.myrunner.signal_handler)
