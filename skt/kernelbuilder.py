@@ -24,7 +24,6 @@ import shutil
 import subprocess
 import sys
 import time
-from threading import Timer
 
 from skt.misc import join_with_slash
 
@@ -251,37 +250,34 @@ class KernelBuilder(object):
                                          stderr=subprocess.STDOUT)
             # Get the kernel build options.
             kernel_build_argv = self.assemble_make_options()
-            logging.info("building kernel: %r", kernel_build_argv)
+            logging.info("building kernel: %s", kernel_build_argv)
+
+            # Prepend a timeout to the make options.
+            kernel_build_argv = (
+                ['timeout', str(timeout)]
+                + kernel_build_argv
+            )
 
             # Compile the kernel.
             make = subprocess.Popen(kernel_build_argv,
                                     stdout=writer,
                                     stderr=subprocess.STDOUT)
-            make_timedout = []
 
-            def stop_process(proc):
-                """
-                Terminate the process with SIGTERM and flag it as timed out.
-                """
-                if proc.poll() is None:
-                    proc.terminate()
-                    make_timedout.append(True)
-            timer = Timer(timeout, stop_process, [make])
-            timer.setDaemon(True)
-            timer.start()
-            try:
-                while make.poll() is None:
-                    self.append_and_log2stdout(reader.readlines(), stdout_list)
-                    time.sleep(1)
+            # Watch for output and append it to the log and to stdout.
+            while make.poll() is None:
                 self.append_and_log2stdout(reader.readlines(), stdout_list)
-            finally:
-                timer.cancel()
-            if make_timedout:
+                time.sleep(1)
+            self.append_and_log2stdout(reader.readlines(), stdout_list)
+
+            # The timeout command exits with 124 if a timeout occurred.
+            if make.returncode == 124:
                 raise CommandTimeoutError(
                     "'{}' was taking too long".format(
                         ' '.join(kernel_build_argv)
                     )
                 )
+
+            # The build failed for a reason other than a timeout.
             if make.returncode != 0:
                 raise subprocess.CalledProcessError(
                     make.returncode,
