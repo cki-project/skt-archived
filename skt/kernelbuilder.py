@@ -34,7 +34,8 @@ class KernelBuilder(object):
     # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(self, source_dir, basecfg, cfgtype=None,
                  extra_make_args=None, enable_debuginfo=False,
-                 rh_configs_glob=None, localversion=None):
+                 rh_configs_glob=None, localversion=None,
+                 make_target=None):
         self.source_dir = source_dir
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
@@ -48,6 +49,7 @@ class KernelBuilder(object):
         self.cross_compiler_prefix = self.__get_cross_compiler_prefix()
         self.rh_configs_glob = rh_configs_glob
         self.localversion = localversion
+        self.make_target = None
 
         self.targz_pkg_argv = [
             "INSTALL_MOD_STRIP=1",
