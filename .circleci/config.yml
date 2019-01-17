@@ -27,6 +27,10 @@ defaults: &defaults
                 --cfgtype tinyconfig
         working_directory: /tmp/skt_test
     - run:
+        name: Display build log
+        command: cat workdir/build.log
+        working_directory: /tmp/skt_test
+    - run:
         name: Test `skt report`
         command: |
             skt -vv --state -d workdir --rc sktrc report \
