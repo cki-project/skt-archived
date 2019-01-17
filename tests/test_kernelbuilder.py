@@ -120,6 +120,9 @@ class KBuilderTest(unittest.TestCase):
 
     def test_mktgz_parsing_error(self):
         """Check if ParsingError is raised when no kernel found in stdout."""
+        with open(self.kbuilder.buildlog, 'w') as fileh:
+            fileh.write("log1\nlog2\nlog3")
+
         self.m_io_open.readlines = Mock(return_value=['foo\n', 'bar\n'])
         with self.ctx_popen, self.ctx_check_call, self.ctx_io_open:
             self.assertRaises(
@@ -144,6 +147,13 @@ class KBuilderTest(unittest.TestCase):
 
     def test_mktgz_success(self):
         """Check if mktgz can finish successfully."""
+        # Write a valid buildlog.
+        with open(self.kbuilder.buildlog, 'w') as fileh:
+            fileh.write(
+                "Tarball successfully created in "
+                "./linux-4.16.0.tar.gz\n"
+            )
+
         self.m_io_open.readlines = Mock(
             return_value=['foo\n', self.success_str, 'bar']
         )
@@ -154,6 +164,25 @@ class KBuilderTest(unittest.TestCase):
             full_path = self.kbuilder_mktgz_silent()
             self.assertEqual(os.path.join(self.tmpdir, self.kernel_tarball),
                              full_path)
+
+    def test_mktgz_missing_kernel(self):
+        """Ensure an IOError appears if the kernel package is missing."""
+        # Write a buildlog that refers to a kernel that does not exist.
+        with open(self.kbuilder.buildlog, 'w') as fileh:
+            fileh.write(
+                "Tarball successfully created in "
+                "./linux-4.16.0.tar.gz-missing\n"
+            )
+
+        self.m_io_open.readlines = Mock(
+            return_value=['foo\n', self.success_str, 'bar']
+        )
+        self.m_popen.returncode = 0
+        with self.ctx_io_open, self.ctx_popen, self.ctx_check_call:
+            with open(os.path.join(self.tmpdir, self.kernel_tarball), 'w'):
+                pass
+            with self.assertRaises(IOError):
+                self.kbuilder_mktgz_silent()
 
     def kbuilder_mktgz_silent(self, *args, **kwargs):
         """Run self.kbuilder.mktgz with disabled output."""
