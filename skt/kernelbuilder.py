@@ -374,7 +374,8 @@ class KernelBuilder(object):
             args,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            bufsize=1
+            bufsize=1,
+            env=env
         )
 
         # Loop over the buffered stdout/stderr from the command and write the
