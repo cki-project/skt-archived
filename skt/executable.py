@@ -341,14 +341,19 @@ def cmd_build(args):
     # Gather additional details about the build and save them to the state
     # file.
     kernel_arch = builder.build_arch
-    cross_compiler_prefix = builder.cross_compiler_prefix
     make_opts = builder.assemble_make_options()
     state = {
         'kernel_arch': kernel_arch,
-        'cross_compiler_prefix': cross_compiler_prefix,
         'make_opts': make_opts
     }
     update_state(args['rc'], state)
+
+    # Write the cross compiler prefix to the state file only if the
+    # environment variable is set:
+    cross_compiler_prefix = builder.cross_compiler_prefix
+    if cross_compiler_prefix:
+        state = {'cross_compiler_prefix': cross_compiler_prefix}
+        update_state(args['rc'], state)
 
     # Attempt to compile the kernel.
     try:
