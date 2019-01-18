@@ -368,8 +368,8 @@ class KernelBuilder(object):
         root.addHandler(stdout_handler)
 
         # Run the command.
-        logging.debug("Running multipipe command: %s" % ' '.join(args))
-        root.info("$ %s" % ' '.join(args))
+        logging.debug("Running multipipe command: %s", ' '.join(args))
+        root.info("$ %s", ' '.join(args))
         process = subprocess.Popen(
             args,
             stdout=subprocess.PIPE,
