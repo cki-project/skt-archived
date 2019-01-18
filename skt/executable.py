@@ -19,7 +19,6 @@ import ast
 import atexit
 import datetime
 import importlib
-import json
 import logging
 import os
 import shutil
@@ -27,10 +26,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import time
-import traceback
-
-import junit_xml
 
 import skt
 import skt.console
@@ -39,7 +34,7 @@ import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
-from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL
 from skt.state_file import get_state, update_state
 
 DEFAULTRC = "~/.sktrc"
@@ -126,72 +121,6 @@ def save_state(cfg, state):
         config.write(fileh)
 
 
-def junit(func):
-    """
-    Create a function accepting a configuration object and passing it to
-    the specified function, putting the call results into a JUnit test case,
-    if configuration has JUnit result directory specified, simply calling the
-    function otherwise.
-
-    The generated test case is named "skt.<function-name>". The case stdout is
-    set to JSON representation of the configuration object after the function
-    call has completed. The created test case is appended to the "_testcases"
-    list in the configuration object after that. Sets the global "retcode" to
-    SKT_SUCCESS in case of test success, SKT_FAIL in case of test failure, and
-    SKT_ERROR and above in case of infrastructure failure or skt problem (eg.
-    Beaker server is unreachable).
-
-    Args:
-        func:   The function to call in the created function. Must accept
-                a configuration object as the argument. Return value would be
-                ignored. Can set the global "retcode" to indicate success
-                (SKT_SUCCESS), test failure (SKT_FAIL) or infrastructure
-                failure (SKT_ERROR and above).
-
-    Return:
-        The created function.
-    """
-    def wrapper(cfg):
-        """
-        Outer wrapper of a @junit function.
-        Args:
-            cfg: A dictionary of skt configuration
-
-        """
-        # pylint: disable=broad-except
-        global retcode
-        if cfg.get('junit'):
-            tstart = time.time()
-            testcase = junit_xml.TestCase(func.__name__, classname="skt")
-
-            try:
-                func(cfg)
-            except Exception:
-                logging.error("Unexpected exception caught, probably an "
-                              "infrastructure failure or skt bug: %s",
-                              traceback.format_exc())
-                testcase.add_error_info(traceback.format_exc())
-                retcode = SKT_ERROR
-
-            if retcode == SKT_FAIL:
-                # Tests failed
-                testcase.add_failure_info("Step finished with retcode: %d" %
-                                          retcode)
-            elif retcode >= SKT_ERROR:
-                testcase.add_error_info(
-                    "Infrastructure issue or skt bug detected, retcode: %d" %
-                    retcode
-                )
-
-            testcase.stdout = json.dumps(cfg, default=str)
-            testcase.elapsed_sec = time.time() - tstart
-            cfg['_testcases'].append(testcase)
-        else:
-            func(cfg)
-    return wrapper
-
-
-@junit
 def cmd_merge(args):
     """
     Fetch a kernel repository, checkout particular references, and optionally
@@ -311,7 +240,6 @@ def cmd_merge(args):
     update_state(args['rc'], state)
 
 
-@junit
 def cmd_build(args):
     """
     Build the kernel with specified configuration and put it into a tarball.
@@ -415,7 +343,6 @@ def cmd_build(args):
         logging.error('No config file to copy found!')
 
 
-@junit
 def cmd_publish(cfg):
     """
     Publish (copy) the kernel tarball and configuration to the specified
@@ -439,7 +366,6 @@ def cmd_publish(cfg):
         logging.debug('No kernel tarball to publish found!')
 
 
-@junit
 def cmd_run(cfg):
     """
     Run tests on a built kernel using the specified "runner". Only "Beaker"
@@ -613,10 +539,6 @@ def setup_parser():
         "--output-dir",
         type=str,
         help="Path to output directory"
-    )
-    parser.add_argument(
-        "--junit",
-        help="Directory for storing junit XML results"
     )
     parser.add_argument(
         "-v",
@@ -1046,12 +968,6 @@ def load_config(args):
     for idx, statefile_path in enumerate(cfg.get('result') or []):
         cfg['result'][idx] = full_path(statefile_path)
 
-    if cfg.get('junit'):
-        try:
-            os.mkdir(full_path(cfg.get('junit')))
-        except OSError:
-            pass
-
     # Assign default max aborted count if it's not defined in config file
     if not cfg.get('max_aborted_count'):
         cfg['max_aborted_count'] = 3
@@ -1130,12 +1046,6 @@ def main():
         else:
             cfg = load_config(args)
             args.func(cfg)
-
-        if cfg.get('junit'):
-            testsuite = junit_xml.TestSuite("skt", cfg.get('_testcases'))
-            with open("%s/%s.xml" % (cfg.get('junit'), args._name),
-                      'w') as fileh:
-                junit_xml.TestSuite.to_file(fileh, [testsuite])
 
         sys.exit(retcode)
     except KeyboardInterrupt:
