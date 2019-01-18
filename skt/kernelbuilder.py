@@ -44,18 +44,33 @@ class KernelBuilder(object):
         self.make_argv_base = [
             "make", "-C", self.source_dir
         ]
+        self.make_target_args = {
+            'targz-pkg': [
+                "INSTALL_MOD_STRIP=1",
+                "-j%d" % multiprocessing.cpu_count(),
+            ],
+            'binrpm-pkg': [
+                "-j%d" % multiprocessing.cpu_count()
+            ]
+        }
         self.enable_debuginfo = enable_debuginfo
         self.build_arch = self.__get_build_arch()
         self.cross_compiler_prefix = self.__get_cross_compiler_prefix()
         self.rh_configs_glob = rh_configs_glob
         self.localversion = localversion
-        self.make_target = None
 
-        self.targz_pkg_argv = [
-            "INSTALL_MOD_STRIP=1",
-            "-j%d" % multiprocessing.cpu_count(),
-            "targz-pkg"
-        ]
+        # Handle the make target provided and select the correct arguments
+        # for make based on the target.
+        self.make_target = make_target
+        try:
+            self.compile_args = self.make_target_args[self.make_target]
+            self.compile_args.append(self.make_target)
+        except KeyError:
+            error_message = (
+                "Supported make targets: "
+                "{}".format(', '.join(self.make_target_args.keys()))
+            )
+            raise(KeyError, error_message)
 
         # Split the extra make arguments provided by the user
         if extra_make_args:
@@ -234,10 +249,77 @@ class KernelBuilder(object):
         """Assemble all of the make options into a list."""
         kernel_build_argv = (
             self.make_argv_base
-            + self.targz_pkg_argv
+            + self.compile_args
             + self.extra_make_args
         )
         return kernel_build_argv
+
+    def find_rpm(self):
+        """
+        Find RPMs in the buildlog.
+
+        Returns:
+            A list of paths to RPM files.
+
+        """
+        # Compile a regex to look for the tarball filename.
+        rpm_regex = re.compile(r"^Wrote: (.*\.rpm)$")
+
+        # Read the buildlog line by line looking for the RPMs.
+        rpm_files = []
+        with open(self.buildlog, 'r') as fileh:
+            for log_line in fileh:
+                match = rpm_regex.search(log_line)
+
+                # If we find a match, store the path to the tarball and stop
+                # reading the buildlog.
+                if match:
+                    rpm_path = match.group(1)
+                    rpm_files.append(rpm_path)
+
+                    # Ensure the RPM is actually on the filesystem.
+                    if not os.path.isfile(rpm_path):
+                        raise IOError(
+                            "Built kernel RPM not found: "
+                            "{}".format(rpm_path)
+                        )
+
+        return rpm_files
+
+    def make_rpm_repo(self, rpm_files):
+        """
+        Make a RPM repository within a directory.
+
+        Args:
+            rpm_files:  A list of RPM paths.
+
+        Returns:
+            Path to the repo directory.
+
+        """
+        # Set a path for the RPM repository directory.
+        repo_dir = join_with_slash(self.source_dir, 'rpm_repo/')
+
+        # Remove the existing repo directory if it exists.
+        if os.path.isdir(repo_dir):
+            shutil.rmtree(repo_dir)
+
+        # Create the directory.
+        os.mkdir(repo_dir)
+
+        # Move our current RPMs to that directory.
+        for rpm_file in rpm_files:
+            shutil.move(rpm_file, repo_dir)
+
+        # Create an RPM repository in the repo directory.
+        args = ["createrepo", repo_dir]
+        exit_code = self.run_multipipe(args)
+
+        # If the RPM repo build failed, raise an exception.
+        if exit_code != 0:
+            raise subprocess.CalledProcessError(exit_code, ' '.join(args))
+
+        return repo_dir
 
     def find_tarball(self):
         """
@@ -269,14 +351,15 @@ class KernelBuilder(object):
 
         return fpath
 
-    def mktgz(self, timeout=60 * 60 * 12):
+    def compile_kernel(self, timeout=60 * 60 * 12):
         """
-        Build kernel and modules, after that, pack everything into a tarball.
+        Compile the kernel and package it based on the make target provided.
 
         Args:
             timeout:    Max time in seconds will wait for build.
         Returns:
-            The full path of the tarball generated.
+            Path to the kernel tarball or path to the RPM repository
+            containing the kernel RPMs.
         Raises:
             CommandTimeoutError: When building kernel takes longer than the
                                  specified timeout.
@@ -285,8 +368,7 @@ class KernelBuilder(object):
             ParsingError:        When can not find the tarball path in stdout.
             IOError:             When tarball file doesn't exist.
         """
-        fpath = None
-
+        # Prepare the kernel configuration file.
         self.__prepare_kernel_config()
 
         # Get the kernel build options.
@@ -316,6 +398,49 @@ class KernelBuilder(object):
                 returncode,
                 ' '.join(kernel_build_argv)
             )
+
+        if 'tar' in self.make_target:
+            package_path = self.handle_tarball()
+
+        if 'rpm' in self.make_target:
+            package_path = self.handle_rpm()
+
+        return package_path
+
+    def handle_rpm(self):
+        """
+        Finds the kernel RPMs in the build log.
+
+        Returns:
+            The full path of the RPM repository generated
+        Raises:
+            ParsingError:        When no RPM files were found.
+        """
+        fpath = None
+
+        # Search the build log for RPM files.
+        rpm_files = self.find_rpm()
+
+        if rpm_files:
+            fpath = self.make_rpm_repo(rpm_files)
+
+        # Raise an exception if we did not find RPMs.
+        if not fpath:
+            raise ParsingError('Failed to find any RPMs in stdout')
+
+        return fpath
+
+    def handle_tarball(self):
+        """
+        Finds the kernel tarball and verifies that it is present.
+
+        Returns:
+            The full path of the tarball generated.
+        Raises:
+            ParsingError:        When can not find the tarball path in stdout.
+            IOError:             When tarball file doesn't exist.
+        """
+        fpath = None
 
         # Search the build log for a tarball file.
         fpath = self.find_tarball()

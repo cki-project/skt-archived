@@ -289,7 +289,7 @@ def cmd_build(args):
 
     # Attempt to compile the kernel.
     try:
-        tgz = builder.mktgz()
+        package_path = builder.compile_kernel()
     # Handle a failure if the build times out, fails, or if the build
     # artifacts can't be found.
     except (CommandTimeoutError, subprocess.CalledProcessError, ParsingError,
@@ -310,7 +310,8 @@ def cmd_build(args):
     # Get the SHA of the commit from the repo that we just compiled.
     buildhead = get_state(args['rc'], 'buildhead')
 
-    if tgz:
+    # Handle any built tarballs.
+    if package_path and package_path.endswith('tar.gz'):
         if buildhead:
             # Replace the filename with the SHA of the last commit in the repo.
             ttgz = "{}.tar.gz".format(buildhead)
@@ -319,11 +320,16 @@ def cmd_build(args):
             ttgz = addtstamp(tgz, tstamp)
 
         # Rename the kernel tarball.
-        shutil.move(tgz, ttgz)
+        shutil.move(package_path, ttgz)
         logging.info("tarball path: %s", ttgz)
 
         # Save our tarball path to the state file.
         state = {'tarpkg': ttgz}
+        update_state(args['rc'], state)
+
+    # Handle any RPM repositories.
+    if package_path and 'rpm_repo' in package_path:
+        state = {'rpm_repo': package_path}
         update_state(args['rc'], state)
 
     # Set a filename for the kernel config file based on the SHA of the last
