@@ -1041,8 +1041,9 @@ def main():
 
         # We are gradually migrating away from messing with cfg and passing
         # it everywhere.
-        if args.func in ['cmd_merge', 'cmd_build']:
-            args.func(args)
+        var_args = vars(args)
+        if var_args['_name'] in ['merge', 'build']:
+            args.func(var_args)
         else:
             cfg = load_config(args)
             args.func(cfg)
