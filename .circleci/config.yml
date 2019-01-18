@@ -31,6 +31,13 @@ defaults: &defaults
         command: cat workdir/build.log
         working_directory: /tmp/skt_test
     - run:
+        name: Publish results with cp
+        command: |
+            mkdir /tmp/published
+            skt -vv --state -d workdir --rc sktrc publish \
+                --publisher cp /tmp/published http://localhost/published
+        working_directory: /tmp/skt_test
+    - run:
         name: Test `skt report`
         command: |
             skt -vv --state -d workdir --rc sktrc report \
