@@ -12,7 +12,7 @@ Dependencies
 
 Install dependencies needed for running skt like this:
 
-    sudo dnf install -y python2 python2-junit_xml beaker-client
+    sudo dnf install -y python2 beaker-client
 
 Dependencies needed to build kernels:
 
@@ -120,10 +120,6 @@ reporting the results.
 All the following commands use the `-vv` option to increase verbosity of the
 command's output, so it's easier to debug problems. Remove the option for
 quieter, shorter output.
-
-You can make `skt` output junit-compatible results by adding a `--junit
-<JUNIT_DIR>` option to any of the following commands. The results will be
-written to the `<JUNIT_DIR>` directory.
 
 ### Merge
 
