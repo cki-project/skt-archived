@@ -273,7 +273,7 @@ def cmd_build(args):
     make_opts = builder.assemble_make_options()
     state = {
         'kernel_arch': kernel_arch,
-        'make_opts': make_opts
+        'make_opts': ' '.join(make_opts)
     }
     update_state(args['rc'], state)
 
