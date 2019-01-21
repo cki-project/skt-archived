@@ -162,7 +162,10 @@ class Reporter(object):
 
         if self.cfg.get("patchworks"):
             for purl in self.cfg.get("patchworks"):
-                patch_mbox = get_patch_mbox(purl)
+                patch_mbox = get_patch_mbox(
+                    purl,
+                    self.cfg.get('patchwork_session_cookie')
+                )
                 patchname = get_patch_name(patch_mbox)
                 mergedata['patchwork'].append((purl, patchname))
 
