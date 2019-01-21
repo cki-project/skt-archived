@@ -12,6 +12,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Functions and constants used by multiple parts of skt."""
+import cookielib
 from email.errors import HeaderParseError
 import email.header
 import email.parser
@@ -78,12 +79,13 @@ def get_patch_name(content):
     return ''.join(decoded)
 
 
-def get_patch_mbox(url):
+def get_patch_mbox(url, session_cookie=None):
     """
     Retrieve a string representing mbox of the patch.
 
     Args:
-        url: Patchwork URL of the patch to retrieve
+        url:            Patchwork URL of the patch to retrieve.
+        session_cookie: Patchwork session cookie, in case login is required.
 
     Returns:
         String representing body of the patch mbox
@@ -94,8 +96,18 @@ def get_patch_mbox(url):
     # pylint: disable=no-member
     mbox_url = join_with_slash(url, 'mbox')
 
+    # Get cookies if specified
+    cookie_jar = None
+    if session_cookie:
+        patchwork_domain = url.rsplit('patch', 1)[0].strip('/').split('/')[-1]
+        cookie = cookielib.Cookie(0, 'sessionid', session_cookie, None, False,
+                                  patchwork_domain, False, False, '/', False,
+                                  False, None, False, None, None, {})
+        cookie_jar = cookielib.CookieJar()
+        cookie_jar.set_cookie(cookie)
+
     try:
-        response = requests.get(mbox_url)
+        response = requests.get(mbox_url, cookies=cookie_jar)
     except requests.exceptions.RequestException as exc:
         raise exc
 

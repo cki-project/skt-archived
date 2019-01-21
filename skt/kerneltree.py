@@ -337,17 +337,18 @@ class KernelTree(object):
 
         return (SKT_SUCCESS, head)
 
-    def merge_patchwork_patch(self, uri):
+    def merge_patchwork_patch(self, uri, session_id=None):
         """
         Apply a patch from Patchwork (using git am)
 
         Args:
-            uri: URL of patch on a Patchwork instance.
+            uri:        URL of patch on a Patchwork instance.
+            session_id: Patchwork session cookie, in case login is required.
 
         Raises:
             PatchApplicationError in case the patch failed to apply.
         """
-        patch_content = get_patch_mbox(uri)
+        patch_content = get_patch_mbox(uri, session_id)
 
         logging.info("Applying %s", uri)
 

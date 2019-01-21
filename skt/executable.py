@@ -205,8 +205,11 @@ def cmd_merge(args):
                     state = {'patchwork_%02d' % idx[2]: patch}
                     update_state(args['rc'], state)
 
-                    # Merge the patch.
-                    ktree.merge_patchwork_patch(patch)
+                    # Merge the patch. Retrieve the Patchwork session cookie
+                    # first.
+                    session_id = get_state(args['rc'],
+                                           'patchwork_session_cookie')
+                    ktree.merge_patchwork_patch(patch, session_id)
 
                     # Increment the counter.
                     idx[2] += 1
