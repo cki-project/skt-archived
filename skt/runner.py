@@ -213,7 +213,7 @@ class BeakerRunner(Runner):
             return SKT_FAIL, otherwise None.
 
             Args:
-                recipe_result: a defused
+                recipe_result: a defused xml
                 result:        a list of expected tasks results that are to
                                be ignored if the task is soaking
 
@@ -222,16 +222,13 @@ class BeakerRunner(Runner):
                          or isn't soaking or redis isn't used
                 None     otherwise - no error
         """
-        for task in recipe_result.findall('task'):
-            # get task name ...
-            name = task.attrib.get('name')
-            # look it up by redis to see if soaking is enabled, or just
-            # assume this is a normal test
-            soaking = self.soak_wrap.has_soaking(name)
+        if self.soak:
+            for task in recipe_result.findall('task'):
+                # look at its _WAIVED attribute to determine if it's soaking
+                soaking = self.soak_wrap.is_soaking(task)
 
-            if task.attrib.get('result') in result and soaking is not None:
-
-                return None
+                if task.attrib.get('result') in result and soaking:
+                    return None
 
         return SKT_FAIL
 
@@ -420,17 +417,18 @@ class BeakerRunner(Runner):
             Args:
                 recipe:
         """
-        for task in recipe.findall('task'):
-            # get task name ...
-            name = task.attrib.get('name')
-            result = task.attrib.get('result')
-            # look it up by redis to see if soaking is enabled, or just
-            # assume this is a normal test
+        if self.soak:
+            for task in recipe.findall('task'):
+                # get task name ...
+                name = task.attrib.get('name')
+                result = task.attrib.get('result')
+                # look it up by redis to see if soaking is enabled, or just
+                # assume this is a normal test
 
-            if self.soak_wrap.has_soaking(name) and result == 'Pass':
-                # only update if soaking info is available and soaking
-                # is enabled (==1)
-                self.soak_wrap.increase_test_runcount(name)
+                if self.soak_wrap.is_soaking(task) and result == 'Pass':
+                    # only update if soaking info is available and soaking
+                    # is enabled (==1)
+                    self.soak_wrap.increase_test_runcount(name)
 
     def __watchloop(self):
         while self.watchlist:

@@ -10,6 +10,9 @@
         </log>
       </logs>
       <task name='/test/misc/machineinfo' result="Warn">
+        <params>
+          <param name="_WAIVED" value="true"/>
+        </params>
         <logs>
           <log name='machinedesc.log' href="http://example.com/machinedesc.log">
           </log>
@@ -29,6 +32,9 @@
         </log>
       </logs>
       <task name='/test/misc/machineinfo'>
+        <params>
+          <param name="_WAIVED" value="true"/>
+        </params>
         <logs>
           <log name='machinedesc.log' href="http://example.com/machinedesc.log">
           </log>
@@ -48,6 +54,9 @@
         </log>
       </logs>
       <task name='/test/misc/machineinfo'>
+        <params>
+          <param name="_WAIVED" value="true"/>
+        </params>
         <logs>
           <log name='machinedesc.log' href="http://example.com/machinedesc.log">
           </log>

@@ -21,7 +21,11 @@
     <task name='/distribution/kpkginstall' result='Pass' status='Completed'>
       <fetch url="https://github.com/CKI-project/tests-beaker/archive/master.zip#distribution/kpkginstall"/>
     </task>
-    <task name='/test/we/ran' result='Fail' status='Completed'></task>
+    <task name='/test/we/ran' result='Fail' status='Completed'>
+      <params>
+        <param name="_WAIVED" value="true"/>
+      </params>
+    </task>
     <task name='/a/test/with/no/soak' result='Fail' status='Completed'></task>
   </recipe>
 </recipeSet>
