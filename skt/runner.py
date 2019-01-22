@@ -412,6 +412,26 @@ class BeakerRunner(Runner):
 
         return test_failure, soak_skip
 
+    def task_update_runcount(self, recipe):
+        """ If a test passed, we need to update its runcount.
+            We update runcount without discerning arches, so 1 job may cause
+            e.g. +X runcount, depending on the number of arches.
+
+            Args:
+                recipe:
+        """
+        for task in recipe.findall('task'):
+            # get task name ...
+            name = task.attrib.get('name')
+            result = task.attrib.get('result')
+            # look it up by redis to see if soaking is enabled, or just
+            # assume this is a normal test
+
+            if self.soak_wrap.has_soaking(name) and result == 'Pass':
+                # only update if soaking info is available and soaking
+                # is enabled (==1)
+                self.soak_wrap.increase_test_runcount(name)
+
     def __watchloop(self):
         while self.watchlist:
             time.sleep(self.watchdelay)
@@ -441,6 +461,8 @@ class BeakerRunner(Runner):
                         self.recipe_set_results[recipe_set_id] = root
 
                     if result == 'Pass':
+                        self.task_update_runcount(recipe)
+
                         # some recipe passed, nothing to do here
                         continue
 
