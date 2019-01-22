@@ -29,12 +29,12 @@ import tempfile
 
 import skt
 import skt.console
-import skt.publisher
 import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
 from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL
+from skt.publisher import Publisher
 from skt.state_file import get_state, update_state
 
 DEFAULTRC = "~/.sktrc"
@@ -352,27 +352,49 @@ def cmd_build(args):
         logging.error('No config file to copy found!')
 
 
-def cmd_publish(cfg):
+def cmd_publish(args):
     """
     Publish (copy) the kernel tarball and configuration to the specified
     location, generating their resulting URLs, using the specified "publisher".
     Only "cp", "scp" and "sftp" publishers are supported at the moment.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        args:    Command line arguments
     """
-    publisher = skt.publisher.getpublisher(*cfg.get('publisher'))
+    # Get the publisher type, destination and URL.
+    pub_type, pub_dest, pub_url = args.get('publisher')
 
-    if cfg.get('buildconf'):
-        cfgurl = publisher.publish(cfg.get('buildconf'))
-        save_state(cfg, {'cfgurl': cfgurl})
+    # We need to publish a few things:
+    #   - kernel config file (buildconf > cfgurl)
+    #   - tarball (for tarball builds) (targpkg > buildurl)
+    #   - RPM repo (for RPM builds) (rpm_repo > repourl)
+    artifacts = {
+        'buildconf': 'cfgurl',
+        'tarpkg': 'buildurl',
+        'rpm_repo': 'repourl',
+    }
 
-    if cfg.get('tarpkg'):
-        url = publisher.publish(cfg.get('tarpkg'))
-        logging.info("published tarpkg url: %s", url)
-        save_state(cfg, {'buildurl': url})
-    else:
-        logging.debug('No kernel tarball to publish found!')
+    files_published = []
+
+    for artifact, artifact_url in artifacts.items():
+        # Read the location from the state file.
+        source = get_state(args.get('rc'), artifact)
+
+        # If the state file has our artifact, publish it.
+        if source:
+            logging.debug("Publishing %s", artifact)
+
+            publisher = Publisher(pub_type, source, pub_dest, pub_url)
+            url = publisher.publish()
+
+            state = {artifact_url: url}
+            update_state(args.get('rc'), state)
+
+            files_published.append(source)
+
+    logging.debug(
+        "Publishing complete. Files published: %d", len(files_published)
+    )
 
 
 def cmd_run(cfg):

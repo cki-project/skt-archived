@@ -14,7 +14,9 @@
 """Test cases for runner module."""
 import logging
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 
 from io import BytesIO
@@ -275,20 +277,42 @@ class TestExecutable(unittest.TestCase):
 
         self.assertEqual(cfg, result)
 
-    @mock.patch('skt.publisher.ScpPublisher.publish')
-    def test_cmd_publish(self, mock_publish):
-        """Ensure cmd_publish() works and publisher object method."""
+    def test_cmd_publish(self):
+        """Ensure cmd_publish() works."""
         # pylint: disable=no-self-use
-        cfg = {'publisher': ['scp', 'a', 'b'], 'buildconf': 'a'}
+        tmpdir = tempfile.mkdtemp()
+        tarpkg = '{}/kernel.tar.gz'.format(tmpdir)
+        dest_dir = '{}/published'.format(tmpdir)
+        rcfile = "{}/sktrc".format(tmpdir)
 
-        mock_publish.return_value = "stdout"
+        # Write a simple rc file
+        with open(rcfile, 'w') as fileh:
+            fileh.write('[state]\ntarpkg = {}'.format(tarpkg))
 
-        executable.cmd_publish(cfg)
-        mock_publish.assert_called()
+        # Write a test kernel file
+        with open(tarpkg, 'w') as fileh:
+            fileh.write('Kernel data')
 
-        cfg['tarpkg'] = 'b'
-        executable.cmd_publish(cfg)
-        mock_publish.assert_called()
+        args = {
+            'publisher': [
+                'cp',
+                dest_dir,
+                'http://localhost/published'
+            ],
+            'rc': rcfile
+        }
+        executable.cmd_publish(args)
+
+        with open(rcfile, 'r') as fileh:
+            rc_content = fileh.read()
+
+        # Ensure the rc file was updated.
+        self.assertIn(
+            "buildurl = http://localhost/published/kernel.tar.gz",
+            rc_content
+        )
+
+        shutil.rmtree(tmpdir)
 
     def test_addtstamp(self):
         """Ensure addtstamp works."""

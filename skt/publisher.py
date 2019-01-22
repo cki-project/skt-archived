@@ -14,36 +14,51 @@
 """Class for managing Publisher."""
 import logging
 import os
-import shutil
 import subprocess
-
-from abc import ABCMeta, abstractmethod
 
 from skt.misc import join_with_slash
 
 
 class Publisher(object):
-    """An abstract result publisher."""
-    __metaclass__ = ABCMeta
+    """Publish artifacts to destinations.."""
 
-    TYPE = 'default'
-
-    def __init__(self, dest, url):
+    def __init__(self, pub_type=None, source=None, dest=None, baseurl=None):
         """
         Initialize an abstract result publisher.
 
         Args:
-            dest:   Type-specific destination string.
-            url:    Base URL prefix of the published result,
-                    without '/' on the end.
+            pub_type:   A type of publisher found in this class.
+            source:     Current location of the artifact to be published.
+            dest:       A destination for the artifact.
+            baseurl:    Base URL of the published result without a
+                        trailing slash.
         """
-        self.destination = dest
-        self.baseurl = url
+        self.pub_type = pub_type
+        self.source = source
+        self.destination = join_with_slash(dest, "")
+        self.baseurl = baseurl
 
-        logging.info("publisher type: %s", self.TYPE)
-        logging.info("publisher destination: %s", self.destination)
+    def publish(self):
+        """
+        Publish an artifact and return the URL to the file.
 
-    def geturl(self, source):
+        Returns:
+            Published URL corresponding to the specified source.
+
+        """
+        # NOTE(mhayden): scp can handle local file copies properly. Both
+        # 'cp' and 'scp' are left here for backwards compatibility.
+        if self.pub_type in ['cp', 'scp']:
+            self.scp()
+        else:
+            raise(
+                KeyError,
+                "Publisher type not supported: {}".format(self.pub_type)
+            )
+
+        return self.geturl()
+
+    def geturl(self):
         """
         Get published URL for a source file path.
 
@@ -52,99 +67,21 @@ class Publisher(object):
 
         Returns:
             Published URL corresponding to the specified source.
+
         """
-        return join_with_slash(self.baseurl, os.path.basename(source))
+        return join_with_slash(self.baseurl, os.path.basename(self.source))
 
-    @abstractmethod
-    def publish(self, source):
-        """
-        Override this method to publish results in Publisher super-class
-        specific way.
+    def scp(self):
+        """Use scp to copy the source to the destination."""
+        # Create the destination directory.
+        if not os.path.isdir(self.destination):
+            os.makedirs(self.destination)
 
-        Args:
-            source: Source file path.
-
-        Returns:
-            Published URL corresponding to the specified source.
-        """
-        pass
-
-
-class CpPublisher(Publisher):
-    """A copy publisher that copies source to destination."""
-    TYPE = 'cp'
-
-    def publish(self, source):
-        """
-        Copy the source file to public destination.
-
-        Args:
-            source: Source file path.
-
-        Returns:
-            Published URL corresponding to the specified source.
-        """
-        destination = join_with_slash(self.destination, "")
-        shutil.copy(source, destination)
-        return self.geturl(source)
-
-
-class ScpPublisher(Publisher):
-    """A SCP publisher that copies source to (remote) destination."""
-    TYPE = 'scp'
-
-    def publish(self, source):
-        """
-        Copy the source file to public destination.
-
-        Args:
-            source: Source file path.
-
-        Returns:
-            Published URL corresponding to the specified source.
-        """
-        destination = join_with_slash(self.destination, "")
-        subprocess.check_call(["scp", source, destination])
-        return self.geturl(source)
-
-
-class SftpPublisher(Publisher):
-    """A sftp publisher that copies source to (remote) destination."""
-    TYPE = 'sftp'
-
-    def publish(self, source):
-        """
-        Copy the source file to public destination.
-
-        Args:
-            source: Source file path.
-
-        Returns:
-            Published URL corresponding to the specified source.
-        """
-        proc = subprocess.Popen(['sftp', self.destination],
-                                stdin=subprocess.PIPE)
-        proc.stdin.write("put -r %s\n" % source)
-        proc.stdin.close()
-        proc.wait()
-        return self.geturl(source)
-
-
-def getpublisher(ptype, parg, pburl):
-    """
-    Create an instance of a "publisher" subclass with specified arguments.
-
-    Args:
-        rtype:  The value of the class "TYPE" member to match.
-        rarg:   A dictionary with the instance creation arguments.
-
-    Returns:
-        The created class instance.
-
-    Raises:
-        ValueError if the rtype match wasn't found.
-    """
-    for cls in Publisher.__subclasses__():
-        if cls.TYPE == ptype:
-            return cls(parg, pburl)
-    raise ValueError("Unknown publisher type: %s" % ptype)
+        # Copy the files.
+        logging.debug(
+            "copying file with scp: %s > %s",
+            self.source,
+            self.destination
+        )
+        args = ['scp', '-r', self.source, self.destination]
+        subprocess.check_call(args)
