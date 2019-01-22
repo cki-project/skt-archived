@@ -132,3 +132,15 @@ def fake_has_soaking(self, testname):
         return 1
 
     return None
+
+
+def fake_increase_test_runcount(self, testname, amount=1):
+    """ Fake function to mock increase_test_runcount of SoakWrap.
+
+    """
+    # pylint: disable=unused-argument
+    try:
+        fake_increase_test_runcount.fake_stats[testname] += amount
+    except AttributeError:
+        fake_increase_test_runcount.fake_stats = {}
+        fake_increase_test_runcount.fake_stats[testname] = amount

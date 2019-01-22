@@ -30,6 +30,7 @@ from skt.misc import SKT_FAIL, SKT_SUCCESS
 
 from tests import misc
 from tests.misc import fake_has_soaking
+from tests.misc import fake_increase_test_runcount
 
 SCRIPT_PATH = os.path.dirname(__file__)
 
@@ -640,3 +641,30 @@ class TestRunner(unittest.TestCase):
                                       'Completed')
 
         self.assertEqual(result, SKT_FAIL)
+
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_soak_update_run(self, mock_jobsubmit, mock_getresultstree):
+        """ Ensure that soaking tests in redis database have their runcount
+            updated.
+        """
+
+        beaker_xml = misc.get_asset_content('beaker_wait_pass.xml')
+        mock_getresultstree.return_value = fromstring(beaker_xml)
+        mock_jobsubmit.return_value = "J:0001"
+
+        # no need to wait 60 seconds
+        # though beaker_pass_results.xml only needs one iteration
+        self.myrunner.watchdelay = 0.1
+
+        # use fake method that has soaking set for certain tasks
+        with mock.patch('skt.misc.SoakWrap.has_soaking', fake_has_soaking):
+            with mock.patch('skt.misc.SoakWrap.increase_test_runcount',
+                            fake_increase_test_runcount):
+
+                result = misc.exec_on(self.myrunner, mock_jobsubmit,
+                                      'beaker_wait_pass.xml', 5, 'Completed')
+                self.assertEqual(SKT_SUCCESS, result)
+
+            count = fake_increase_test_runcount.fake_stats['/test/we/ran']
+            self.assertEqual(count, 1)

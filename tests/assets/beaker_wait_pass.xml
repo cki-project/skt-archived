@@ -1,0 +1,56 @@
+<job id="0001">
+  <whiteboard>
+    skt 4.17.0-rc1+ 1234567890.tar.gz [noavc] [noselinux]
+  </whiteboard>
+  <recipeSet>
+    <recipe result='Pass' status='Completed' id="123">
+      <logs>
+        <log name='console.log' href="http://example.com/">
+          TEST RESULT
+        </log>
+      </logs>
+      <task name='/test/misc/machineinfo' result="Warn">
+        <logs>
+          <log name='machinedesc.log' href="http://example.com/machinedesc.log">
+          </log>
+          <log name='lshw.log' href="http://example.com/lshw.log">
+          </log>
+        </logs>
+      </task>
+      <task name='/distribution/install' result='Pass'>
+      </task>
+    </recipe>
+  </recipeSet>
+  <recipeSet>
+    <recipe result='Pass' status='Completed' id="456456">
+      <logs>
+        <log name='console.log' href="http://example.com/">
+          TEST RESULT
+        </log>
+      </logs>
+      <task name='/test/misc/machineinfo'>
+        <logs>
+          <log name='machinedesc.log' href="http://example.com/machinedesc.log">
+          </log>
+          <log name='lshw.log' href="http://example.com/lshw.log">
+          </log>
+        </logs>
+      </task>
+      <task name='/distribution/install' result='Pass'>
+      </task>
+    </recipe>
+  </recipeSet>
+    <recipeSet>
+    <recipe result='Pass' status='Waiting' id="123123">
+      <logs>
+        <log name='console.log' href="http://example.com/">
+          TEST RESULT
+        </log>
+      </logs>
+
+      <task name='/distribution/install' result='Pass' />
+      <task name='/test/we/ran' result="Pass"/>
+
+    </recipe>
+  </recipeSet>
+</job>
