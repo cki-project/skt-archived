@@ -36,7 +36,8 @@ class KBuilderTest(unittest.TestCase):
         self.tmpconfig = tempfile.NamedTemporaryFile()
         self.kbuilder = kernelbuilder.KernelBuilder(
             self.tmpdir,
-            self.tmpconfig.name
+            self.tmpconfig.name,
+            make_target='targz-pkg',
         )
         self.m_popen = Mock()
         self.m_popen.returncode = 0
@@ -115,10 +116,7 @@ class KBuilderTest(unittest.TestCase):
         self.assertEqual('s390x', result)
 
     def test_get_cross_compiler_prefix(self):
-        """
-        Ensure __get_cross_compiler_prefix() returns the CROSS_COMPILE
-        environment variable.
-        """
+        """Ensure CROSS_COMPILE environment variable is returned."""
         # pylint: disable=W0212,E1101
         os.environ['CROSS_COMPILE'] = 'powerpc64-linux-gnu-'
         build = self.kbuilder
@@ -126,75 +124,14 @@ class KBuilderTest(unittest.TestCase):
 
         self.assertEqual('powerpc64-linux-gnu-', result)
 
-    def test_mktgz_parsing_error(self):
-        """Check if ParsingError is raised when no kernel found in stdout."""
-        with open(self.kbuilder.buildlog, 'w') as fileh:
-            fileh.write("log1\nlog2\nlog3")
-
-        with self.m_multipipe:
-            with self.assertRaises(kernelbuilder.ParsingError):
-                self.kbuilder.mktgz()
-
-    # @mock.patch('skt.kernelbuilder.KernelBuilder.run_multipipe')
-    # def test_mktgz_ioerror(self, mock_multipipe):
-    #     """Check if IOError is raised when tarball path does not exist."""
-    #     mock_multipipe.return_value = self.m_popen
-    #     with self.assertRaises(IOError):
-    #         self.kbuilder.mktgz()
-
-    def test_mktgz_make_fail(self):
-        """Ensure exception is raised when make command fails to spawn."""
-        with self.m_multipipe as m_multipipe:
-            m_multipipe.return_value = 1
-            with self.assertRaises(subprocess.CalledProcessError):
-                self.kbuilder_mktgz_silent()
-
-    def test_mktgz_success(self):
-        """Check if mktgz can finish successfully."""
-        # Write a valid buildlog.
-        with open(self.kbuilder.buildlog, 'w') as fileh:
-            fileh.write(
-                "Tarball successfully created in "
-                "./linux-4.16.0.tar.gz\n"
-            )
-
-        self.m_multipipe.returncode = 0
-        with open(os.path.join(self.tmpdir, self.kernel_tarball), 'w'):
-            pass
-        with self.m_multipipe:
-            full_path = self.kbuilder_mktgz_silent()
-            self.assertEqual(
-                os.path.join(self.tmpdir, self.kernel_tarball),
-                full_path
-            )
-
-    def test_mktgz_missing_kernel(self):
-        """Ensure an IOError appears if the kernel package is missing."""
-        # Write a buildlog that refers to a kernel that does not exist.
-        with open(self.kbuilder.buildlog, 'w') as fileh:
-            fileh.write(
-                "Tarball successfully created in "
-                "./linux-4.16.0.tar.gz-missing\n"
-            )
-
-        with self.m_multipipe:
-            with open(os.path.join(self.tmpdir, self.kernel_tarball), 'w'):
-                pass
-            with self.assertRaises(IOError):
-                self.kbuilder.mktgz()
-
-    def kbuilder_mktgz_silent(self, *args, **kwargs):
-        """Run self.kbuilder.mktgz with disabled output."""
-        with mock.patch('sys.stdout'):
-            return self.kbuilder.mktgz(*args, **kwargs)
-
     def test_extra_make_args(self):
         """Ensure KernelBuilder handles extra_make_args properly."""
         extra_make_args_example = '-j10'
         kbuilder = kernelbuilder.KernelBuilder(
             self.tmpdir,
             self.tmpconfig.name,
-            extra_make_args=extra_make_args_example
+            extra_make_args=extra_make_args_example,
+            make_target='targz-pkg'
         )
         self.assertEqual(kbuilder.extra_make_args, [extra_make_args_example])
 
@@ -294,3 +231,125 @@ class KBuilderTest(unittest.TestCase):
             self.assertEqual(expected_args, check_call_args[0])
 
         mock_adjust_cfg.assert_called()
+
+    def test_build_tarball(self):
+        """Test the building and handling of tarballs."""
+        kbuilder = kernelbuilder.KernelBuilder(
+            self.tmpdir,
+            self.tmpconfig.name,
+            make_target='targz-pkg',
+        )
+
+        # Test with a build log that contains no tarball lines at all.
+        with open(kbuilder.buildlog, 'w') as fileh:
+            fileh.write("This is a sample line without a tarball.")
+        with self.m_multipipe, self.assertRaises(kernelbuilder.ParsingError):
+            kbuilder.compile_kernel()
+
+        # Add the tarball to the build log, but don't write a matching file
+        # to the filesystem.
+        with open(kbuilder.buildlog, 'w+') as fileh:
+            fileh.write(self.success_str)
+
+        with self.m_multipipe, self.assertRaises(IOError):
+            kbuilder.compile_kernel()
+
+        # Create a real matching tarball so this will complete with success.
+        test_tarball = "{}/{}".format(kbuilder.source_dir, self.kernel_tarball)
+        with open(test_tarball, 'w') as fileh:
+            fileh.write("Kernel data")
+
+        with self.m_multipipe:
+            fpath = kbuilder.compile_kernel()
+
+        self.assertEqual(test_tarball, fpath)
+
+    def test_build_rpm(self):
+        """Test the building and handling of RPMs."""
+        kbuilder = kernelbuilder.KernelBuilder(
+            self.tmpdir,
+            self.tmpconfig.name,
+            make_target='binrpm-pkg',
+        )
+
+        test_rpms = [
+            "{}/linux-4.20.rpm".format(self.tmpdir),
+            "{}/linux-headers-4.20.rpm".format(self.tmpdir)
+        ]
+
+        # Test with a build log that contains no RPM lines at all.
+        with open(kbuilder.buildlog, 'w') as fileh:
+            fileh.write("This is a sample line without RPMs.")
+        with self.m_multipipe, self.assertRaises(kernelbuilder.ParsingError):
+            kbuilder.compile_kernel()
+
+        # Add the RPMs to the build log, but don't write any matching files
+        # to the filesystem.
+        with open(kbuilder.buildlog, 'w+') as fileh:
+            for test_rpm in test_rpms:
+                fileh.write("Wrote: {}\n".format(test_rpm))
+
+        with self.m_multipipe, self.assertRaises(IOError):
+            kbuilder.compile_kernel()
+
+        # Create real files for our RPMs so this will complete with success.
+        for test_rpm in test_rpms:
+            with open(test_rpm, 'w') as fileh:
+                fileh.write("Kernel data")
+
+        # Ensure compile_kernel can handle an existing repo directory.
+        os.mkdir("{}/rpm_repo".format(kbuilder.source_dir))
+
+        with self.m_multipipe:
+            fpath = kbuilder.compile_kernel()
+
+        self.assertEqual("{}/rpm_repo/".format(kbuilder.source_dir), fpath)
+
+    def test_bad_make_target(self):
+        """Test what happens when an unsupported make target is used."""
+        with self.m_multipipe, self.assertRaises(KeyError):
+            kernelbuilder.KernelBuilder(
+                self.tmpdir,
+                self.tmpconfig.name,
+                make_target='"this-is-not-a-make-target-silly"',
+            )
+
+    def test_compile_failures(self):
+        """Ensure compile_kernel() handles compile failures properly."""
+        # Exit code 1 should throw a CalledProcessError.
+        with self.m_multipipe as m_multipipe:
+            m_multipipe.return_value = 1
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.kbuilder.compile_kernel()
+
+        # Exit code 1 should throw a CalledProcessError.
+        with self.m_multipipe as m_multipipe:
+            m_multipipe.return_value = 124
+            with self.assertRaises(kernelbuilder.CommandTimeoutError):
+                self.kbuilder.compile_kernel()
+
+    def test_reset_buildlog(self):
+        """Test resetting the buildlog when it is present."""
+        # pylint: disable=W0212,E1101
+        with open(self.kbuilder.buildlog, 'w') as fileh:
+            fileh.write('foo')
+
+        self.kbuilder._KernelBuilder__reset_build_log()
+
+        with open(self.kbuilder.buildlog, 'r') as fileh:
+            buildlog = fileh.read()
+
+        self.assertNotIn('foo', buildlog)
+
+    def test_rpm_repo_failure(self):
+        """Test exception when the RPM repo fails to create."""
+        kbuilder = kernelbuilder.KernelBuilder(
+            self.tmpdir,
+            self.tmpconfig.name,
+            make_target='binrpm-pkg',
+        )
+
+        with self.m_multipipe as m_multipipe:
+            m_multipipe.return_value = 1
+            with self.assertRaises(subprocess.CalledProcessError):
+                kbuilder.make_rpm_repo([])

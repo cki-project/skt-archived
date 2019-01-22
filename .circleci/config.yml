@@ -21,7 +21,7 @@ defaults: &defaults
             --fetch-depth 1
         working_directory: /tmp/skt_test
     - run:
-        name: Test `skt build`
+        name: Test `skt build` with tarball
         command: |
             skt -vv --state -d workdir --rc sktrc build -c config \
                 --cfgtype tinyconfig
@@ -35,6 +35,12 @@ defaults: &defaults
         command: |
             skt -vv --state -d workdir --rc sktrc report \
                 --reporter stdio
+        working_directory: /tmp/skt_test
+    - run:
+        name: Test `skt build` with RPM
+        command: |
+            skt -vv --state -d workdir --rc sktrc build -c config \
+                --cfgtype tinyconfig --make-target binrpm-pkg
         working_directory: /tmp/skt_test
     - store_artifacts:
         path: /tmp/skt_test/workdir/*.log
