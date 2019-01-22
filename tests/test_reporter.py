@@ -24,7 +24,7 @@ import mock
 import responses
 
 from skt import reporter
-from tests.misc import FakeRedisEmpty, FakeRedis
+from tests.misc import fake_has_soaking
 
 
 SCRIPT_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -105,9 +105,13 @@ class TestStdioReporter(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        # Mock-patch redis db
-        self.mock_redis = mock.patch('redis.Redis', FakeRedisEmpty)
+        self.mock_redis = mock.patch('redis.Redis',
+                                     lambda *args, **kwargs: None)
         self.mock_redis.start()
+        # return no soaking info for anything by default
+        self.mock_soak_wrap = mock.patch('skt.misc.SoakWrap.has_soaking',
+                                         lambda x, y: None)
+        self.mock_soak_wrap.start()
         # Write a kernel .config file
         self.tmpdir = tempfile.mkdtemp()
         self.tempconfig = "{}/.config".format(self.tmpdir)
@@ -161,8 +165,10 @@ class TestStdioReporter(unittest.TestCase):
         if os.path.isdir(self.tmpdir):
             shutil.rmtree(self.tmpdir)
 
-        self.mock_redis.stop()
+        self.mock_soak_wrap.stop()
         self.mock_env.stop()
+
+        self.mock_redis.stop()
 
     def make_file(self, filename, content="Test file"):
         """Create test files, such as a logs, configs, etc."""
@@ -380,7 +386,7 @@ class TestStdioReporter(unittest.TestCase):
 
         testprint = StringIO.StringIO()
 
-        with mock.patch('redis.Redis', FakeRedis):
+        with mock.patch('skt.misc.SoakWrap.has_soaking', fake_has_soaking):
             rptclass = reporter.StdioReporter(self.basecfg)
             rptclass.report(printer=testprint)
 

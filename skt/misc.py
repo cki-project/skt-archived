@@ -16,7 +16,6 @@ import cookielib
 from email.errors import HeaderParseError
 import email.header
 import email.parser
-import json
 import logging
 import os
 import re
@@ -31,16 +30,63 @@ SKT_FAIL = 1
 SKT_ERROR = 2
 
 
-def connect_redis():
+class SoakWrap(object):
+    """ This handles getting/updating soaking data and simplifies mocking."""
+    def __init__(self, redis_inst):
+        # redis instance to allow getting/setting data
+        self.redis_inst = redis_inst
+
+    def has_soaking(self, testname):
+        """ Check redis if the test is being soaked.
+            Args:
+                testname: the name of the test to get info for
+
+            Returns:
+                1 - test is soaking
+                0 - test is not soaking
+                None - test is onboarded
+        """
+
+        # turns to no-op if we don't have redis connected
+        if not self.redis_inst:
+            return None
+
+        with self.redis_inst.pipeline(transaction=True) as pipe:
+            return pipe.hmget(testname, 'enabled').execute()[0][0]
+
+    def increase_test_runcount(self, testname, amount=1):
+        """ Atomic runcount update for a test by amount.
+            Args:
+                testname: the name of the test to update info for
+                amount:   increase runcount by X
+        """
+
+        # turns to no-op if we don't have redis connected
+        if not self.redis_inst:
+            return
+
+        with self.redis_inst.pipeline(transaction=True) as pipe:
+            pipe.hincrby(testname, 'runcount', amount=amount).execute()
+
+
+def connect_redis(soak):
     """ Connect to redis service inside the container using <REDIS_SERVICE>
     {_SERVICE_HOST,_SERVICE_PORT}.
+
+    Args:
+        soak: True if we want to enable soaking and conenct to redis
     Returns:
-        connected redis.Redis instance
+        SoakWrap object
     """
 
     redis_inst = None
     redis_service = os.environ.get('REDIS_SERVICE', None)
-    if redis_service:
+    if not soak:
+        logging.info(
+            "Soaking disabled -- "
+            "skt will NOT hide failing soaking tests or update stats"
+        )
+    elif redis_service:
         # Two environment variables should be present:
         #   _SERVICE_HOST -> IP address of redis server
         #   _SERVICE_PORT -> port that redis server listens on
@@ -54,31 +100,10 @@ def connect_redis():
     else:
         logging.info(
             "Cannot find REDIS_SERVICE environment variable -- "
-            "skt will NOT hide failing soaking tests"
+            "skt will NOT hide failing soaking tests or update stats"
         )
 
-    return redis_inst
-
-
-def taskname2soak(redis_inst, task_name, attr):
-    """ Returns soaking information attribute attr for task_name
-        if redis instance exists. Otherwise returns None.
-
-    Args:
-        redis_inst: connected redis.Redis instance
-        task_name:  name of the task to get soaking information for
-        attr:       attribute of soaking to return
-    Returns:
-        soaking attribute (str) or None
-    """
-    try:
-        val = redis_inst.get(task_name)
-        res = json.loads(val)['soaking'][attr]
-
-    except (KeyError, AttributeError, TypeError):
-        res = None
-
-    return res
+    return SoakWrap(redis_inst)
 
 
 def join_with_slash(base, *suffix_tuple):
