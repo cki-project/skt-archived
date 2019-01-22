@@ -29,7 +29,7 @@ from skt import runner
 from skt.misc import SKT_FAIL, SKT_SUCCESS
 
 from tests import misc
-from tests.misc import FakeRedisEmpty, FakeRedis
+from tests.misc import fake_has_soaking
 
 SCRIPT_PATH = os.path.dirname(__file__)
 
@@ -44,8 +44,13 @@ class TestRunner(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_redis = mock.patch('redis.Redis', FakeRedisEmpty)
+        self.mock_redis = mock.patch('redis.Redis',
+                                     lambda *args, **kwargs: None)
         self.mock_redis.start()
+        # return no soaking info for anything by default
+        self.mock_soak_wrap = mock.patch('skt.misc.SoakWrap.has_soaking',
+                                         lambda x, y: None)
+        self.mock_soak_wrap.start()
 
         self.myrunner = runner.BeakerRunner(**DEFAULT_ARGS)
 
@@ -62,6 +67,7 @@ class TestRunner(unittest.TestCase):
         self.mock_env = mock.patch.dict('os.environ', mock_env_vars)
 
     def tearDown(self):
+        self.mock_soak_wrap.stop()
         self.mock_redis.stop()
 
     def test_get_kpkginstall_task(self):
@@ -586,7 +592,7 @@ class TestRunner(unittest.TestCase):
 
         with self.mock_env:
             # use redis that has soaking set for certain tasks
-            with mock.patch('redis.Redis', FakeRedis):
+            with mock.patch('skt.misc.SoakWrap.has_soaking', fake_has_soaking):
                 result = misc.exec_on(self.myrunner, mock_jobsubmit,
                                       'beaker_results.xml', 5, 'Completed')
                 self.assertEqual(SKT_SUCCESS, result)
@@ -626,7 +632,7 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
 
-        with mock.patch('redis.Redis', FakeRedis):
+        with mock.patch('skt.misc.SoakWrap.has_soaking', fake_has_soaking):
             with self.mock_env:
                 # use a empty redis - no tests soaking, failure will show
                 result = misc.exec_on(self.myrunner, mock_jobsubmit,

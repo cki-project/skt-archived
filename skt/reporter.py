@@ -27,7 +27,6 @@ from jinja2 import Environment, FileSystemLoader
 
 from skt.console import gzipdata
 from skt.misc import get_patch_name, get_patch_mbox
-from skt.misc import taskname2soak
 import skt.runner
 
 # Determine the absolute path to this script and the directory which holds
@@ -146,7 +145,7 @@ class Reporter(object):
         # or not
         self.soak = cfg.get('soak')
         # Here's our redis object instance
-        self.redis_inst = None if not self.soak else skt.misc.connect_redis()
+        self.soak_wrap = skt.misc.connect_redis(self.soak)
 
     def __stateconfigdata(self, mergedata):
         # Store the repo URL, base commit SHA, and subject for that commit.
@@ -318,8 +317,7 @@ class Reporter(object):
                     task_url = ''
 
                     # None or '1' or '0'
-                    task_soaking = taskname2soak(self.redis_inst, task_name,
-                                                 'enabled')
+                    task_soaking = self.soak_wrap.has_soaking(task_name)
 
                     # Find git source, if any
                     fetch = task_node.find('fetch')

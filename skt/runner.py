@@ -25,7 +25,7 @@ from abc import ABCMeta, abstractmethod
 from defusedxml.ElementTree import fromstring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
-from skt.misc import connect_redis, taskname2soak
+from skt.misc import connect_redis
 
 
 class Runner(object):
@@ -109,7 +109,7 @@ class BeakerRunner(Runner):
         # if True, keep soaking tests hidden for this run
         self.soak = None
         # redis instance
-        self.redis_inst = None
+        self.soak_wrap = None
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -227,7 +227,7 @@ class BeakerRunner(Runner):
             name = task.attrib.get('name')
             # look it up by redis to see if soaking is enabled, or just
             # assume this is a normal test
-            soaking = taskname2soak(self.redis_inst, name, 'enabled')
+            soaking = self.soak_wrap.has_soaking(name)
 
             if task.attrib.get('result') in result and soaking is not None:
 
@@ -611,7 +611,7 @@ class BeakerRunner(Runner):
         self.aborted_count = 0
         self.max_aborted = max_aborted
         self.soak = soak
-        self.redis_inst = connect_redis() if soak else None
+        self.soak_wrap = connect_redis(self.soak)
 
         try:
             job_xml_tree = fromstring(self.__getxml(

@@ -12,7 +12,6 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Miscellaneous for tests."""
-import json
 import os
 
 import mock
@@ -124,28 +123,12 @@ def exec_on(myrunner, mock_jobsubmit, xml_asset_file, max_aborted,
     return result
 
 
-class FakeRedisEmpty(object):
-    """ A fake redis object for mocking that returns no soaking information
-        for everything."""
-    # pylint: disable=too-few-public-methods
-    def __init__(self, *args, **kwargs):
-        pass
+def fake_has_soaking(self, testname):
+    """ Fake function to mock has_soaking of SoakWrap.
+        Returns 1 for few selected tests.
+    """
+    # pylint: disable=unused-argument
+    if testname in ['/test/misc/machineinfo', '/test/we/ran']:
+        return 1
 
-    def get(self, key):
-        """return no-soaking-at-all for all tasks"""
-
-
-class FakeRedis(FakeRedisEmpty):
-    """ A fake redis object for mocking that returns soaking information
-        for some tests."""
-    # pylint: disable=too-few-public-methods,inconsistent-return-statements
-
-    def get(self, key):
-        """ Return soaking info for tests below."""
-        if key in ['/test/misc/machineinfo', '/test/we/ran']:
-            data = {
-                'soaking': {
-                    'enabled': "1"
-                }
-            }
-            return json.dumps(data)
+    return None
