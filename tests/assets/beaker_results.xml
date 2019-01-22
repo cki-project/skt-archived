@@ -13,6 +13,9 @@
       </logs>
       <task name="/test/misc/boottest" result="Failed"><fetch url="kpkginstall"/></task>
       <task name='/test/misc/machineinfo' result="Failed">
+        <params>
+          <param name="_WAIVED" value="true"/>
+        </params>
         <logs>
           <log name='machinedesc.log' href="http://example.com/machinedesc.log">
           </log>

@@ -316,15 +316,15 @@ class Reporter(object):
                     task_status = task_node.attrib['status']
                     task_url = ''
 
-                    # None or '1' or '0'
-                    task_soaking = self.soak_wrap.has_soaking(task_name)
+                    task_soaking = self.soak and self.soak_wrap.\
+                        is_soaking(task_node)
 
                     # Find git source, if any
                     fetch = task_node.find('fetch')
                     if fetch is not None:
                         task_url = fetch.attrib.get('url')
 
-                    if task_soaking is not None and task_result != 'Pass':
+                    if task_soaking and task_result != 'Pass':
                         # Don't add unsucessful tasks that are soaking.
                         continue
 

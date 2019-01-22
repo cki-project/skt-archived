@@ -36,23 +36,25 @@ class SoakWrap(object):
         # redis instance to allow getting/setting data
         self.redis_inst = redis_inst
 
-    def has_soaking(self, testname):
+    @classmethod
+    def is_soaking(cls, task):
         """ Check redis if the test is being soaked.
             Args:
-                testname: the name of the test to get info for
+                task: xml node
 
-            Returns:
-                1 - test is soaking
-                0 - test is not soaking
-                None - test is onboarded
+            Returns: True if test is soaking, otherwise False
         """
+        is_soaking = False
+        for param in task.findall('.//param'):
+            try:
+                if param.attrib.get('name').lower() == '_waived' and \
+                        param.attrib.get('value').lower() == 'true':
+                    is_soaking = True
+                    break
+            except ValueError:
+                pass
 
-        # turns to no-op if we don't have redis connected
-        if not self.redis_inst:
-            return None
-
-        with self.redis_inst.pipeline(transaction=True) as pipe:
-            return pipe.hmget(testname, 'enabled').execute()[0][0]
+        return is_soaking
 
     def increase_test_runcount(self, testname, amount=1):
         """ Atomic runcount update for a test by amount.
