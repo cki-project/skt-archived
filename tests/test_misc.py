@@ -15,6 +15,8 @@
 from email.errors import HeaderParseError
 import unittest
 
+from defusedxml.ElementTree import fromstring
+
 import mock
 import requests
 import responses
@@ -24,6 +26,25 @@ import skt.misc
 
 class TestIndependent(unittest.TestCase):
     """Test cases for independent functions in misc.py."""
+
+    def test_is_soaking(self):
+        """ Ensure that SoakWrap.is_soaking() works."""
+        soak_wrap = skt.misc.SoakWrap('whatever')
+
+        # test that valid waived param -> True
+        task_soak = '<task> <param name="_WAIVED" value="true" /> </task>'
+        result = soak_wrap.is_soaking(fromstring(task_soak))
+        self.assertTrue(result)
+
+        # test that valid False waived param -> False
+        task_nosoak = '<task> <param name="_WAIVED" value="false" /> </task>'
+        result = soak_wrap.is_soaking(fromstring(task_nosoak))
+        self.assertFalse(result)
+
+        # test that invalid waived param -> False
+        task_invalid = '<task> <param /> </task>'
+        result = soak_wrap.is_soaking(fromstring(task_invalid))
+        self.assertFalse(result)
 
     def test_join_with_slash(self):
         """Ensure join_with_slash return a good url, path string."""

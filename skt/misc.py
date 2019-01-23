@@ -51,7 +51,7 @@ class SoakWrap(object):
                         param.attrib.get('value').lower() == 'true':
                     is_soaking = True
                     break
-            except ValueError:
+            except (ValueError, AttributeError):
                 pass
 
         return is_soaking
