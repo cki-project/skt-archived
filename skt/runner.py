@@ -409,26 +409,21 @@ class BeakerRunner(Runner):
 
         return test_failure, soak_skip
 
-    def task_update_runcount(self, recipe):
-        """ If a test passed, we need to update its runcount.
-            We update runcount without discerning arches, so 1 job may cause
-            e.g. +X runcount, depending on the number of arches.
-
+    def tasks_insert_soak_info(self, recipe):
+        """ For waived tests: on each test run, insert info.
             Args:
-                recipe:
+                recipe: defused xml root of <recipe />
         """
         if self.soak:
             for task in recipe.findall('task'):
-                # get task name ...
-                name = task.attrib.get('name')
-                result = task.attrib.get('result')
-                # look it up by redis to see if soaking is enabled, or just
-                # assume this is a normal test
-
-                if self.soak_wrap.is_soaking(task) and result == 'Pass':
-                    # only update if soaking info is available and soaking
-                    # is enabled (==1)
-                    self.soak_wrap.increase_test_runcount(name)
+                if self.soak_wrap.is_soaking(task):
+                    name = task.attrib.get('name')
+                    result = task.attrib.get('result')
+                    recipe_id = recipe.attrib.get('id')
+                    date = task.attrib.get('start_time').split(' ')[0]
+                    # only update if test is waived
+                    self.soak_wrap.insert_test_run(name, recipe_id, date,
+                                                   result)
 
     def __watchloop(self):
         while self.watchlist:
@@ -458,9 +453,10 @@ class BeakerRunner(Runner):
                         self.watchlist.remove(recipe_set_id)
                         self.recipe_set_results[recipe_set_id] = root
 
-                    if result == 'Pass':
-                        self.task_update_runcount(recipe)
+                    # For waived tests: on each test run, insert info
+                    self.tasks_insert_soak_info(recipe)
 
+                    if result == 'Pass':
                         # some recipe passed, nothing to do here
                         continue
 

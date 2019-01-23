@@ -124,13 +124,24 @@ def exec_on(myrunner, mock_jobsubmit, xml_asset_file, max_aborted,
     return result
 
 
-def fake_increase_test_runcount(self, testname, amount=1):
-    """ Fake function to mock increase_test_runcount of SoakWrap.
+def fake_insert_test_run(self, name, recipe, date, result):
+    """ Fakes insert info about testrun into redis.
 
+        Args:
+            name:   name of the test that ran
+            recipe: recipe number like 123456
+            date:   date when test ran like "2018-12-03"
+            result: testrun result like 'PASS'
     """
     # pylint: disable=unused-argument
+    data2insert = {
+        "date": date,
+        "result": result
+    }
+
+    key = '{}:{}'.format(name, recipe)
     try:
-        fake_increase_test_runcount.fake_stats[testname] += amount
+        fake_insert_test_run.fake_stats[key] = data2insert
     except AttributeError:
-        fake_increase_test_runcount.fake_stats = {}
-        fake_increase_test_runcount.fake_stats[testname] = amount
+        fake_insert_test_run.fake_stats = {}
+        fake_insert_test_run.fake_stats[key] = data2insert

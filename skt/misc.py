@@ -56,19 +56,26 @@ class SoakWrap(object):
 
         return is_soaking
 
-    def increase_test_runcount(self, testname, amount=1):
-        """ Atomic runcount update for a test by amount.
+    def insert_test_run(self, name, recipe, date, result):
+        """ Insert info about testrun into redis.
+            Creates keys like '<testname>:<recipeid>'.
             Args:
-                testname: the name of the test to update info for
-                amount:   increase runcount by X
+                name:   name of the test that ran
+                recipe: recipe number like 123456
+                date:   date when test ran like "2018-12-03"
+                result: testrun result like 'PASS'
         """
-
         # turns to no-op if we don't have redis connected
         if not self.redis_inst:
             return
 
+        data2insert = {
+            "date": date,
+            "result": result
+        }
+
         with self.redis_inst.pipeline(transaction=True) as pipe:
-            pipe.hincrby(testname, 'runcount', amount=amount).execute()
+            pipe.hmset('{}:{}'.format(name, recipe), data2insert).execute()
 
 
 def connect_redis(soak):

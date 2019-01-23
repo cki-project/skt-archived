@@ -29,7 +29,6 @@ from skt import runner
 from skt.misc import SKT_FAIL, SKT_SUCCESS, SKT_ERROR
 
 from tests import misc
-from tests.misc import fake_increase_test_runcount
 
 SCRIPT_PATH = os.path.dirname(__file__)
 
@@ -644,8 +643,7 @@ class TestRunner(unittest.TestCase):
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_soak_update_run(self, mock_jobsubmit, mock_getresultstree):
-        """ Ensure that soaking tests in redis database have their runcount
-            updated.
+        """ Ensure that waived test runs are inserted into redis.
         """
 
         beaker_xml = misc.get_asset_content('beaker_wait_pass.xml')
@@ -656,14 +654,17 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
 
-        # use fake method that has soaking set for certain tasks
-        with mock.patch('skt.misc.SoakWrap.increase_test_runcount',
-                        fake_increase_test_runcount):
-
+        # use fake method to test and gather data
+        with mock.patch('skt.misc.SoakWrap.insert_test_run',
+                        misc.fake_insert_test_run):
             result = misc.exec_on(self.myrunner, mock_jobsubmit,
                                   'beaker_wait_pass.xml', 5, 'Completed',
                                   soak=True)
             self.assertEqual(SKT_SUCCESS, result)
 
-        count = fake_increase_test_runcount.fake_stats['/test/we/ran']
-        self.assertEqual(count, 1)
+            exp_data = {
+                '/test/we/ran:123123':
+                    {'date': '2018-12-04',
+                     'result': 'Pass'}
+            }
+            self.assertEqual(misc.fake_insert_test_run.fake_stats, exp_data)
