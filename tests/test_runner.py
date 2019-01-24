@@ -38,6 +38,13 @@ DEFAULT_ARGS = {
 }
 
 
+def trigger_signal():
+    """ Send SIGTERM to self after 2 seconds."""
+    time.sleep(2)
+    pid = os.getpid()
+    os.kill(pid, signal.SIGTERM)
+
+
 class TestRunner(unittest.TestCase):
     """Test cases for runner module."""
     # (Too many public methods) pylint: disable=too-many-public-methods
@@ -303,12 +310,6 @@ class TestRunner(unittest.TestCase):
     def test_cleanup_called(self, mock_jobsubmit, mock_call):
         """Ensure BeakerRunner.signal_handler works."""
         # pylint: disable=W0613
-        def trigger_signal():
-            """ Send SIGTERM to self after 2 seconds."""
-            time.sleep(2)
-            pid = os.getpid()
-            os.kill(pid, signal.SIGTERM)
-
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
         release = "4.17.0-rc1"
         wait = True
@@ -327,6 +328,33 @@ class TestRunner(unittest.TestCase):
             thread.join()
 
         self.assertTrue(self.myrunner.cleanup_done)
+
+    @mock.patch('subprocess.call')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_cleanup_called2(self, mock_jobsubmit, mock_call):
+        """Ensure BeakerRunner cleanup isn't called twice."""
+        # pylint: disable=W0613
+
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = True
+        mock_jobsubmit.return_value = "J:0001"
+
+        mock_call.return_value = 0
+
+        signal.signal(signal.SIGINT, self.myrunner.signal_handler)
+        signal.signal(signal.SIGTERM, self.myrunner.signal_handler)
+
+        thread = threading.Thread(target=trigger_signal)
+
+        self.myrunner.cleanup_done = True
+
+        thread.start()
+        with self.assertRaises(SystemExit):
+            self.myrunner.run(url, self.max_aborted, release, wait)
+            thread.join()
+
+        self.assertFalse(mock_call.called)
 
     @mock.patch('subprocess.Popen')
     def test_add_to_watchlist(self, mock_popen):
