@@ -11,7 +11,7 @@
           TEST RESULT
         </log>
       </logs>
-      <task name='/test/misc/machineinfo'>
+      <task name='/test/misc/machineinfo' result="Warn">
         <logs>
           <log name='machinedesc.log' href="http://example.com/machinedesc.log">
           </log>
