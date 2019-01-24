@@ -11,8 +11,12 @@
           TEST RESULT
         </log>
       </logs>
-      <task name="/test/misc/boottest" result="Failed"><fetch url="kpkginstall"/></task>
-      <task name='/test/misc/machineinfo' result="Failed">
+      <task name="/test/misc/boottest" result="Fail">
+                <params>
+          <param name="_WAIVED" value="true"/>
+        </params>
+        <fetch url="kpkginstall"/></task>
+      <task name='/test/misc/machineinfo' result="Fail">
         <params>
           <param name="_WAIVED" value="true"/>
         </params>
