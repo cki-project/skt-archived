@@ -15,10 +15,12 @@
 import gzip
 import re
 import StringIO
+import tempfile
 import unittest
 
 from contextlib import contextmanager
 import mock
+import responses
 
 from skt import console
 from tests import misc
@@ -79,6 +81,50 @@ class TestConsoleLog(unittest.TestCase):
         result = consolelog._ConsoleLog__fetchdata()
         self.assertItemsEqual([], result)
 
+    @responses.activate
+    def test_fetchdata_normal(self):
+        """Ensure __fetchdata() works."""
+        # pylint: disable=W0212,E1101
+        responses.add(
+            responses.GET,
+            'http://whatever.example.com/console/log',
+            body=misc.get_asset_content('x86_one_trace.txt'),
+            status=200
+        )
+
+        # get path to trace asset
+        real_path = misc.get_asset_path('x86_one_trace.txt')
+
+        consolelog = console.ConsoleLog(kver='4-5-fake', url_or_path=real_path)
+        result = consolelog._ConsoleLog__fetchdata()
+
+        # check we got expected file content
+        self.assertIn('Linux version 4-5-fake', result[0])
+
+    @responses.activate
+    def test_fetchdata_gz(self):
+        """Ensure __fetchdata() gzip handling works."""
+        # pylint: disable=W0212,E1101
+        content = misc.get_asset_content('x86_one_trace.txt')
+
+        responses.add(
+            responses.GET,
+            'http://whatever.example.com/console/log.bz',
+            body=content,
+            status=200
+        )
+
+        with tempfile.NamedTemporaryFile(delete=True, suffix='.gz') as temp:
+            with gzip.open(temp.name, 'wb') as gzip_file:
+                gzip_file.write(content)
+
+            consolelog = console.ConsoleLog(kver='4-5-fake',
+                                            url_or_path=temp.name)
+            result = consolelog._ConsoleLog__fetchdata()
+
+            # check we got expected file content
+            self.assertIn('Linux version 4-5-fake', result[0])
+
     def test_getfulllog(self):
         """Ensure getfulllog() returns gzipped data."""
         consolelog = console.ConsoleLog(kver='4-4', url_or_path=None)
@@ -103,6 +149,27 @@ class TestConsoleLog(unittest.TestCase):
         """Check one trace can be extracted from a console log."""
         with self.request_get_mocked('x86_one_trace.txt'):
             consolelog = console.ConsoleLog('4-5-fake', 'someurl')
+            traces = consolelog.gettraces()
+            self.assertEqual(len(traces), 1)
+        expected_trace = self.get_expected_traces('x86_one_trace.txt')[0]
+        self.assertEqual(expected_trace, traces[0])
+
+    def test_match_one_trace2(self):
+        """ Check one trace can be extracted from a console log. Check
+            that exclude pattern is skipped.
+        """
+        # pylint: disable=W0212,E1101
+
+        # append OK line to the testing content
+        content = misc.get_asset_content('x86_one_trace.txt').splitlines()
+        content = [content[0], '[166357.530080] aa OK aa'] + content[1:]
+        content = '\n'.join(content) + '\n'
+
+        with tempfile.NamedTemporaryFile(delete=True) as temp:
+            temp.write(content)
+            temp.seek(0)
+
+            consolelog = console.ConsoleLog('4-5-fake', temp.name)
             traces = consolelog.gettraces()
             self.assertEqual(len(traces), 1)
         expected_trace = self.get_expected_traces('x86_one_trace.txt')[0]
