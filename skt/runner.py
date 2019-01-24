@@ -655,7 +655,7 @@ class BeakerRunner(Runner):
                 logging.debug(
                     "Got return code when gathering results: %s", ret
                 )
-        except Exception as exc:
+        except (Exception, BaseException) as exc:
             logging.error(exc)
             if isinstance(exc, SystemExit):
                 # call cleanup handler to kill submitted jobs
