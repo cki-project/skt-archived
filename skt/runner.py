@@ -60,7 +60,7 @@ class Runner(object):
                    SKT_ERROR in case of infrastructure error (exceptions are
                                                               logged)
         """
-        pass
+        pass   # pragma: no cover
 
 
 class BeakerRunner(Runner):
