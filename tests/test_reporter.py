@@ -104,9 +104,6 @@ class TestStdioReporter(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.mock_redis = mock.patch('redis.Redis',
-                                     lambda *args, **kwargs: None)
-        self.mock_redis.start()
         # Write a kernel .config file
         self.tmpdir = tempfile.mkdtemp()
         self.tempconfig = "{}/.config".format(self.tmpdir)
@@ -146,23 +143,11 @@ class TestStdioReporter(unittest.TestCase):
             ),
             'soak': 'True'
         }
-        mock_env_vars = {
-            'REDIS_SERVICE': 'MY_REDIS',
-            'MY_REDIS_SERVICE_HOST': '127.0.0.1',
-            'MY_REDIS_SERVICE_PORT': '6379',
-            'GITLAB_PRIVATE_TOKEN': 'secrete',
-        }
-        self.mock_env = mock.patch.dict('os.environ', mock_env_vars)
-        self.mock_env.start()
 
     def tearDown(self):
         """Tear down text fixtures."""
         if os.path.isdir(self.tmpdir):
             shutil.rmtree(self.tmpdir)
-
-        self.mock_env.stop()
-
-        self.mock_redis.stop()
 
     def make_file(self, filename, content="Test file"):
         """Create test files, such as a logs, configs, etc."""

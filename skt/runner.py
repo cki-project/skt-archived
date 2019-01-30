@@ -25,7 +25,7 @@ from abc import ABCMeta, abstractmethod
 from defusedxml.ElementTree import fromstring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
-from skt.misc import connect_redis
+from skt.misc import SoakWrap
 
 
 class Runner(object):
@@ -108,7 +108,7 @@ class BeakerRunner(Runner):
 
         # if True, keep soaking tests hidden for this run
         self.soak = None
-        # redis instance
+        # soak-wrap interface
         self.soak_wrap = None
 
         logging.info("runner type: %s", self.TYPE)
@@ -209,7 +209,7 @@ class BeakerRunner(Runner):
             raise ValueError("Unknown taskspec type: %s" % taskspec)
 
     def err_on_failing_tasks(self, recipe_result, result):
-        """ Find failing tasks. If they are not soaking or redis isn't used,
+        """ Find failing tasks. If they are not soaking,
             return SKT_FAIL, otherwise None.
 
             Args:
@@ -219,7 +219,7 @@ class BeakerRunner(Runner):
 
             Returns:
                 SKT_FAIL if the tasks isn't failing with expected result,
-                         or isn't soaking or redis isn't used
+                         or isn't soaking
                 None     otherwise - no error
         """
         if self.soak:
@@ -411,27 +411,6 @@ class BeakerRunner(Runner):
 
         return test_failure, soak_skip
 
-    def task_update_runcount(self, recipe):
-        """ If a test passed, we need to update its runcount.
-            We update runcount without discerning arches, so 1 job may cause
-            e.g. +X runcount, depending on the number of arches.
-
-            Args:
-                recipe:
-        """
-        if self.soak:
-            for task in recipe.findall('task'):
-                # get task name ...
-                name = task.attrib.get('name')
-                result = task.attrib.get('result')
-                # look it up by redis to see if soaking is enabled, or just
-                # assume this is a normal test
-
-                if self.soak_wrap.is_soaking(task) and result == 'Pass':
-                    # only update if soaking info is available and soaking
-                    # is enabled (==1)
-                    self.soak_wrap.increase_test_runcount(name)
-
     def __watchloop(self):
         while self.watchlist:
             time.sleep(self.watchdelay)
@@ -461,8 +440,6 @@ class BeakerRunner(Runner):
                         self.recipe_set_results[recipe_set_id] = root
 
                     if result == 'Pass':
-                        self.task_update_runcount(recipe)
-
                         # some recipe passed, nothing to do here
                         continue
 
@@ -633,7 +610,7 @@ class BeakerRunner(Runner):
         self.aborted_count = 0
         self.max_aborted = max_aborted
         self.soak = soak
-        self.soak_wrap = connect_redis(self.soak)
+        self.soak_wrap = SoakWrap(self.soak)
 
         try:
             job_xml_tree = fromstring(self.__getxml(
