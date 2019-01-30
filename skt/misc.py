@@ -16,11 +16,8 @@ import cookielib
 from email.errors import HeaderParseError
 import email.header
 import email.parser
-import logging
-import os
 import re
 
-import redis
 import requests
 
 
@@ -32,13 +29,13 @@ SKT_ERROR = 2
 
 class SoakWrap(object):
     """ This handles getting/updating soaking data and simplifies mocking."""
-    def __init__(self, redis_inst):
-        # redis instance to allow getting/setting data
-        self.redis_inst = redis_inst
+    # pylint: disable=too-few-public-methods
+    def __init__(self, soak):
+        self.soak = soak
 
     @classmethod
     def is_soaking(cls, task):
-        """ Check redis if the test is being soaked.
+        """ Check XML param to see if the test is being soaked.
             Args:
                 task: xml node
 
@@ -55,57 +52,6 @@ class SoakWrap(object):
                 pass
 
         return is_soaking
-
-    def increase_test_runcount(self, testname, amount=1):
-        """ Atomic runcount update for a test by amount.
-            Args:
-                testname: the name of the test to update info for
-                amount:   increase runcount by X
-        """
-
-        # turns to no-op if we don't have redis connected
-        if not self.redis_inst:
-            return
-
-        with self.redis_inst.pipeline(transaction=True) as pipe:
-            pipe.hincrby(testname, 'runcount', amount=amount).execute()
-
-
-def connect_redis(soak):
-    """ Connect to redis service inside the container using <REDIS_SERVICE>
-    {_SERVICE_HOST,_SERVICE_PORT}.
-
-    Args:
-        soak: True if we want to enable soaking and conenct to redis
-    Returns:
-        SoakWrap object
-    """
-
-    redis_inst = None
-    redis_service = os.environ.get('REDIS_SERVICE', None)
-    if not soak:
-        logging.info(
-            "Soaking disabled -- "
-            "skt will NOT hide failing soaking tests or update stats"
-        )
-    elif redis_service:
-        # Two environment variables should be present:
-        #   _SERVICE_HOST -> IP address of redis server
-        #   _SERVICE_PORT -> port that redis server listens on
-        redis_host = os.environ.get('{}_SERVICE_HOST'.format(redis_service))
-        redis_port = os.environ.get('{}_SERVICE_PORT'.format(redis_service))
-        logging.info(
-            "Found REDIS_SERVICE environment variable -- "
-            "skt will hide failing soaking tests"
-        )
-        redis_inst = redis.Redis(host=redis_host, port=redis_port, db=0)
-    else:
-        logging.info(
-            "Cannot find REDIS_SERVICE environment variable -- "
-            "skt will NOT hide failing soaking tests or update stats"
-        )
-
-    return SoakWrap(redis_inst)
 
 
 def join_with_slash(base, *suffix_tuple):

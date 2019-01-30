@@ -27,6 +27,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from skt.console import gzipdata
 from skt.misc import get_patch_name, get_patch_mbox
+from skt.misc import SoakWrap
 import skt.runner
 
 # Determine the absolute path to this script and the directory which holds
@@ -141,11 +142,10 @@ class Reporter(object):
         # We need to save the job IDs when iterating over state files when
         # multireporting
         self.multi_job_ids = []
-        # We need to know if we're looking for soaking tests in xml using redis
-        # or not
+        # We need to know if we're looking for soaking tests in xml or not
         self.soak = cfg.get('soak')
-        # Here's our redis object instance
-        self.soak_wrap = skt.misc.connect_redis(self.soak)
+        # Here's our soak-wrap object instance
+        self.soak_wrap = SoakWrap(self.soak)
 
     def __stateconfigdata(self, mergedata):
         # Store the repo URL, base commit SHA, and subject for that commit.
