@@ -141,7 +141,7 @@ class TestStdioReporter(unittest.TestCase):
                     'jobowner': 'mhayden'
                 }
             ),
-            'soak': 'True'
+            'waiving': 'True'
         }
 
     def tearDown(self):
@@ -308,8 +308,8 @@ class TestStdioReporter(unittest.TestCase):
 
         testprint = StringIO.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
-        # disable soak for this test!
-        rptclass.soak = False
+        # disable waiving for this test!
+        rptclass.waiving = False
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
 
@@ -336,9 +336,9 @@ class TestStdioReporter(unittest.TestCase):
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @responses.activate
-    def test_run_soak_hidden(self, mock_grt):
-        """ Verify stdio report works and that soaking tests are not
-            present in results and that failure on test soaking doesn't
+    def test_run_waived_hidden(self, mock_grt):
+        """ Verify stdio report works and that waived tests are not
+            present in results and that failure on waived test doesn't
             mean a failed run."""
         responses.add(
             responses.GET,
@@ -360,7 +360,7 @@ class TestStdioReporter(unittest.TestCase):
         )
 
         # Expected values:
-        # the return xml has fails, but retcode is 0, because soaking tests
+        # the return xml has fails, but retcode is 0, because waived tests
         # are hidden
         mock_grt.return_value = self.beaker_fail_results
         self.basecfg['retcode'] = '0'
@@ -388,7 +388,7 @@ class TestStdioReporter(unittest.TestCase):
             self.basecfg['baserepo'],
         ]
 
-        # this mustn't be in report, it's soaking and hidden
+        # this mustn't be in report, it's waived and hidden
         missing_strings = [
             '/test/we/ran',
             'Beaker results:',
@@ -682,8 +682,8 @@ class TestStdioReporter(unittest.TestCase):
 
         testprint = StringIO.StringIO()
         rptclass = reporter.StdioReporter(self.basecfg)
-        # disable soak for this test!
-        rptclass.soak = False
+        # disable waiving for this test!
+        rptclass.waiving = False
         rptclass.report(printer=testprint)
         report = testprint.getvalue().strip()
 

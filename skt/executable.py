@@ -395,7 +395,7 @@ def cmd_run(cfg):
                          cfg.get('krelease'),
                          cfg.get('wait'),
                          arch=cfg.get("kernel_arch"),
-                         soak=cfg.get('soak'))
+                         waiving=cfg.get('waiving'))
 
     recipe_set_index = 0
     for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
@@ -575,9 +575,9 @@ def setup_parser():
         default=False
     )
     parser.add_argument(
-        "--soak",
+        "--waiving",
         help=(
-            "Hide soaking tests."
+            "Hide waived tests."
         ),
         type=lambda x: (str(x).lower() == 'true'),
         default=True

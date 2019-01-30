@@ -425,7 +425,7 @@ class TestRunner(unittest.TestCase):
             misc.get_asset_content('beaker_recipe_set_results.xml')
         )
 
-        result = self.myrunner._BeakerRunner__getresults(False)
+        result = self.myrunner._BeakerRunner__getresults()
         self.assertEqual(result, 0)
         mock_logging.assert_called()
 
@@ -433,7 +433,7 @@ class TestRunner(unittest.TestCase):
     def test_getresults_aborted(self, mock_logging):
         """Ensure __getresults() handles all aborted / cancelled jobs."""
         # pylint: disable=W0212,E1101
-        result = self.myrunner._BeakerRunner__getresults(False)
+        result = self.myrunner._BeakerRunner__getresults()
         self.assertEqual(result, 2)
         mock_logging.assert_called()
 
@@ -446,7 +446,7 @@ class TestRunner(unittest.TestCase):
             misc.get_asset_content('beaker_fail_results.xml')
         )
 
-        result = self.myrunner._BeakerRunner__getresults(False)
+        result = self.myrunner._BeakerRunner__getresults()
         self.assertEqual(result, 1)
         mock_logging.assert_called()
 
@@ -567,8 +567,8 @@ class TestRunner(unittest.TestCase):
     def test_run_wait6(self, mock_logging, mock_logging_err, mock_jobsubmit):
         """Ensure BeakerRunner.run works."""
         # pylint: disable=W0613
-        # disable soak for this test!
-        self.myrunner.soak = False
+        # disable waiving for this test!
+        self.myrunner.waiving = False
         # abort right-away ( 0 allowed)
         misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_aborted_some.xml',
                      0)
@@ -596,8 +596,8 @@ class TestRunner(unittest.TestCase):
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_soak_hidden(self, mock_jobsubmit, mock_getresultstree):
-        """ Ensure that soaking tests don't affect overall test result."""
+    def test_waived_hidden(self, mock_jobsubmit, mock_getresultstree):
+        """ Ensure that waived tests don't affect overall test result."""
 
         beaker_xml = misc.get_asset_content('beaker_results.xml')
         mock_getresultstree.return_value = fromstring(beaker_xml)
@@ -609,13 +609,13 @@ class TestRunner(unittest.TestCase):
 
         result = misc.exec_on(self.myrunner, mock_jobsubmit,
                               'beaker_results.xml', 5, 'Completed',
-                              soak=True)
+                              waiving=True)
         self.assertEqual(SKT_SUCCESS, result)
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_soak_fails(self, mock_jobsubmit, mock_getresultstree):
-        """ Ensure that soaking tests don't affect overall
+    def test_waived_fails(self, mock_jobsubmit, mock_getresultstree):
+        """ Ensure that waived tests don't affect overall
             test result. This tests test failure."""
 
         beaker_xml = misc.get_asset_content('beaker_results.xml')
@@ -626,10 +626,10 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
 
-        # soak=False : failure must show
+        # waiving=False : failure must show
         result = misc.exec_on(self.myrunner, mock_jobsubmit,
                               'beaker_results.xml', 5, 'Completed',
-                              soak=False)
+                              waiving=False)
 
         self.assertEqual(result, SKT_FAIL)
 
@@ -637,9 +637,9 @@ class TestRunner(unittest.TestCase):
     @mock.patch('logging.warning')
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_soak_fails2(self, mock_jobsubmit, mock_getresultstree,
-                         mock_warning, mock_error):
-        """ Ensure that soaking tests don't affect overall
+    def test_waived_fails2(self, mock_jobsubmit, mock_getresultstree,
+                           mock_warning, mock_error):
+        """ Ensure that waived tests don't affect overall
             test result. This tests test abort."""
         # pylint: disable=unused-argument
 
@@ -651,9 +651,9 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
 
-        # soak=False : failure must show
+        # waiving=False : failure must show
         result = misc.exec_on(self.myrunner, mock_jobsubmit,
                               'beaker_aborted_some.xml', 5,
-                              'Completed', soak=False)
+                              'Completed', waiving=False)
 
         self.assertEqual(result, SKT_ERROR)

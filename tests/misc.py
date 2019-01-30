@@ -57,7 +57,7 @@ def fake_cancel_pending_jobs(sself):
 
 
 def exec_on(myrunner, mock_jobsubmit, xml_asset_file, max_aborted,
-            alt_state=None, soak=False):
+            alt_state=None, waiving=False):
     """Simulate getting live results from Beaker.
     Feed skt/runner with an XML and change it after a couple of runs.
 
@@ -68,7 +68,7 @@ def exec_on(myrunner, mock_jobsubmit, xml_asset_file, max_aborted,
         max_aborted:    Maximum number of allowed aborted jobs. Abort the
                         whole stage if the number is reached.
         alt_state:      if set, represents a state to transition the job to
-        soak:           enable soaking
+        waiving:        Check for waived tests
     Returns:
         BeakerRunner run() result
 
@@ -117,9 +117,8 @@ def exec_on(myrunner, mock_jobsubmit, xml_asset_file, max_aborted,
     # though beaker_pass_results.xml only needs one iteration
     myrunner.watchdelay = 0.01
 
-    result = myrunner.run(url, max_aborted, release, wait, soak=soak)
+    result = myrunner.run(url, max_aborted, release, wait, waiving=waiving)
 
     mock1.stop()
     mock2.stop()
     return result
-
