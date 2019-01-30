@@ -27,31 +27,31 @@ SKT_FAIL = 1
 SKT_ERROR = 2
 
 
-class SoakWrap(object):
-    """ This handles getting/updating soaking data and simplifies mocking."""
+class WaivingWrap(object):
+    """ This handles getting/updating waived data and simplifies mocking."""
     # pylint: disable=too-few-public-methods
-    def __init__(self, soak):
-        self.soak = soak
+    def __init__(self, waiving):
+        self.waiving = waiving
 
     @classmethod
-    def is_soaking(cls, task):
-        """ Check XML param to see if the test is being soaked.
+    def is_task_waived(cls, task):
+        """ Check XML param to see if the test is waived.
             Args:
                 task: xml node
 
-            Returns: True if test is soaking, otherwise False
+            Returns: True if test is waived, otherwise False
         """
-        is_soaking = False
+        is_task_waived = False
         for param in task.findall('.//param'):
             try:
                 if param.attrib.get('name').lower() == '_waived' and \
                         param.attrib.get('value').lower() == 'true':
-                    is_soaking = True
+                    is_task_waived = True
                     break
             except ValueError:
                 pass
 
-        return is_soaking
+        return is_task_waived
 
 
 def join_with_slash(base, *suffix_tuple):

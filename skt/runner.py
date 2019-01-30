@@ -25,7 +25,7 @@ from abc import ABCMeta, abstractmethod
 from defusedxml.ElementTree import fromstring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
-from skt.misc import SoakWrap
+from skt.misc import WaivingWrap
 
 
 class Runner(object):
@@ -37,7 +37,7 @@ class Runner(object):
 
     @abstractmethod
     def run(self, url, max_aborted, release, wait=False,
-            arch=platform.machine(), soak=True):
+            arch=platform.machine(), waiving=True):
         """
         Abstract method, override this to run tests in <implement. specific>
 
@@ -106,10 +106,10 @@ class BeakerRunner(Runner):
         # determines if termination cleanup was done and all jobs terminated
         self.cleanup_done = False
 
-        # if True, keep soaking tests hidden for this run
-        self.soak = None
-        # soak-wrap interface
-        self.soak_wrap = None
+        # if True, keep waived tests hidden for this run
+        self.waiving = None
+        # waiving-wrap interface
+        self.waiving_wrap = None
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -209,30 +209,30 @@ class BeakerRunner(Runner):
             raise ValueError("Unknown taskspec type: %s" % taskspec)
 
     def err_on_failing_tasks(self, recipe_result, result):
-        """ Find failing tasks. If they are not soaking,
+        """ Find failing tasks. If they are not waived,
             return SKT_FAIL, otherwise None.
 
             Args:
                 recipe_result: a defused xml
                 result:        a list of expected tasks results that are to
-                               be ignored if the task is soaking
+                               be ignored if the task is waived
 
             Returns:
                 SKT_FAIL if the tasks isn't failing with expected result,
-                         or isn't soaking
+                         or isn't waived
                 None     otherwise - no error
         """
-        if self.soak:
+        if self.waiving:
             for task in recipe_result.findall('task'):
-                # look at its _WAIVED attribute to determine if it's soaking
-                soaking = self.soak_wrap.is_soaking(task)
+                # look at its _WAIVED attribute to determine if it's waived...
+                waived = self.waiving_wrap.is_task_waived(task)
 
-                if task.attrib.get('result') in result and soaking:
+                if task.attrib.get('result') in result and waived:
                     return None
 
         return SKT_FAIL
 
-    def __getresults(self, ignr_soak_fails):
+    def __getresults(self):
         """
         Get return code based on the job results.
 
@@ -251,7 +251,7 @@ class BeakerRunner(Runner):
                 results = self.recipe_set_results[recipe_set_id]
                 for recipe_result in results.findall('.//recipe'):
                     if recipe_result.attrib.get('result') != 'Pass':
-                        ret = SKT_FAIL if not ignr_soak_fails else \
+                        ret = SKT_FAIL if not self.waiving else \
                             self.err_on_failing_tasks(recipe_result,
                                                       ['Failed'])
 
@@ -362,7 +362,7 @@ class BeakerRunner(Runner):
 
     def __handle_test_abort(self, recipe, recipe_id, recipe_set_id, root):
         if self.err_on_failing_tasks(recipe, ['Warn', 'Panic']) is None:
-            # A task that is soaking aborted or panicked. Soaking tasks are
+            # A task that is waived aborted or panicked. Waived tasks are
             # appended to the end of the recipe, so we should be able to
             # safely ignore this.
             return
@@ -383,20 +383,20 @@ class BeakerRunner(Runner):
     def __handle_test_fail(self, recipe):
         # Something in the recipe set really reported failure
         test_failure = False
-        # set to True when test failed, but is soaking
-        soak_skip = False
+        # set to True when test failed, but is waived
+        waiving_skip = False
 
         if self.get_kpkginstall_task(recipe) is None:
-            # we don't soak kernel-install task :-)
+            # we don't waiving kernel-install task :-)
             # Assume the kernel was installed by default and
             # everything is a test
             test_failure = True
 
         elif self.err_on_failing_tasks(recipe, ['Failed']) is None:
-            # A task that is soaking failed. Soaking tasks are
+            # A task that is waived failed. Waived tasks are
             # appended to the end of the recipe, so we should be able to
             # safely ignore this.
-            soak_skip = True
+            waiving_skip = True
             # set this just fyi - we will continue anyway
             test_failure = True
         else:
@@ -409,7 +409,7 @@ class BeakerRunner(Runner):
 
                     break
 
-        return test_failure, soak_skip
+        return test_failure, waiving_skip
 
     def __watchloop(self):
         while self.watchlist:
@@ -457,9 +457,9 @@ class BeakerRunner(Runner):
                         continue
 
                     # check for test failure
-                    test_failure, soak_skip = self.__handle_test_fail(recipe)
-                    if soak_skip:
-                        logging.info("recipe %s task(s) failed soaking",
+                    test_failure, waive_skip = self.__handle_test_fail(recipe)
+                    if waive_skip:
+                        logging.info("recipe %s waived task(s) failed",
                                      recipe_id)
                         continue
 
@@ -577,7 +577,7 @@ class BeakerRunner(Runner):
         return jobid
 
     def run(self, url, max_aborted, release, wait=False,
-            arch=platform.machine(), soak=True):
+            arch=platform.machine(), waiving=True):
         """
         Run tests in Beaker.
 
@@ -592,7 +592,7 @@ class BeakerRunner(Runner):
                          in a format accepted by Beaker. Defaults to
                          architecture of the current machine skt is running on
                          if not specified.
-            soak:        Hide tests that are soaking
+            waiving:        Hide tests that are waived
 
         Returns:
             ret where ret can be
@@ -609,8 +609,8 @@ class BeakerRunner(Runner):
         self.completed_recipes = {}
         self.aborted_count = 0
         self.max_aborted = max_aborted
-        self.soak = soak
-        self.soak_wrap = SoakWrap(self.soak)
+        self.waiving = waiving
+        self.waiving_wrap = WaivingWrap(self.waiving)
 
         try:
             job_xml_tree = fromstring(self.__getxml(
@@ -628,7 +628,7 @@ class BeakerRunner(Runner):
 
             if wait:
                 self.wait(jobid)
-                ret = self.__getresults(soak)
+                ret = self.__getresults()
                 logging.debug(
                     "Got return code when gathering results: %s", ret
                 )

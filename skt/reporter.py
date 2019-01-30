@@ -27,7 +27,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from skt.console import gzipdata
 from skt.misc import get_patch_name, get_patch_mbox
-from skt.misc import SoakWrap
+from skt.misc import WaivingWrap
 import skt.runner
 
 # Determine the absolute path to this script and the directory which holds
@@ -142,10 +142,10 @@ class Reporter(object):
         # We need to save the job IDs when iterating over state files when
         # multireporting
         self.multi_job_ids = []
-        # We need to know if we're looking for soaking tests in xml or not
-        self.soak = cfg.get('soak')
-        # Here's our soak-wrap object instance
-        self.soak_wrap = SoakWrap(self.soak)
+        # We need to know if we're looking for waived tests in xml or not
+        self.waiving = cfg.get('waiving')
+        # Here's our waiving-wrap object instance
+        self.waiving_wrap = WaivingWrap(self.waiving)
 
     def __stateconfigdata(self, mergedata):
         # Store the repo URL, base commit SHA, and subject for that commit.
@@ -316,16 +316,16 @@ class Reporter(object):
                     task_status = task_node.attrib['status']
                     task_url = ''
 
-                    task_soaking = self.soak and self.soak_wrap.\
-                        is_soaking(task_node)
+                    is_task_waived = self.waiving and self.waiving_wrap.\
+                        is_task_waived(task_node)
 
                     # Find git source, if any
                     fetch = task_node.find('fetch')
                     if fetch is not None:
                         task_url = fetch.attrib.get('url')
 
-                    if task_soaking and task_result != 'Pass':
-                        # Don't add unsucessful tasks that are soaking.
+                    if is_task_waived and task_result != 'Pass':
+                        # Don't add unsucessful tasks that are waived.
                         continue
 
                     if task_result == 'Pass':
