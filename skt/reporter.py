@@ -431,7 +431,7 @@ class Reporter(object):
                 continue
 
             # Did the tests run for this job?
-            if self.cfg.get('runner'):
+            if self.cfg.get('runner') and self.cfg.get('retcode'):
                 # If the tests failed, mark the result as a test failure.
                 if self.cfg.get('retcode') != '0':
                     self.multireport_failed = MultiReportFailure.TEST

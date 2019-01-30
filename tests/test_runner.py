@@ -12,6 +12,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for runner module."""
+import logging
 import os
 import re
 import signal
@@ -35,6 +36,13 @@ SCRIPT_PATH = os.path.dirname(__file__)
 DEFAULT_ARGS = {
     'jobtemplate': '{}/assets/test.xml'.format(SCRIPT_PATH)
 }
+
+
+def trigger_signal():
+    """ Send SIGTERM to self after 2 seconds."""
+    time.sleep(2)
+    pid = os.getpid()
+    os.kill(pid, signal.SIGTERM)
 
 
 class TestRunner(unittest.TestCase):
@@ -297,16 +305,40 @@ class TestRunner(unittest.TestCase):
         expected_xml = self.test_xml.replace("##ARCH##", "s390x")
         self.assertEqual(result, expected_xml)
 
+    @mock.patch('logging.error')
     @mock.patch('subprocess.call')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_cleanup_called(self, mock_jobsubmit, mock_call):
+    def test_cleanup_called(self, mock_jobsubmit, mock_call, mock_log_err):
         """Ensure BeakerRunner.signal_handler works."""
         # pylint: disable=W0613
-        def trigger_signal():
-            """ Send SIGTERM to self after 2 seconds."""
-            time.sleep(2)
-            pid = os.getpid()
-            os.kill(pid, signal.SIGTERM)
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = True
+        mock_jobsubmit.return_value = "J:0001"
+
+        mock_call.return_value = 0
+
+        signal.signal(signal.SIGINT, self.myrunner.signal_handler)
+        signal.signal(signal.SIGTERM, self.myrunner.signal_handler)
+
+        thread = threading.Thread(target=trigger_signal)
+
+        try:
+            thread.start()
+
+            self.myrunner.run(url, self.max_aborted, release, wait)
+            thread.join()
+        except (KeyboardInterrupt, SystemExit):
+            logging.info('Thread cancelling...')
+
+        self.assertTrue(self.myrunner.cleanup_done)
+
+    @mock.patch('logging.error')
+    @mock.patch('subprocess.call')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_cleanup_called2(self, mock_jobsubmit, mock_call, mock_log_err):
+        """Ensure BeakerRunner cleanup isn't called twice."""
+        # pylint: disable=W0613
 
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
         release = "4.17.0-rc1"
@@ -320,12 +352,17 @@ class TestRunner(unittest.TestCase):
 
         thread = threading.Thread(target=trigger_signal)
 
-        thread.start()
-        with self.assertRaises(SystemExit):
+        self.myrunner.cleanup_done = True
+
+        try:
+            thread.start()
+
             self.myrunner.run(url, self.max_aborted, release, wait)
             thread.join()
+        except (KeyboardInterrupt, SystemExit):
+            logging.info('Thread cancelling...')
 
-        self.assertTrue(self.myrunner.cleanup_done)
+        self.assertFalse(mock_call.called)
 
     @mock.patch('subprocess.Popen')
     def test_add_to_watchlist(self, mock_popen):
