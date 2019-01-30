@@ -345,6 +345,8 @@ class BeakerRunner(Runner):
         Cancelling a part of a job leads to cancelling the entire job.
         So we cancel a job if any of its recipesets is in the watchlist.
         """
+        logging.info('Cancelling pending jobs!')
+
         sets_to_cancel = [recipe_set for recipe_set in self.watchlist.copy()]
         if sets_to_cancel:
             jobs2cancel = filter(lambda job_id: self.job_to_recipe_set_map[
