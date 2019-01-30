@@ -662,11 +662,6 @@ class BeakerRunner(Runner):
                 self.cleanup_handler()
             ret = SKT_ERROR
 
-        if ret == SKT_ERROR:
-            return ret
-        if not wait:
-            return ret
-
         return ret
 
 
