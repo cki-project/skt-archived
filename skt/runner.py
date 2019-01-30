@@ -650,6 +650,9 @@ class BeakerRunner(Runner):
             if wait:
                 self.wait(jobid)
                 ret = self.__getresults(soak)
+                logging.debug(
+                    "Got return code when gathering results: %s", ret
+                )
         except Exception as exc:
             logging.error(exc)
             if isinstance(exc, SystemExit):
