@@ -657,3 +657,30 @@ class TestRunner(unittest.TestCase):
                               'Completed', waiving=False)
 
         self.assertEqual(result, SKT_ERROR)
+
+    @mock.patch('logging.error')
+    @mock.patch('logging.warning')
+    @mock.patch('skt.runner.BeakerRunner.getresultstree')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_fail_and_skip(self, mock_jobsubmit, mock_getresultstree,
+                           mock_warning, mock_error):
+        """ Ensure that a job with failed tasks, no waiving and skipped tests
+            returns SKT_FAIL."""
+        # pylint: disable=unused-argument
+
+        beaker_xml = misc.get_asset_content('beaker_skip_and_fail.xml')
+        mock_getresultstree.return_value = fromstring(beaker_xml)
+        mock_jobsubmit.return_value = "J:0001"
+
+        # no need to wait 60 seconds
+        # though beaker_pass_results.xml only needs one iteration
+        self.myrunner.watchdelay = 0.1
+
+        # For the purposes of this test it's not necessary to flip the state
+        # of the fake Beaker XML job to 'Completed', the asset file already has
+        # that state.
+        result = misc.exec_on(self.myrunner, mock_jobsubmit,
+                              'beaker_skip_and_fail.xml', 5, waiving=False)
+
+        # see method description for details why SKT_FAIL
+        self.assertEqual(SKT_FAIL, result)

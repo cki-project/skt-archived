@@ -1,0 +1,17 @@
+<job id="0001">
+  <whiteboard>
+    skt 4.17.0-rc1+ 1234567890.tar.gz [noavc] [noselinux]
+  </whiteboard>
+    <recipeSet>
+    <recipe result='Fail' status='Completed' id="123123">
+      <logs>
+        <log name='console.log' href="http://example.com/">
+          TEST RESULT
+        </log>
+      </logs>
+      <task name='/distribution/install' result='Pass' status="Completed"/>
+      <task name='/test/we/skipped' result="Skip" status="Completed"/>
+      <task name='/test/we/ran' result="Fail" status="Completed"/>
+    </recipe>
+  </recipeSet>
+</job>

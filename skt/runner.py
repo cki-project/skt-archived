@@ -392,7 +392,7 @@ class BeakerRunner(Runner):
             # everything is a test
             test_failure = True
 
-        elif self.err_on_failing_tasks(recipe, ['Failed']) is None:
+        elif self.err_on_failing_tasks(recipe, ['Fail']) is None:
             # A task that is waived failed. Waived tasks are
             # appended to the end of the recipe, so we should be able to
             # safely ignore this.
@@ -403,7 +403,9 @@ class BeakerRunner(Runner):
             test_list = self.get_recipe_test_list(recipe)
 
             for task in recipe.findall('task'):
-                if task.attrib.get('result') != 'Pass':
+                result = task.attrib.get('result')
+
+                if result != 'Pass' and result != 'Skip':
                     if task.attrib.get('name') in test_list:
                         test_failure = True
 
