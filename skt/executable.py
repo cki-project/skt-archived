@@ -288,6 +288,7 @@ def cmd_build(args):
         update_state(args['rc'], state)
 
     # Attempt to compile the kernel.
+    package_path = None
     try:
         package_path = builder.compile_kernel()
     # Handle a failure if the build times out, fails, or if the build
