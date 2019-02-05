@@ -179,10 +179,17 @@ class BeakerRunner(Runner):
         Returns:
             etree node representing the results.
         """
-        args = ["bkr", "job-results", taskspec]
+        args = ["bkr", "job-results", "--prettyxml", taskspec]
 
         bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, _) = bkr.communicate()
+
+        # Write the Beaker results locally so they could be stored as an
+        # artifact.
+        results_filename = 'beaker-results-{}.xml'.format(taskspec)
+        with open(results_filename, 'wb') as fileh:
+            fileh.write(stdout)
+
         return fromstring(stdout)
 
     def __forget_taskspec(self, taskspec):

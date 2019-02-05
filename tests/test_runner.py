@@ -364,8 +364,10 @@ class TestRunner(unittest.TestCase):
         mock_popen.return_value.communicate.return_value = (test_xml, '')
 
         self.myrunner._BeakerRunner__add_to_watchlist(j_jobid)
-        mock_popen.assert_called_once_with(["bkr", "job-results", j_jobid],
-                                           stdout=subprocess.PIPE)
+        mock_popen.assert_called_once_with(
+            ["bkr", "job-results", "--prettyxml", j_jobid],
+            stdout=subprocess.PIPE
+        )
 
         # test that whiteboard was parsed OK
         self.assertEqual(self.myrunner.whiteboard, 'yeah-that-whiteboard')
