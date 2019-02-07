@@ -314,6 +314,7 @@ class Reporter(object):
                     task_name = task_node.attrib.get('name')
                     task_result = task_node.attrib['result']
                     task_status = task_node.attrib['status']
+                    task_maintainers = set()
                     task_url = ''
 
                     is_task_waived = self.waiving and self.waiving_wrap.\
@@ -324,13 +325,22 @@ class Reporter(object):
                     if fetch is not None:
                         task_url = fetch.attrib.get('url')
 
+                    # Retrieve maintainer e-mails
+                    for param in \
+                        task_node.findall(
+                            "./params/param[@name='_MAINTAINERS']"):
+                        task_maintainers |= \
+                            set([email.strip() for email in
+                                 param.attrib.get('value').split(',')])
+
                     if is_task_waived:
                         # Don't add tasks that are waived.
                         continue
 
                     if task_result == 'Pass':
                         passed_tasks.append({'name': task_name,
-                                             'url': task_url})
+                                             'url': task_url,
+                                             'maintainers': task_maintainers})
                     elif (task_result == 'Warn' and task_status == 'Aborted'):
                         # Don't add tasks that aborted to the lists
                         continue
@@ -348,7 +358,8 @@ class Reporter(object):
 
                         failed_tasks.append({'name': task_name,
                                              'logs': logs,
-                                             'url': task_url})
+                                             'url': task_url,
+                                             'maintainers': task_maintainers})
 
                 recipe_data['passed_tasks'] = passed_tasks
                 recipe_data['failed_tasks'] = failed_tasks
@@ -362,8 +373,9 @@ class Reporter(object):
         """
         Generate a report based on an skt rc file and various state files.
 
-        Returns: A long string of test results suitable for sending via email
-                 or displaying directly in a terminal.
+        Returns: A report text for sending via e-mail, or outputting on a
+                 terminal, and a set of e-mail addresses of maintainers
+                 concerned with particular parts of it.
         """
         template_name = self.cfg['template']
 
@@ -402,13 +414,13 @@ class Reporter(object):
             # We didn't build any kernels or test anything after that failure.
             if self.cfg.get('mergelog'):
                 self.multireport_failed = MultiReportFailure.MERGE
-                result = template.render(
+                report_text = template.render(
                     mergedata=self.mergedata,
                     cfg=self.cfg,
                     mergelog=self.__getmergelog(),
                     multireport_failed=self.multireport_failed,
                 )
-                return result
+                return report_text, set()
 
             # Store the data about this job for the report.
             job_data = self.cfg
@@ -441,13 +453,22 @@ class Reporter(object):
                 report_jobs.append(job_data)
 
         # Render the report.
-        result = template.render(
+        report_text = template.render(
             mergedata=self.mergedata,
             cfg=self.cfg,
             report_jobs=report_jobs,
             multireport_failed=self.multireport_failed,
         )
-        return result
+
+        # Extract addresses of maintainers concerned with failures
+        report_emails = set()
+        for report_job in report_jobs:
+            if 'test_results' in report_job:
+                for recipe_result in report_job['test_results']:
+                    for failed_task in recipe_result['failed_tasks']:
+                        report_emails |= failed_task['maintainers']
+
+        return report_text, report_emails
 
     @classmethod
     def _get_repo_name(cls, baserepo):
@@ -506,7 +527,7 @@ class StdioReporter(Reporter):
         """
         # We need to run the reporting function first to get the aggregated
         # data to build subject from
-        report = self._get_multireport()
+        report, _ = self._get_multireport()
         printer.write("Subject: {}\n".format(self._get_multisubject()))
         printer.write(report)
 
@@ -530,6 +551,8 @@ class MailReporter(Reporter):
                            for cc in cfg['reporter']['mail_cc'] or []])
         self.mailbcc = set([bcc.strip()
                             for bcc in cfg['reporter']['mail_bcc'] or []])
+        self.mail_add_maintainers_to = \
+            cfg['reporter']['mail_add_maintainers_to']
         self.headers = [headers.strip() for headers in
                         cfg['reporter']['mail_header']]
         self.subject_pfx = cfg['reporter']['mail_subject_pfx']
@@ -548,9 +571,28 @@ class MailReporter(Reporter):
         """Generate and send the email report."""
         msg = MIMEMultipart()
 
+        # We need to run the reporting function first to get aggregates to
+        # build subject from
+        report_text, report_emails = self._get_multireport()
+
+        mailto = self.mailto
+        mailcc = self.mailcc
+        mailbcc = self.mailbcc
+
+        # Add maintainers to appropriate field, if requested
+        if self.mail_add_maintainers_to == 'to':
+            mailto |= report_emails
+        elif self.mail_add_maintainers_to == 'cc':
+            mailcc |= report_emails
+        elif self.mail_add_maintainers_to == 'bcc':
+            mailbcc |= report_emails
+        elif self.mail_add_maintainers_to != '':
+            raise Exception("Unknown field to add maintainers to: {}".
+                            format(self.mail_add_maintainers_to))
+
         # Add the most basic parts of the email message
-        msg['To'] = ', '.join(self.mailto)
-        msg['Cc'] = ', '.join(self.mailcc)
+        msg['To'] = ', '.join(mailto)
+        msg['Cc'] = ', '.join(mailcc)
         msg['From'] = self.mailfrom
 
         # Add any extra headers
@@ -558,9 +600,7 @@ class MailReporter(Reporter):
             header, value = header_line.split(":", 1)
             msg[header] = value
 
-        # We need to run the reporting function first to get aggregates to
-        # build subject from
-        msg.attach(MIMEText(self._get_multireport()))
+        msg.attach(MIMEText(report_text))
 
         # Assign subject
         if self.subject:
@@ -593,6 +633,6 @@ class MailReporter(Reporter):
         mailserver.set_debuglevel(self.debug)
 
         mailserver.sendmail(self.mailfrom,
-                            self.mailto | self.mailcc | self.mailbcc,
+                            mailto | mailcc | mailbcc,
                             msg.as_string())
         mailserver.quit()

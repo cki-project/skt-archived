@@ -753,6 +753,15 @@ def setup_parser():
         help="Report copy recipient's email address"
     )
     parser_report.add_argument(
+        "--mail-add-maintainers-to",
+        choices=['', 'to', 'cc', 'bcc'],
+        default='',
+        help=(
+            "Add maintainers concerned with particular parts of the report "
+            "to To:, Cc:, or Bcc: when sending the report by e-mail"
+        )
+    )
+    parser_report.add_argument(
         "--mail-bcc",
         action='append',
         type=str,
@@ -952,6 +961,7 @@ def load_config(args):
             'mail_to': cfg.get('mail_to'),
             'mail_cc': cfg.get('mail_cc'),
             'mail_bcc': cfg.get('mail_bcc'),
+            'mail_add_maintainers_to': cfg.get('mail_add_maintainers_to'),
             'mail_from': cfg.get('mail_from'),
             'mail_subject_pfx': cfg.get('mail_subject_pfx'),
             'mail_subject': cfg.get('mail_subject'),
