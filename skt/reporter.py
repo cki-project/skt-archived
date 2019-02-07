@@ -324,8 +324,8 @@ class Reporter(object):
                     if fetch is not None:
                         task_url = fetch.attrib.get('url')
 
-                    if is_task_waived and task_result != 'Pass':
-                        # Don't add unsucessful tasks that are waived.
+                    if is_task_waived:
+                        # Don't add tasks that are waived.
                         continue
 
                     if task_result == 'Pass':
