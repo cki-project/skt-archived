@@ -276,7 +276,7 @@ class Reporter(object):
         that run individual tests.
 
         Returns:
-            A list of lines representing results of test runs.
+            A list of dictionaries, each representing a job's recipe result.
         """
         result = []
 
