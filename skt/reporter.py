@@ -525,10 +525,11 @@ class MailReporter(Reporter):
         """Initialize an e-mail reporter."""
         # Get all of the required fields to send an email
         self.mailfrom = cfg['reporter']['mail_from']
-        self.mailto = [to.strip() for to in cfg['reporter']['mail_to']]
-        self.mailcc = [cc.strip() for cc in cfg['reporter']['mail_cc'] or []]
-        self.mailbcc = [bcc.strip()
-                        for bcc in cfg['reporter']['mail_bcc'] or []]
+        self.mailto = set([to.strip() for to in cfg['reporter']['mail_to']])
+        self.mailcc = set([cc.strip()
+                           for cc in cfg['reporter']['mail_cc'] or []])
+        self.mailbcc = set([bcc.strip()
+                            for bcc in cfg['reporter']['mail_bcc'] or []])
         self.headers = [headers.strip() for headers in
                         cfg['reporter']['mail_header']]
         self.subject_pfx = cfg['reporter']['mail_subject_pfx']
@@ -592,6 +593,6 @@ class MailReporter(Reporter):
         mailserver.set_debuglevel(self.debug)
 
         mailserver.sendmail(self.mailfrom,
-                            self.mailto + self.mailcc + self.mailbcc,
+                            self.mailto | self.mailcc | self.mailbcc,
                             msg.as_string())
         mailserver.quit()
