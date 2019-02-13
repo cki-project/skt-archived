@@ -4,7 +4,7 @@ We booted each kernel and ran the following tests:
 {% for job in report_jobs %}
   {{ job.kernel_arch }}:
     {% for test_result in job.test_results %}
-        {% for task in test_result.tasks %}
+        {% for task in test_result.tasks if not task.waived %}
     {{ task.name }}
           {% if task.url %}
       - URL: {{ task.url }}

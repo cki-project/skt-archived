@@ -5,7 +5,7 @@ One or more kernel tests failed:
   {# Check the tasks for each recipe to figure out if anything failed #}
   {% set result = namespace(res='PASSED') %}
   {% for test_result in job.test_results %}
-    {% for task in test_result.tasks if not task.passed %}
+    {% for task in test_result.tasks if not task.waived and not task.passed %}
       {% set result.res = 'FAILED'  %}
     {% endfor%}
   {% endfor%}
@@ -17,7 +17,7 @@ One or more kernel tests failed:
   {% endif %}
   {# Loop over the failed tasks and display them with their logs. #}
   {% for test_result in job.test_results %}
-    {% for task in test_result.tasks if not task.passed %}
+    {% for task in test_result.tasks if not task.waived and not task.passed %}
     Test name: {{ task.name }}
       {% if not report_omit_hardware_test_logs %}
     Logs:
