@@ -4,10 +4,26 @@ We booted each kernel and ran the following tests:
 {% for job in report_jobs %}
   {{ job.kernel_arch }}:
     {% for test_result in job.test_results %}
-        {% for task in test_result.tasks if not task.waived %}
-    {{ task.name }}
+        {% for task in test_result.tasks %}
+            {% if task.passed %}
+                {% set status = "PASSED: " %}
+            {% else %}
+                {% set status = "FAILED: " %}
+            {% endif %}
+            {% if task.waived %}
+                {% set status = "WAIVED: " + status %}
+            {% else %}
+                {% set status = status + "        " %}
+            {% endif %}
+      {{ status }}{{ task.name }}
           {% if task.url %}
       - URL: {{ task.url }}
+          {% endif %}
+          {% if not task.passed and task.waived and task.logs %}
+      - Logs:
+              {% for log in task.logs %}
+          {{ log }}
+              {% endfor %}
           {% endif %}
         {% endfor %}
     {% endfor %}

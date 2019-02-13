@@ -326,7 +326,8 @@ class TestStdioReporter(unittest.TestCase):
             'http://patchwork.example.com/patch/2',
             '- URL: https://github.com/CKI-project/tests-beaker/',
             'distribution/kpkginstall',
-            '/test/we/ran',
+            '/a/failed/waived/test',
+            '/a/passed/waived/test',
             'We compiled the kernel for 1 architecture:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
@@ -336,9 +337,9 @@ class TestStdioReporter(unittest.TestCase):
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @responses.activate
-    def test_run_waived_hidden(self, mock_grt):
-        """ Verify stdio report works and that waived tests are not
-            present in results and that failure on waived test doesn't
+    def test_run_waived(self, mock_grt):
+        """ Verify stdio report works and that waived tests are marked
+            clearly in results and that failure on waived test doesn't
             mean a failed run."""
         responses.add(
             responses.GET,
@@ -383,22 +384,15 @@ class TestStdioReporter(unittest.TestCase):
             'http://patchwork.example.com/patch/2',
             '- URL: https://github.com/CKI-project/tests-beaker/',
             'distribution/kpkginstall',
+            'WAIVED: FAILED: /a/failed/waived/test',
+            'WAIVED: PASSED: /a/passed/waived/test',
             'We compiled the kernel for 1 architecture:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
         ]
 
-        # this mustn't be in report, it's waived and hidden
-        missing_strings = [
-            '/test/we/ran',
-            'Beaker results:',
-            'https://beaker.engineering.redhat.com/jobs/2547021'
-        ]
         for required_string in required_strings:
             self.assertIn(required_string, report)
-
-        for should_miss in missing_strings:
-            self.assertNotIn(should_miss, report)
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
     @responses.activate
@@ -697,7 +691,8 @@ class TestStdioReporter(unittest.TestCase):
             'http://patchwork.example.com/patch/2',
             '- URL: https://github.com/CKI-project/tests-beaker/',
             'distribution/kpkginstall',
-            '/test/we/ran',
+            '/a/failed/waived/test',
+            '/a/passed/waived/test',
             'We compiled the kernel for 2 architectures:',
             self.basecfg['basehead'],
             self.basecfg['baserepo'],
