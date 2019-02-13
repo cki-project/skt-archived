@@ -2,12 +2,12 @@ One or more kernel tests failed:
 
 {% for job in report_jobs %}
   {% set kernel_arch = job.cross_compiler_prefix.split('-')[0] if job.cross_compiler_prefix else job.kernel_arch %}
-  {# Check the failed_tasks for each recipe to figure out if anything failed #}
+  {# Check the tasks for each recipe to figure out if anything failed #}
   {% set result = namespace(res='PASSED') %}
   {% for test_result in job.test_results %}
-    {% if test_result.failed_tasks %}
+    {% for task in test_result.tasks if not task.passed %}
       {% set result.res = 'FAILED'  %}
-    {% endif %}
+    {% endfor%}
   {% endfor%}
   {{ kernel_arch }}: {{ result.res }}
   {% if result.res == 'FAILED' %}
@@ -17,11 +17,11 @@ One or more kernel tests failed:
   {% endif %}
   {# Loop over the failed tasks and display them with their logs. #}
   {% for test_result in job.test_results %}
-    {% for failed_task in test_result.failed_tasks %}
-    Test name: {{ failed_task.name }}
+    {% for task in test_result.tasks if not task.passed %}
+    Test name: {{ task.name }}
       {% if not report_omit_hardware_test_logs %}
     Logs:
-        {% for log in failed_task.logs %}
+        {% for log in task.logs %}
       {{ log }}
         {% endfor %}
       {% endif %}

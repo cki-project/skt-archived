@@ -293,8 +293,7 @@ class Reporter(object):
         for recipe_set_result in recipe_set_results:
             for recipe in recipe_set_result.findall('recipe'):
 
-                passed_tasks = []
-                failed_tasks = []
+                tasks = []
 
                 # Get basic information about this recipe.
                 recipe_result = recipe.attrib.get('result')
@@ -317,6 +316,10 @@ class Reporter(object):
                     task_maintainers = set()
                     task_url = ''
 
+                    # Don't add tasks that aborted to the lists
+                    if (task_result == 'Warn' and task_status == 'Aborted'):
+                        continue
+
                     is_task_waived = self.waiving and self.waiving_wrap.\
                         is_task_waived(task_node)
 
@@ -337,32 +340,26 @@ class Reporter(object):
                         # Don't add tasks that are waived.
                         continue
 
-                    if task_result == 'Pass':
-                        passed_tasks.append({'name': task_name,
-                                             'url': task_url,
-                                             'maintainers': task_maintainers})
-                    elif (task_result == 'Warn' and task_status == 'Aborted'):
-                        # Don't add tasks that aborted to the lists
-                        continue
-                    else:
-                        # Retrieve all task log URLs
-                        logs = self.__get_task_logs(task_node)
-                        # If the task caused a kernel panic, add a link to the
-                        # console log since that's the one containing the
-                        # actual trace.
-                        if task_result == 'Panic':
-                            console = recipe.find(
-                                "logs/log[@name='console.log']")
-                            if console is not None:
-                                logs.append(console.attrib.get('href'))
+                    task = dict(
+                        passed=(task_result == 'Pass'),
+                        name=task_name,
+                        url=task_url,
+                        maintainers=task_maintainers,
+                        logs=self.__get_task_logs(task_node)
+                    )
 
-                        failed_tasks.append({'name': task_name,
-                                             'logs': logs,
-                                             'url': task_url,
-                                             'maintainers': task_maintainers})
+                    # If the task caused a kernel panic, add a link to the
+                    # console log since that's the one containing the
+                    # actual trace.
+                    if task_result == 'Panic':
+                        console = recipe.find(
+                            "logs/log[@name='console.log']")
+                        if console is not None:
+                            task['logs'].append(console.attrib.get('href'))
 
-                recipe_data['passed_tasks'] = passed_tasks
-                recipe_data['failed_tasks'] = failed_tasks
+                    tasks.append(task)
+
+                recipe_data['tasks'] = tasks
 
                 # Add all the details about this recipe to the main result.
                 result.append(recipe_data)
@@ -465,8 +462,9 @@ class Reporter(object):
         for report_job in report_jobs:
             if 'test_results' in report_job:
                 for recipe_result in report_job['test_results']:
-                    for failed_task in recipe_result['failed_tasks']:
-                        report_emails |= failed_task['maintainers']
+                    for task in recipe_result['tasks']:
+                        if not task['passed']:
+                            report_emails |= task['maintainers']
 
         return report_text, report_emails
 
