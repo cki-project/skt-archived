@@ -320,9 +320,6 @@ class Reporter(object):
                     if (task_result == 'Warn' and task_status == 'Aborted'):
                         continue
 
-                    is_task_waived = self.waiving and self.waiving_wrap.\
-                        is_task_waived(task_node)
-
                     # Find git source, if any
                     fetch = task_node.find('fetch')
                     if fetch is not None:
@@ -336,12 +333,10 @@ class Reporter(object):
                             set([email.strip() for email in
                                  param.attrib.get('value').split(',')])
 
-                    if is_task_waived:
-                        # Don't add tasks that are waived.
-                        continue
-
                     task = dict(
                         passed=(task_result == 'Pass'),
+                        waived=(self.waiving and
+                                self.waiving_wrap.is_task_waived(task_node)),
                         name=task_name,
                         url=task_url,
                         maintainers=task_maintainers,
