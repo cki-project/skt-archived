@@ -233,9 +233,9 @@ class Reporter(object):
         return attachment_name
 
     @classmethod
-    def __get_failed_task_log(cls, task_node):
+    def __get_task_logs(cls, task_node):
         """
-        Get logs from a failed task and its subtasks.
+        Get logs from a task and its subtasks.
 
         Returns: A list of log file URLs.
         """
@@ -345,8 +345,8 @@ class Reporter(object):
                         # Don't add tasks that aborted to the lists
                         continue
                     else:
-                        # Retrieve all needed data about the failed task
-                        logs = self.__get_failed_task_log(task_node)
+                        # Retrieve all task log URLs
+                        logs = self.__get_task_logs(task_node)
                         # If the task caused a kernel panic, add a link to the
                         # console log since that's the one containing the
                         # actual trace.
