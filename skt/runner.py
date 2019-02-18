@@ -361,17 +361,11 @@ class BeakerRunner(Runner):
         """
         logging.info('Cancelling pending jobs!')
 
-        sets_to_cancel = [recipe_set for recipe_set in self.watchlist.copy()]
-        if sets_to_cancel:
-            jobs2cancel = filter(lambda job_id: self.job_to_recipe_set_map[
-                job_id].intersection(self.watchlist),
-                                 self.job_to_recipe_set_map)
-
-            ret = subprocess.call(['bkr', 'job-cancel'] + jobs2cancel)
+        for job_id in set(self.job_to_recipe_set_map):
+            ret = subprocess.call(['bkr', 'job-cancel', job_id])
             if ret:
                 logging.info('Failed to cancel the remaining recipe sets!')
 
-        for job_id in set(self.job_to_recipe_set_map):
             self.__forget_taskspec(job_id)
 
     def __handle_test_abort(self, recipe, recipe_id, recipe_set_id, root):
