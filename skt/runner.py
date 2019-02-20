@@ -239,6 +239,9 @@ class BeakerRunner(Runner):
                 if self.waiving and self.waiving_wrap.is_task_waived(task):
                     continue
                 else:
+                    if result == 'Panic':
+                        return SKT_FAIL
+
                     if status == 'Aborted':
                         return SKT_ERROR
 
