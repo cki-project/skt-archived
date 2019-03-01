@@ -108,9 +108,10 @@ class KernelBuilder(object):
 
     def __prepare_kernel_config(self):
         """Prepare the kernel config for the compile."""
-        if self.cfgtype == 'rh-configs':
+        if self.cfgtype == 'rh-configs' or self.cfgtype == \
+                'rh-configs-permissive':
             # Build Red Hat configs and copy the correct one into place
-            self.__make_redhat_config()
+            self.__make_redhat_config(self.cfgtype)
         elif self.cfgtype in ['tinyconfig', 'allyesconfig', 'allmodconfig']:
             # Use the cfgtype provided with the kernel's Makefile.
             self.__make_config()
@@ -146,9 +147,14 @@ class KernelBuilder(object):
 
         self._ready = 1
 
-    def __make_redhat_config(self):
-        """Prepare the Red Hat kernel config files."""
-        args = self.make_argv_base + ['rh-configs']
+    def __make_redhat_config(self, target):
+        """ Prepare the Red Hat kernel config files.
+
+            Args:
+                target: makefile target, usually 'rh-configs' or
+                'rh-configs-permissive'
+        """
+        args = self.make_argv_base + [target]
         logging.info("building Red Hat configs: %s", args)
 
         # Unset CROSS_COMPILE because rh-configs doesn't handle the cross
