@@ -211,7 +211,7 @@ class KBuilderTest(unittest.TestCase):
         mock_glob.return_value = []
         self.kbuilder.rh_configs_glob = "redhat/configs/kernel-*-x86_64.config"
         with self.assertRaises(SystemExit):
-            self.kbuilder._KernelBuilder__make_redhat_config()
+            self.kbuilder._KernelBuilder__make_redhat_config('rh-configs')
 
         mock_info.assert_called_once()
         mock_err.assert_called_once()
