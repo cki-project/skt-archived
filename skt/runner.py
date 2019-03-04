@@ -325,6 +325,12 @@ class BeakerRunner(Runner):
         newwb.text = "%s [RS:%s]" % (self.whiteboard, tmp.attrib.get("id"))
 
         newroot = etree.Element("job")
+        try:
+            newroot.attrib['group'] = recipe_set.attrib['group']
+        except KeyError:
+            # worst case scenario: set silly hardcoded default
+            newroot.attrib['group'] = 'cki'
+
         newroot.append(newwb)
         newroot.append(tmp)
 
