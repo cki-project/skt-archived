@@ -58,6 +58,15 @@ class TestRunner(unittest.TestCase):
 
         self.max_aborted = 3
 
+        # mock helper method to always return 'cki' to avoid mocking annoying
+        # subprocess call
+        self.mock1 = mock.patch('skt.runner.BeakerRunner.get_recipset_group',
+                                lambda sself, taskspec: 'cki')
+        self.mock1.start()
+
+    def tearDown(self):
+        self.mock1.stop()
+
     def test_get_kpkginstall_task(self):
         """ Ensure get_kpkginstall_task works."""
         recipe_xml = """<recipe><task name="Boot test">
