@@ -133,6 +133,13 @@ class BeakerRunner(Runner):
         logging.info('Blacklisted hostnames: %s', hostnames)
         return hostnames
 
+    def get_recipset_group(self, taskspec):
+        for (jid, rset) in self.job_to_recipe_set_map.iteritems():
+            if taskspec in rset:
+                return self.getresultstree(jid).attrib['group']
+
+        return None
+
     def __getxml(self, replacements):
         """
         Generate job XML with template replacements applied. Search the
@@ -306,6 +313,13 @@ class BeakerRunner(Runner):
     def __recipe_set_to_job(self, recipe_set, samehost=False):
         tmp = recipe_set.copy()
 
+        try:
+            group = self.get_recipset_group('RS:{}'.format(recipe_set.
+                                                           attrib['id']))
+        except KeyError:
+            # don't set group later on
+            group = None
+
         for recipe in tmp.findall('recipe'):
             hreq = recipe.find("hostRequires")
             hostname = hreq.find('hostname')
@@ -325,11 +339,8 @@ class BeakerRunner(Runner):
         newwb.text = "%s [RS:%s]" % (self.whiteboard, tmp.attrib.get("id"))
 
         newroot = etree.Element("job")
-        try:
-            newroot.attrib['group'] = recipe_set.attrib['group']
-        except KeyError:
-            # worst case scenario: set silly hardcoded default
-            newroot.attrib['group'] = 'cki'
+        if group:
+            newroot.attrib['group'] = group
 
         newroot.append(newwb)
         newroot.append(tmp)
