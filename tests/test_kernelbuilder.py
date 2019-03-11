@@ -108,9 +108,9 @@ class KBuilderTest(unittest.TestCase):
             )
 
     def test_get_build_arch(self):
-        """Ensure __get_build_arch() returns the ARCH env variable."""
+        """Ensure __get_build_arch() returns the ARCH_CONFIG env variable."""
         # pylint: disable=W0212,E1101
-        os.environ['ARCH'] = 's390x'
+        os.environ['ARCH_CONFIG'] = 's390x'
         result = self.kbuilder._KernelBuilder__get_build_arch()
 
         self.assertEqual('s390x', result)

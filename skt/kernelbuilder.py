@@ -193,8 +193,8 @@ class KernelBuilder(object):
         """Determine the build architecture for the kernel build."""
         # pylint: disable=no-self-use
         # Detect cross-compiling via the ARCH= environment variable
-        if 'ARCH' in os.environ:
-            return os.environ['ARCH']
+        if 'ARCH_CONFIG' in os.environ:
+            return os.environ['ARCH_CONFIG']
 
         return platform.machine()
 
