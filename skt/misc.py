@@ -17,6 +17,8 @@ from email.errors import HeaderParseError
 import email.header
 import email.parser
 import re
+import subprocess
+import logging
 
 import requests
 
@@ -25,6 +27,8 @@ import requests
 SKT_SUCCESS = 0
 SKT_FAIL = 1
 SKT_ERROR = 2
+
+LOGGER = logging.getLogger()
 
 
 class WaivingWrap(object):
@@ -143,3 +147,38 @@ def get_patch_mbox(url, session_cookie=None):
                         (url, response.status_code))
 
     return response.content
+
+
+def get_tag(workdir):
+    """
+    Get the 'r' from 'n-v-r' in the RHEL tag or the first 7 characters of hash.
+
+    Args:
+        workdir:            The full path to the working directory.
+
+    Returns:
+        String representing the tag or empty string in case of an error.
+    """
+
+    try:
+        data = subprocess.Popen("git describe --abbrev=0",
+                                shell=True, stdout=subprocess.PIPE,
+                                cwd=workdir).stdout.read()
+
+        if data[:6] == "kernel":
+            return data.split('-')[2].strip()
+
+        elif data[0] == 'v':
+            data = subprocess.Popen("git rev-list --max-count=1 HEAD" +
+                                    " | cut -b-7",
+                                    shell=True, stdout=subprocess.PIPE,
+                                    cwd=workdir).stdout.read().rstrip('\n')
+
+            return data.strip()
+
+        else:
+            return ""
+
+    except (subprocess.CalledProcessError, IndexError, AttributeError) as exc:
+        logging.error(exc)
+        return ""

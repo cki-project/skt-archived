@@ -34,7 +34,7 @@ import skt.reporter
 import skt.runner
 from skt.kernelbuilder import KernelBuilder, CommandTimeoutError, ParsingError
 from skt.kerneltree import KernelTree, PatchApplicationError
-from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL
+from skt.misc import join_with_slash, SKT_SUCCESS, SKT_FAIL, get_tag
 from skt.state_file import get_state, update_state
 
 DEFAULTRC = "~/.sktrc"
@@ -156,6 +156,7 @@ def cmd_merge(args):
         'basesubject': bsubject,
         'commitdate': commitdate,
         'workdir': full_path(args.get('workdir')),
+        'tag': get_tag(full_path(args.get('workdir'))),
     }
     update_state(args['rc'], state)
 
@@ -344,7 +345,20 @@ def cmd_build(args):
         update_state(args['rc'], state)
 
         # Get the kernel version string.
+        tag = get_state(args['rc'], 'tag')
         krelease = builder.getrelease()
+
+        if tag and tag != "":
+            index = krelease.rfind('.')
+            if '-' in krelease:
+                # In case of 5.1.0-rc1.cki
+                # (removes the -rc1 since that's in the tag already)
+                dash = krelease.rfind('-')
+                krelease = krelease[:dash] + krelease[index:]
+                index = krelease.rfind('.')
+
+            krelease = krelease[:index] + "-" + tag + krelease[index:]
+
         state = {'krelease': krelease}
         update_state(args['rc'], state)
 
