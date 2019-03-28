@@ -516,6 +516,12 @@ class KernelBuilder(object):
             + kernel_build_argv
         )
 
+        # Generate kABI whitelist information for RHEL kernels.
+        if self.cfgtype == 'rh-configs':
+            if not os.path.exists("/usr/libexec/platform-python"):
+                raise Exception("Failed to find platform-python.")
+            self.__make_redhat_kabi()
+
         # Compile the kernel.
         returncode = self.run_multipipe(kernel_build_argv)
 
@@ -534,8 +540,16 @@ class KernelBuilder(object):
                 ' '.join(kernel_build_argv)
             )
 
+        # Find extras to be distributed alongside the kernel.
+        extras = []
+        extras += self.find_extras('redhat/kabi/kabi-current',
+                                   followlinks=True)
+        extras += self.find_extras('redhat/rh-priv/kabi/kabi-current',
+                                   followlinks=True)
+
         if 'tar' in self.make_target:
             package_path = self.handle_tarball()
+            self.append_to_tarball(package_path, extras)
 
         if 'rpm' in self.make_target:
             package_path = self.handle_rpm()
