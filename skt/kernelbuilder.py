@@ -336,6 +336,46 @@ class KernelBuilder(object):
 
         return repo_dir
 
+    def find_extras(self, rel_path, callback=None, followlinks=True):
+        """
+        Find files to be distributed alongside with the kernel.
+
+        Args:
+            rel_path:    A path (relative to the kernel tree root) in which
+                         extras are sought (recursively).
+
+            callback:    If given, serves as a result pruning function for
+                         filter.
+
+            followlinks: Follow symbolic links to subdirectories on systems that
+                         support them. Set this to True only if you're sure that
+                         this won't cause loops.
+
+        Returns:
+            A (possibly pruned) list of paths recursively found in `rel_path`.
+            Returns an empty list if no matches were found/an exception
+            occured during pruning.
+        """
+        source_dir_abs = os.path.abspath(self.source_dir)
+        target_dir = source_dir_abs + rel_path
+
+        result = []
+
+        logging.info("looking for extras in: %s", target_dir)
+        for root, _, files in os.walk(target_dir, followlinks=followlinks):
+            result += [
+                os.path.relpath(root + '/' + f, source_dir_abs)
+                for f in files
+            ]
+
+        try:
+            if callback:
+                result = list(filter(callback, result))
+        except Exception:
+            return []
+        
+        return result
+
     def find_tarball(self):
         """
         Find a tarball in the buildlog.
@@ -365,6 +405,49 @@ class KernelBuilder(object):
                     break
 
         return fpath
+
+    def append_to_tarball(self, tarball, extras):
+        """
+        Append `extras` (a list of filename paths rel. to kernel root) to the
+        tarball, if any. To avoid introducing further dependencies
+
+        Args:
+            tarball: Path to a tarball.
+            extras:  A list of file paths (relative to the kernel tree root) to
+                     append.
+        """
+        if not extras:
+            return
+
+        tarball_tmp = os.path.abspath(tarball)
+
+        if tarball_tmp.endswith(".gz"):
+            gunzip_args = [ 'gunzip', tarball_tmp ]
+            self.run_multipipe(gunzip_args)
+            tarball_tmp = tarball[:tarball.rfind(".gz")]
+
+        if not tarball_tmp.endswith(".tar"):
+            return
+
+        cpio_args = [
+            "cpio", "-D", self.source_dir, "-o", "--format=tar",
+            "--append", "-F", tarball_tmp
+        ]
+
+        cpio_proc = subprocess.Popen(
+            cpio_args,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        cpio_proc.stdin.write('\n'.join(extras).encode(sys.stdout.encoding))
+        _, _ = cpio_proc.communicate()
+        cpio_proc.stdin.close()
+
+        if tarball.endswith(".gz"):
+            gzip_args = [ 'gzip', tarball_tmp ]
+            self.run_multipipe(gzip_args)
 
     def compile_kernel(self, timeout=60 * 60 * 12):
         """
