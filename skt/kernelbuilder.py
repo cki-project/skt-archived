@@ -189,6 +189,20 @@ class KernelBuilder(object):
         logging.info("building %s: %s", self.cfgtype, args)
         self.run_multipipe(args)
 
+    def __make_redhat_kabi(self):
+        """
+        Make kABI whitelists files. Invoke the target separately and with
+        --always-make to make sure kABI whitelists are regenerated.
+        """
+        args = self.make_argv_base + ['--always-make', 'rh-kabi']
+        logging.info("building Red Hat kABI whitelists: %s", args)
+        retcode = self.run_multipipe(args)
+        if retcode != 0:
+            raise subprocess.CalledProcessError(
+                retcode,
+                ' '.join(args)
+            )
+
     def __get_build_arch(self):
         """Determine the build architecture for the kernel build."""
         # pylint: disable=no-self-use
