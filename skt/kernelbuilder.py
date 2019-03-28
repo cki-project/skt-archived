@@ -22,6 +22,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import locale
 
 from skt.misc import join_with_slash
 
@@ -341,6 +342,49 @@ class KernelBuilder(object):
 
         return repo_dir
 
+    def find_extras(self, rel_path, callback=None, followlinks=False):
+        """
+        Find files to be distributed alongside with the kernel.
+
+        Args:
+            rel_path:    A path (relative to the kernel tree root) in which
+                         extras are sought (recursively).
+
+            callback:    If given, serves as a result pruning function for
+                         filter.
+
+            followlinks: Follow symbolic links to subdirectories on systems
+                         that support them. Set this to True only if you're
+                         sure that this won't cause loops.
+
+        Returns:
+            A (possibly pruned) list of paths recursively found in
+            `rel_path`. Returns an empty list if no matches were found
+            or an exception occured during pruning.
+        """
+        source_dir_abs = os.path.abspath(self.source_dir)
+        target_dir = os.path.join(source_dir_abs, rel_path)
+
+        result = []
+
+        logging.info("looking for extras in: %s", target_dir)
+        for root, _, files in os.walk(target_dir, followlinks=followlinks):
+            result += [
+                os.path.relpath(os.path.join(root, f), source_dir_abs)
+                for f in files
+            ]
+
+        try:
+            if callback:
+                result = list(filter(callback, result))
+        except Exception:
+            return []
+
+        logging.info("the following extras were found:\n%s",
+                     '\n'.join(result))
+
+        return result
+
     def find_tarball(self):
         """
         Find a tarball in the buildlog.
@@ -370,6 +414,77 @@ class KernelBuilder(object):
                     break
 
         return fpath
+
+    def append_to_tarball(self, tarball, extras):
+        """
+        Append `extras` (a list of filename paths rel. to kernel root) to the
+        tarball, if any. To avoid introducing further dependencies
+
+        Args:
+            tarball: Path to a tarball.
+            extras:  A list of file paths (relative to the kernel tree root) to
+                     append.
+        """
+        if not extras:
+            logging.info("extras: %s", str(extras))
+            return
+
+        tarball_tmp = tarball
+
+        if tarball_tmp.endswith(".gz"):
+            gunzip_args = ['gzip', '-d', tarball_tmp]
+            subprocess.check_call(gunzip_args)
+            tarball_tmp = tarball[:tarball.rfind(".gz")]
+
+        if not tarball_tmp.endswith(".tar"):
+            raise Exception("tarball %s has an unsupported extension" %
+                            tarball_tmp)
+
+        if not os.path.exists(tarball_tmp):
+            raise Exception("Cannot find tarball %s." % tarball_tmp)
+
+        # Note: older versions of cpio do not support -D
+        # To remedy that, cwd is specified in Popen instead
+        cpio_args = [
+            "cpio", "-o", "--format=tar", "--append", "-F", tarball_tmp
+        ]
+
+        cpio_proc = subprocess.Popen(
+            cpio_args,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=self.source_dir
+        )
+
+        if sys.stdout.isatty() and sys.stdout.encoding is not None:
+            encoding = sys.stdout.encoding
+        else:
+            encoding = locale.getpreferredencoding()
+
+        out, err = cpio_proc.communicate(
+            input='\n'.join(extras).encode(encoding)
+        )
+
+        if cpio_proc.returncode == 124:
+            raise CommandTimeoutError(
+                "'{}' was taking too long".format(
+                    ' '.join(cpio_args)
+                )
+            )
+
+        # CPIO failed for a reason other than a timeout.
+        if cpio_proc.returncode != 0:
+            raise subprocess.CalledProcessError(
+                cpio_proc.returncode,
+                ' '.join(cpio_args) + "\n" +
+                "stdout: " + str(out) + "\n" +
+                "stderr: " + str(err) + "\n"
+            )
+
+        if tarball.endswith(".gz"):
+            gzip_args = ['gzip', tarball_tmp]
+            subprocess.check_call(gzip_args)
 
     def compile_kernel(self, timeout=60 * 60 * 12):
         """
