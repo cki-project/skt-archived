@@ -398,7 +398,6 @@ class BeakerRunner(Runner):
         logging.warning('%s from %s aborted!',
                         recipe_id,
                         recipe_set_id)
-        self.__forget_taskspec(recipe_set_id)
         self.aborted_count += 1
 
         if self.aborted_count < self.max_aborted:
@@ -407,6 +406,8 @@ class BeakerRunner(Runner):
             newjob = self.__recipe_set_to_job(root)
             newjobid = self.__jobsubmit(etree.tostring(newjob))
             self.__add_to_watchlist(newjobid)
+
+        self.__forget_taskspec(recipe_set_id)
 
     def __handle_test_fail(self, recipe):
         # Something in the recipe set really reported failure
