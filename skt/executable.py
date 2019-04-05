@@ -264,7 +264,8 @@ def cmd_build(args):
         enable_debuginfo=args.get('enable_debuginfo'),
         rh_configs_glob=args.get('rh_configs_glob'),
         make_target=args.get('make_target'),
-        localversion=args.get('localversion')
+        localversion=args.get('localversion'),
+        tag=get_state(args['rc'], 'tag')
     )
 
     # Clean the kernel source with 'make mrproper' if requested.
@@ -345,19 +346,7 @@ def cmd_build(args):
         update_state(args['rc'], state)
 
         # Get the kernel version string.
-        tag = get_state(args['rc'], 'tag')
         krelease = builder.getrelease()
-
-        if tag and tag != "":
-            index = krelease.rfind('.')
-            if '-' in krelease:
-                # In case of 5.1.0-rc1.cki
-                # (removes the -rc1 since that's in the tag already)
-                dash = krelease.rfind('-')
-                krelease = krelease[:dash] + krelease[index:]
-                index = krelease.rfind('.')
-
-            krelease = krelease[:index] + "-" + tag + krelease[index:]
 
         state = {'krelease': krelease}
         update_state(args['rc'], state)
