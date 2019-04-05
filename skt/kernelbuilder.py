@@ -35,7 +35,7 @@ class KernelBuilder(object):
     def __init__(self, source_dir, basecfg, cfgtype=None,
                  extra_make_args=None, enable_debuginfo=False,
                  rh_configs_glob=None, localversion=None,
-                 make_target=None):
+                 make_target=None, tag=""):
         self.source_dir = source_dir
         self.basecfg = basecfg
         self.cfgtype = cfgtype if cfgtype is not None else "olddefconfig"
@@ -58,6 +58,7 @@ class KernelBuilder(object):
         self.cross_compiler_prefix = self.__get_cross_compiler_prefix()
         self.rh_configs_glob = rh_configs_glob
         self.localversion = localversion
+        self.tag = tag
 
         # Handle the make target provided and select the correct arguments
         # for make based on the target.
@@ -141,7 +142,7 @@ class KernelBuilder(object):
         self.__adjust_config_option(
             'set-str',
             'LOCALVERSION',
-            '.{}'.format(self.localversion)
+            '-{}.{}'.format(self.tag, self.localversion)
         )
 
         self._ready = 1
