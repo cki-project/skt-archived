@@ -235,17 +235,32 @@ class BeakerRunner(Runner):
             * When any task fails  and task isn't waived    -> SKT_FAIL
             * When any task panics and task isn't waived    -> SKT_FAIL
 
+            * When a waived task panicks and a following
+              task aborts                                   -> SKT_SUCCESS
+
             * else: skip over 'Pass' / 'Skip' so eventually -> SKT_SUCCESS
 
         """
+        prev_task_panicked_and_waived = False
         for task in recipe_result.findall('task'):
             result = task.attrib.get('result')
             status = task.attrib.get('status')
 
             if result in ['Fail', 'Warn', 'Panic']:
                 if self.waiving and self.waiving_wrap.is_task_waived(task):
+                    if result == 'Panic':
+                        # If it's waived, it must not affect the result, but
+                        # if following tasks aborts because of this panic,
+                        # we must return last status, which was success.
+                        # This may mask some infra issues, but returning fails
+                        # for faulty-waived tasks is probably worse.
+                        prev_task_panicked_and_waived = True
+
                     continue
                 else:
+                    if result == 'Aborted' and prev_task_panicked_and_waived:
+                        return SKT_SUCCESS
+
                     if result == 'Panic':
                         return SKT_FAIL
 
