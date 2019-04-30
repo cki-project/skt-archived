@@ -394,9 +394,9 @@ def cmd_run(cfg):
     atexit.register(runner.cleanup_handler)
     signal.signal(signal.SIGINT, runner.signal_handler)
     signal.signal(signal.SIGTERM, runner.signal_handler)
-    retcode = runner.run(cfg.get('buildurl'),
+    retcode = runner.run(cfg.get('kernel_package_url'),
                          cfg.get('max_aborted_count'),
-                         cfg.get('krelease'),
+                         cfg.get('kernel_version'),
                          cfg.get('wait'),
                          arch=cfg.get("kernel_arch"),
                          waiving=cfg.get('waiving'))
