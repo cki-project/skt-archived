@@ -222,6 +222,23 @@ class BeakerRunner(Runner):
         else:
             raise ValueError("Unknown taskspec type: %s" % taskspec)
 
+    def _check_ewd(self, task):
+        """ For "Boot test" task only: goes through a list of <result>
+            elements. If there's EWD in element text, then kernel package
+            install task has likely failed.
+
+            Returns:
+                None - when no EWD or Boot test results found
+                SKT_FAIL - when EWD found in Boot test result
+        """
+        if task.attrib['name'] == "Boot test":
+            for res in task.findall('.//results/'):
+                if res.text and 'External Watchdog Expired' in res.text:
+                    # suspicious, we hit EWD in kernel install task!
+                    return SKT_FAIL
+
+        return None
+
     def decide_run_result_by_task(self, recipe_result):
         """ Decide run result by tasks. If we have test waiving enabled and the
             test is waived in XML, ignore 'Warn' / 'Panic' / 'Fail' results.
@@ -229,6 +246,7 @@ class BeakerRunner(Runner):
             Args:
                 recipe_result: a defused xml
 
+            * When kernel install task hits EWD             -> SKT_FAIL
             * When any task aborts and task isn't waived    -> SKT_ERROR
 
             * When any task warns  and task isn't waived    -> SKT_FAIL
@@ -258,6 +276,10 @@ class BeakerRunner(Runner):
 
                     continue
                 else:
+                    ewd = self._check_ewd(task)
+                    if ewd is not None:
+                        return ewd
+
                     if result == 'Aborted' and prev_task_panicked_and_waived:
                         return SKT_SUCCESS
 
