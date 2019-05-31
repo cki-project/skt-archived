@@ -12,7 +12,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Functions that manage the skt state file."""
-import ConfigParser
+import configparser
 import os
 
 
@@ -29,7 +29,7 @@ def get_state(state_file, state_key):
         will be the same as what was set when the value was stored.
 
     """
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
 
     # Does this state file exist?
     if not os.path.isfile(state_file):
@@ -45,7 +45,7 @@ def get_state(state_file, state_key):
     # Get the value from the state file.
     try:
         return config.get('state', state_key)
-    except ConfigParser.NoOptionError:
+    except configparser.NoOptionError:
         return None
 
 
@@ -57,7 +57,7 @@ def update_state(state_file, state_dict):
         state_file: Path to state file.
         state_dict: A dictionary of key/value pairs to update in statefile.
     """
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
 
     # If the state file exists, read its current values.
     if os.path.isfile(state_file):
@@ -68,7 +68,7 @@ def update_state(state_file, state_dict):
         config.add_section("state")
 
     # Iterate over the state_dict and update key/value pairs.
-    for (key, val) in state_dict.iteritems():
+    for (key, val) in state_dict.items():
         config.set('state', key, val)
 
     # Write the update state file to disk.

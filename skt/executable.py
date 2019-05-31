@@ -12,9 +12,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-from __future__ import print_function
-
-import ConfigParser
+import configparser
 import ast
 import atexit
 import logging
@@ -47,7 +45,7 @@ def save_state(cfg, state):
         state:  A dictionary of skt current state.
     """
 
-    for (key, val) in state.iteritems():
+    for (key, val) in state.items():
         cfg[key] = val
 
     if not cfg.get('state'):
@@ -57,7 +55,7 @@ def save_state(cfg, state):
     if not config.has_section("state"):
         config.add_section("state")
 
-    for (key, val) in state.iteritems():
+    for (key, val) in state.items():
         if val is not None:
             logging.debug("state: %s -> %s", key, val)
             config.set('state', key, val)
@@ -76,7 +74,7 @@ def cmd_run(cfg):
     """
     global retcode
 
-    runner = skt.runner.getrunner(*cfg.get('runner'))
+    runner = skt.runner.BeakerRunner(*cfg.get('runner'))
 
     atexit.register(runner.cleanup_handler)
     signal.signal(signal.SIGINT, runner.signal_handler)
@@ -99,23 +97,6 @@ def cmd_run(cfg):
     cfg['jobs'] = runner.job_to_recipe_set_map.keys()
 
     save_state(cfg, {'retcode': retcode})
-
-
-
-
-def addtstamp(path, tstamp):
-    """
-    Add time stamp to a file path.
-
-    Args:
-        path:   file path.
-        tstamp: time stamp.
-
-    Returns:
-        New path with time stamp.
-    """
-    return join_with_slash(os.path.dirname(path),
-                           "%s-%s" % (tstamp, os.path.basename(path)))
 
 
 def setup_logging(verbose):
@@ -246,7 +227,7 @@ def load_config(args):
     """
     # NOTE(mhayden): The shell should do any tilde expansions on the path
     # before the rc path is provided to Python.
-    config_parser = ConfigParser.ConfigParser()
+    config_parser = configparser.ConfigParser()
     config_parser.read(os.path.abspath(args.rc))
 
     cfg = vars(args)
@@ -329,7 +310,6 @@ def load_config(args):
         cfg['output_dir'] = os.getcwd()
 
     return cfg
-
 
 
 def main():

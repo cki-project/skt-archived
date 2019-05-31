@@ -16,11 +16,7 @@ import logging
 import os
 import sys
 import unittest
-
-from io import BytesIO
-from StringIO import StringIO
-
-import mock
+from io import StringIO
 
 from skt import executable
 
@@ -61,8 +57,8 @@ class TestExecutable(unittest.TestCase):
     def load_config_tester(self, config_file, testing_args):
         """Reusable method to test the load_config() method."""
         mock_open = mock.patch(
-            'ConfigParser.open',
-            return_value=BytesIO('\n'.join(config_file))
+            'configparseropen',
+            return_value=bytearray('\n'.join(config_file), 'utf-8')
         )
         parser = executable.setup_parser()
         args = parser.parse_args(testing_args)
@@ -120,19 +116,6 @@ class TestExecutable(unittest.TestCase):
         executable.save_state(cfg, state)
 
         self.assertEqual(cfg, result)
-
-    def test_addtstamp(self):
-        """Ensure addtstamp works."""
-        testdata = {
-            ('/etc/shadow', '45-10'): '/etc/45-10-shadow',
-            ('/etc/rc.d/e', '45-10'): '/etc/rc.d/45-10-e'
-        }
-
-        for key in testdata:
-            path, stamp = key
-            result = executable.addtstamp(path, stamp)
-
-            self.assertEqual(result, testdata[key])
 
     def test_setup_logging(self):
         """Ensure that setup_logging works and sets-up to what we expect."""

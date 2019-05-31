@@ -12,6 +12,7 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Class for managing Runner."""
+import copy
 import logging
 import os
 import platform
@@ -19,10 +20,10 @@ import re
 import subprocess
 import sys
 import time
-import xml.etree.ElementTree as etree
 
 from abc import ABCMeta, abstractmethod
 from defusedxml.ElementTree import fromstring
+from defusedxml.ElementTree import tostring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 from skt.misc import WaivingWrap
@@ -134,7 +135,7 @@ class BeakerRunner(Runner):
         return hostnames
 
     def get_recipset_group(self, taskspec):
-        for (jid, rset) in self.job_to_recipe_set_map.iteritems():
+        for (jid, rset) in self.job_to_recipe_set_map.items():
             if taskspec in rset:
                 return self.getresultstree(jid).attrib['group']
 
@@ -190,11 +191,13 @@ class BeakerRunner(Runner):
 
         bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
         (stdout, _) = bkr.communicate()
+        if stdout:
+            stdout = stdout.decode('utf-8')
 
         # Write the Beaker results locally so they could be stored as an
         # artifact.
         results_filename = 'beaker-results-{}.xml'.format(taskspec)
-        with open(results_filename, 'wb') as fileh:
+        with open(results_filename, 'w') as fileh:
             fileh.write(stdout)
 
         return fromstring(stdout)
@@ -212,7 +215,7 @@ class BeakerRunner(Runner):
         elif taskspec.startswith("RS:"):
             self.watchlist.discard(taskspec)
             deljids = set()
-            for (jid, rset) in self.job_to_recipe_set_map.iteritems():
+            for (jid, rset) in self.job_to_recipe_set_map.items():
                 if taskspec in rset:
                     rset.remove(taskspec)
                     if not rset:
@@ -337,19 +340,17 @@ class BeakerRunner(Runner):
         """
         and_node = host_requires.find('and')
         if and_node is None:
-            and_node = etree.Element('and')
+            and_node = fromstring('<and />')
             host_requires.append(and_node)
 
         for disabled in self.blacklisted:
-            hostname = etree.Element('hostname')
-            hostname.set('op', '!=')
-            hostname.set('value', disabled)
+            hostname = fromstring(f'<hostname op="!=" value="{disabled}" />')
             and_node.append(hostname)
 
         return host_requires
 
     def __recipe_set_to_job(self, recipe_set, samehost=False):
-        tmp = recipe_set.copy()
+        tmp = copy.deepcopy(recipe_set)
 
         try:
             group = self.get_recipset_group('RS:{}'.format(recipe_set.
@@ -364,19 +365,18 @@ class BeakerRunner(Runner):
             if hostname is not None:
                 hreq.remove(hostname)
             if samehost:
-                hostname = etree.Element("hostname")
-                hostname.set("op", "=")
-                hostname.set("value", recipe.attrib.get("system"))
+                value = recipe.attrib.get("system")
+                hostname = fromstring(f'<hostname op="=" value="{value}"/>')
                 hreq.append(hostname)
             else:
                 new_hreq = self.__blacklist_hreq(hreq)
                 recipe.remove(hreq)
                 recipe.append(new_hreq)
 
-        newwb = etree.Element("whiteboard")
+        newwb = fromstring("<whiteboard/>")
         newwb.text = "%s [RS:%s]" % (self.whiteboard, tmp.attrib.get("id"))
 
-        newroot = etree.Element("job")
+        newroot = fromstring("<job/>")
         if group:
             newroot.attrib['group'] = group
 
@@ -448,7 +448,7 @@ class BeakerRunner(Runner):
             logging.warning('Resubmitting aborted %s',
                             recipe_set_id)
             newjob = self.__recipe_set_to_job(root)
-            newjobid = self.__jobsubmit(etree.tostring(newjob))
+            newjobid = self.__jobsubmit(tostring(newjob))
             self.__add_to_watchlist(newjobid)
 
         self.__forget_taskspec(recipe_set_id)
@@ -548,7 +548,7 @@ class BeakerRunner(Runner):
                                             'found, resubmitting %s',
                                             recipe_set_id)
                             newjob = self.__recipe_set_to_job(root)
-                            newjobid = self.__jobsubmit(etree.tostring(newjob))
+                            newjobid = self.__jobsubmit(tostring(newjob))
                             self.__add_to_watchlist(newjobid)
 
     def __add_to_watchlist(self, jobid):
@@ -637,6 +637,8 @@ class BeakerRunner(Runner):
                                stdout=subprocess.PIPE)
 
         (stdout, _) = bkr.communicate(xml)
+        if stdout:
+            stdout = stdout.decode('utf-8')
 
         for line in stdout.split("\n"):
             match = re.match(r"^Submitted: \['([^']+)'\]$", line)
@@ -699,7 +701,7 @@ class BeakerRunner(Runner):
                 recipe.remove(hreq)
                 recipe.append(new_hreq)
 
-            jobid = self.__jobsubmit(etree.tostring(job_xml_tree))
+            jobid = self.__jobsubmit(tostring(job_xml_tree))
 
             if wait:
                 self.wait(jobid)
@@ -715,23 +717,3 @@ class BeakerRunner(Runner):
             ret = SKT_ERROR
 
         return ret
-
-
-def getrunner(rtype, rarg):
-    """
-    Create an instance of a "runner" subclass with specified arguments.
-
-    Args:
-        rtype:  The value of the class "TYPE" member to match.
-        rarg:   A dictionary with the instance creation arguments.
-
-    Returns:
-        The created class instance.
-
-    Raises:
-        ValueError if the rtype match wasn't found.
-    """
-    for cls in Runner.__subclasses__():
-        if cls.TYPE == rtype:
-            return cls(**rarg)
-    raise ValueError("Unknown runner type: %s" % rtype)

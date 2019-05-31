@@ -117,7 +117,7 @@ class TestRunner(unittest.TestCase):
 
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = \
-            ("Submitted: ['123']", '')
+            (bytearray("Submitted: ['123']", 'utf-8'), '')
 
         # pylint: disable=W0212,E1101
         self.myrunner._BeakerRunner__jobsubmit('<xml />')
@@ -149,8 +149,8 @@ class TestRunner(unittest.TestCase):
         # pylint: disable=W0212,E1101
         j_jobid = 'J:123'
         setid = '456'
-        test_xml = """<xml><whiteboard>yeah-that-whiteboard</whiteboard>
-        <recipeSet id="{}" /></xml>""".format(setid)
+        test_xml = bytearray("""<xml><whiteboard>yeah-that-whiteboard</whiteboard>
+        <recipeSet id="{}" /></xml>""".format(setid), 'utf-8')
 
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = (test_xml, '')
@@ -170,11 +170,6 @@ class TestRunner(unittest.TestCase):
 
         mock_popen.assert_called_with([binary] + args)
 
-    def test_getrunner(self):
-        """Ensure getrunner() can create a runner subclass."""
-        result = runner.getrunner('beaker', {'jobtemplate': 'test'})
-        self.assertIsInstance(result, runner.BeakerRunner)
-
     @mock.patch('logging.error')
     def test_load_blacklist_fail(self, mock_logging_err):
         """Ensure BeakerRunner.__load_blacklist() works"""
@@ -190,7 +185,7 @@ class TestRunner(unittest.TestCase):
         """Ensure BeakerRunner.__load_blacklist() works"""
         # pylint: disable=W0212,E1101
         hostnames = ['host1', 'host2']
-        with tempfile.NamedTemporaryFile() as temp:
+        with tempfile.NamedTemporaryFile('w') as temp:
             temp.write('\n'.join(hostnames) + '\n')
             temp.seek(0)
 
@@ -216,7 +211,7 @@ class TestRunner(unittest.TestCase):
         self.test_load_blacklist()
 
         etree_result = self.myrunner._BeakerRunner__blacklist_hreq(hreq_node)
-        result = tostring(etree_result)
+        result = tostring(etree_result).decode('utf-8')
         self.assertEqual(re.sub(r'[\s]+', '', exp_result),
                          re.sub(r'[\s]+', '', result))
 
@@ -233,7 +228,7 @@ class TestRunner(unittest.TestCase):
 
         self.myrunner.blacklisted = []
         etree_result = self.myrunner._BeakerRunner__blacklist_hreq(hreq_node)
-        result = tostring(etree_result)
+        result = tostring(etree_result).decode('utf-8')
         self.assertEqual(re.sub(r'[\s]+', '', exp_result),
                          re.sub(r'[\s]+', '', result))
 
@@ -253,20 +248,9 @@ class TestRunner(unittest.TestCase):
         self.test_load_blacklist()
 
         etree_result = self.myrunner._BeakerRunner__blacklist_hreq(hreq_node)
-        result = tostring(etree_result)
+        result = tostring(etree_result).decode('utf-8')
         self.assertEqual(re.sub(r'[\s]+', '', exp_result),
                          re.sub(r'[\s]+', '', result))
-
-    def test_invalid_getrunner(self):
-        """Ensure getrunner() throws an exception for an invalid runner."""
-        bad_runner = 'pizza'
-        with self.assertRaises(Exception) as context:
-            runner.getrunner(bad_runner, {'jobtemplate': 'test'})
-
-        self.assertIn(
-            "Unknown runner type: {}".format(bad_runner),
-            context.exception
-        )
 
     def test_getxml(self):
         """Ensure BeakerRunner.__getxml() returns xml."""
@@ -366,8 +350,8 @@ class TestRunner(unittest.TestCase):
         j_jobid = 'J:123'
         setid = '456'
         s_setid = 'RS:{}'.format(setid)
-        test_xml = """<xml><whiteboard>yeah-that-whiteboard</whiteboard>
-        <recipeSet id="{}" /></xml>""".format(setid)
+        test_xml = bytearray("""<xml><whiteboard>yeah-that-whiteboard</whiteboard>
+        <recipeSet id="{}" /></xml>""".format(setid), 'utf-8')
 
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = (test_xml, '')
@@ -394,7 +378,7 @@ class TestRunner(unittest.TestCase):
     @mock.patch('subprocess.Popen')
     def test_getresultstree(self, mock_popen):
         """Ensure getresultstree() works."""
-        test_xml = "<xml><test>TEST</test></xml>"
+        test_xml = bytearray("<xml><test>TEST</test></xml>", 'utf-8')
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = (test_xml, '')
         result = self.myrunner.getresultstree('RS:123')
@@ -422,10 +406,10 @@ class TestRunner(unittest.TestCase):
         with self.assertRaises(Exception) as context:
             self.myrunner._BeakerRunner__forget_taskspec("OHCOMEON:00001")
 
-        self.assertIn(
-            "Unknown taskspec type: OHCOMEON:00001",
-            context.exception
-        )
+            self.assertIn(
+                "Unknown taskspec type: OHCOMEON:00001",
+                str(context)
+            )
 
     @mock.patch('logging.info')
     def test_getresults_pass(self, mock_logging):

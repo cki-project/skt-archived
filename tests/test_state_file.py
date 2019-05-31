@@ -12,7 +12,7 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for state_file functions."""
-import ConfigParser
+import configparser
 import os
 import shutil
 import tempfile
@@ -77,7 +77,7 @@ class TestStateFile(unittest.TestCase):
         }
         state_file.update_state(temp_state, new_state)
 
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
         config.read(temp_state)
         self.assertEqual(config.get('state', 'foo'), 'bar')
         self.assertEqual(config.get('state', 'foo2'), 'bar2')
@@ -85,7 +85,7 @@ class TestStateFile(unittest.TestCase):
         # Test a write with an existing state file.
         state_file.update_state(temp_state, new_state)
 
-        config = ConfigParser.RawConfigParser()
+        config = configparser.RawConfigParser()
         config.read(temp_state)
         self.assertEqual(config.get('state', 'foo'), 'bar')
         self.assertEqual(config.get('state', 'foo2'), 'bar2')
