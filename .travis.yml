@@ -1,12 +1,13 @@
 language: python
+dist: xenial
 python:
-    - "2.7"
+    - "3.7"
 env:
-    - TOX_ENV=py27,flake8,pylint
+    - TOX_ENV=flake8,pylint
 install:
     # Install skt using pip to ensure dependencies are downloaded correctly.
     - pip install .[dev]
     - pip install coveralls tox
 script:
-    - tox -e $TOX_ENV
+    - tox -e $(echo py${TRAVIS_PYTHON_VERSION} | tr -d .) -e ${TOX_ENV}
     - pip uninstall -y skt
