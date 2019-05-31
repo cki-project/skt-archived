@@ -27,7 +27,6 @@ import skt.runner
 from skt.misc import SKT_SUCCESS
 
 LOGGER = logging.getLogger()
-retcode = SKT_SUCCESS
 
 
 def full_path(path):
@@ -71,8 +70,6 @@ def cmd_run(cfg):
     Args:
         cfg:    A dictionary of skt configuration.
     """
-    global retcode
-
     runner = skt.runner.BeakerRunner(*cfg.get('runner'))
 
     atexit.register(runner.cleanup_handler)
@@ -96,6 +93,8 @@ def cmd_run(cfg):
     cfg['jobs'] = runner.job_to_recipe_set_map.keys()
 
     save_state(cfg, {'retcode': retcode})
+
+    return retcode
 
 
 def setup_logging(verbose):
@@ -315,8 +314,6 @@ def main():
     """This is the main entry point used by setup.cfg."""
     # pylint: disable=protected-access
     try:
-        global retcode
-
         parser = setup_parser()
         args = parser.parse_args()
 
@@ -325,7 +322,7 @@ def main():
         # We are gradually migrating away from messing with cfg and passing
         # it everywhere.
         cfg = load_config(args)
-        args.func(cfg)
+        retcode = args.func(cfg)
 
         sys.exit(retcode)
     except KeyboardInterrupt:
