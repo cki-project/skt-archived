@@ -54,21 +54,6 @@ class TestExecutable(unittest.TestCase):
         sys.stdout = old_stdout
         sys.stderr = old_stderr
 
-    def load_config_tester(self, config_file, testing_args):
-        """Reusable method to test the load_config() method."""
-        mock_open = mock.patch(
-            'configparseropen',
-            return_value=bytearray('\n'.join(config_file), 'utf-8')
-        )
-        parser = executable.setup_parser()
-        args = parser.parse_args(testing_args)
-
-        with mock_open:
-            cfg = executable.load_config(args)
-
-        self.assertTrue(isinstance(cfg, dict))
-        return cfg
-
     def test_full_path_relative(self):
         """Verify that full_path() expands a relative path."""
         filename = "somefile"
@@ -82,40 +67,6 @@ class TestExecutable(unittest.TestCase):
         result = executable.full_path("~/{}".format(filename))
         expected_path = "{}/{}".format(os.path.expanduser('~'), filename)
         self.assertEqual(expected_path, result)
-
-
-    def test_load_config_runner_args(self):
-        """Test load_config() with runner arguments."""
-        config_file = []
-        args = ['--rc', '/tmp/testing.ini', '--workdir', '/tmp/workdir',
-                '--state', 'run', '--runner', 'myrunner', '[\'value\']']
-        cfg = self.load_config_tester(config_file, args)
-        self.assertListEqual(['myrunner', ['value']], cfg['runner'])
-
-    def test_save_state(self):
-        """Ensure save_state works."""
-        def merge_two_dicts(dict1, dict2):
-            """Given two dicts, merge them into json_data new dict as
-            json_data shallow copy."""
-            result = dict1.copy()
-            result.update(dict2)
-            return result
-
-        # cfg has to have 'state', otherwise it returns None
-        self.assertIsNone(executable.save_state({}, {}))
-
-        config_file = []
-        args = ['--rc', '/tmp/testing.ini', '--workdir', '/tmp/workdir',
-                '--state', 'run', '--runner', 'myrunner', '{"key": "value"}']
-        cfg = self.load_config_tester(config_file, args)
-
-        state = {'a': 0, 'b': 1, 'c': 1}
-
-        result = merge_two_dicts(cfg, state)
-
-        executable.save_state(cfg, state)
-
-        self.assertEqual(cfg, result)
 
     def test_setup_logging(self):
         """Ensure that setup_logging works and sets-up to what we expect."""
