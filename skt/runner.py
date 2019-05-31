@@ -21,7 +21,6 @@ import subprocess
 import sys
 import time
 
-from abc import ABCMeta, abstractmethod
 from defusedxml.ElementTree import fromstring
 from defusedxml.ElementTree import tostring
 
@@ -29,42 +28,7 @@ from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
 from skt.misc import WaivingWrap
 
 
-class Runner(object):
-    """An abstract test runner"""
-    # pylint: disable=too-many-arguments,too-few-public-methods
-    __metaclass__ = ABCMeta
-
-    TYPE = 'default'
-
-    @abstractmethod
-    def run(self, url, max_aborted, release, wait=False,
-            arch=platform.machine(), waiving=True):
-        """
-        Abstract method, override this to run tests in <implement. specific>
-
-        Args:
-            url:         URL pointing to kernel tarball.
-            max_aborted: Maximum number of allowed aborted jobs. Abort the
-                         whole stage if the number is reached.
-            release:     NVR of the tested kernel.
-            wait:        False if skt should exit after submitting the jobs,
-                         True if it should wait for them to finish.
-            arch:        Architecture of the machine the tests should run on,
-                         in a format accepted by Beaker. Defaults to
-                         architecture of the current machine skt is running on
-                         if not specified.
-
-        Returns:
-            ret where ret can be
-                   SKT_SUCCESS if everything passed
-                   SKT_FAIL if testing failed
-                   SKT_ERROR in case of infrastructure error (exceptions are
-                                                              logged)
-        """
-        pass   # pragma: no cover
-
-
-class BeakerRunner(Runner):
+class BeakerRunner:
     """Beaker test runner"""
     # pylint: disable=too-many-instance-attributes
     TYPE = 'beaker'
