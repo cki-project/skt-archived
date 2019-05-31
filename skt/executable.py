@@ -22,9 +22,7 @@ import sys
 import tempfile
 
 import argparse
-import skt
-import skt.runner
-from skt.misc import SKT_SUCCESS
+from skt.runner import BeakerRunner
 
 LOGGER = logging.getLogger()
 
@@ -56,7 +54,7 @@ def save_state(cfg, state):
     for (key, val) in state.items():
         if val is not None:
             logging.debug("state: %s -> %s", key, val)
-            config.set('state', key, val)
+            config.set('state', key, str(val))
 
     with open(cfg.get('rc'), 'w') as fileh:
         config.write(fileh)
@@ -70,7 +68,10 @@ def cmd_run(cfg):
     Args:
         cfg:    A dictionary of skt configuration.
     """
-    runner = skt.runner.BeakerRunner(*cfg.get('runner'))
+    runner_config = cfg.get('runner')
+    runner_config = [x for x in runner_config if isinstance(x, dict)][0]
+
+    runner = BeakerRunner(**runner_config)
 
     atexit.register(runner.cleanup_handler)
     signal.signal(signal.SIGINT, runner.signal_handler)
