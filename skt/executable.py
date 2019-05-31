@@ -26,7 +26,6 @@ import skt
 import skt.runner
 from skt.misc import SKT_SUCCESS
 
-DEFAULTRC = "~/.sktrc"
 LOGGER = logging.getLogger()
 retcode = SKT_SUCCESS
 
@@ -144,7 +143,7 @@ def setup_parser():
     parser.add_argument(
         "--rc",
         help="Path to rc file",
-        default=DEFAULTRC
+        required=True
     )
     # FIXME Storing state in config file can break the whole system in case
     #       state saving aborts. It's better to save state separately.
