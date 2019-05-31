@@ -45,10 +45,8 @@ class TestExecutable(unittest.TestCase):
         if expected_fail:
             with self.assertRaises(SystemExit):
                 args = parser.parse_args(args)
-                executable.check_args(parser, args)
         else:
             args = parser.parse_args(args)
-            executable.check_args(parser, args)
 
         if expected_stdout:
             self.assertIn(expected_stdout, temp_stdout.getvalue().strip())
@@ -89,107 +87,6 @@ class TestExecutable(unittest.TestCase):
         expected_path = "{}/{}".format(os.path.expanduser('~'), filename)
         self.assertEqual(expected_path, result)
 
-    def test_check_args_basic(self):
-        """Test check_args() with merge."""
-        args = ['merge']
-        self.check_args_tester(args, expected_fail=False)
-
-    def test_check_args_mail_incomplete(self):
-        """Test check_args() with incomplete mail args."""
-        args = ['report', '--reporter', 'mail']
-        expected_stderr = (
-            '--reporter mail requires --mail-to and --mail-from to be set'
-        )
-        self.check_args_tester(args, expected_stderr=expected_stderr)
-
-    def test_check_args_missing_glob(self):
-        """Test check_args() without rh-configs-glob."""
-        args = ['build', '--cfgtype', 'rh-configs']
-        expected_stderr = (
-            '--cfgtype rh-configs requires --rh-configs-glob to set'
-        )
-        self.check_args_tester(args, expected_stderr=expected_stderr)
-
-    def test_check_args_stdio_mail(self):
-        """Test check_args() with stdio and mail arguments."""
-        args = ['report', '--reporter', 'stdio', '--mail-to',
-                'someone@example.com']
-        expected_stderr = (
-            'the stdio reporter was selected but arguments for the mail '
-            'reporter were provided'
-        )
-        self.check_args_tester(args, expected_stderr=expected_stderr)
-
-    def test_check_args_stdio_valid(self):
-        """Test check_args() with stdio and valid arguments."""
-        args = ['report', '--reporter', 'stdio']
-        self.check_args_tester(args, expected_fail=False)
-
-    def test_merge_option(self):
-        """Test parsing of multiple different merge options."""
-        args = ['--workdir', '/tmp/workdir', '--state', 'merge',
-                '--patch', 'patch.txt',
-                '--pw', 'http://patchwork.example.com/patch/1',
-                '--merge-ref', 'git://example.com/repo1']
-        parser = executable.setup_parser()
-        args = parser.parse_args(args)
-        cfg = executable.load_config(args)
-        # Check that ordered mixture of merge arguments
-        self.assertEqual('patch', cfg['merge_queue'][0][0])
-        self.assertEqual('pw', cfg['merge_queue'][1][0])
-        self.assertEqual('merge_ref', cfg['merge_queue'][2][0])
-        # Check the content patch of ordered mixture merge arguments
-        self.assertEqual('patch.txt', cfg['merge_queue'][0][1])
-        self.assertEqual('http://patchwork.example.com/patch/1',
-                         cfg['merge_queue'][1][1])
-        self.assertEqual('git://example.com/repo1', cfg['merge_queue'][2][1])
-
-    def test_load_config(self):
-        """Test load_config() with some arguments."""
-        config_file = [
-            '[state]',
-            'recipesetid_1234=RS:1234',
-            '[config]',
-            'foo=bar',
-            'workdir=/tmp/workdir',
-            'basecfg=.config',
-            'buildconf=value',
-            'tarpkg=value',
-            'output_dir=/tmp/whatever',
-            '[merge-1]',
-            'url = repourl',
-            'ref = master',
-            '[runner]',
-            'type=beaker',
-            'blacklist=150',
-
-        ]
-        args = ['--rc', '/tmp/testing.ini', '--workdir', '/tmp/workdir',
-                '--state', 'report', '--reporter',
-                'stdio', '--result', '/tmp/state.txt']
-        cfg = self.load_config_tester(config_file, args)
-        self.assertEqual('bar', cfg['foo'])
-        self.assertEqual('report', cfg['_name'])
-
-    def test_load_config_reporter_args(self):
-        """Test load_config() with reporter arguments."""
-        config_file = []
-        args = ['--rc', '/tmp/testing.ini', 'report', '--reporter', 'mail',
-                '--mail-to', 'someone@example.com', '--mail-from',
-                'sender@example.com']
-        cfg = self.load_config_tester(config_file, args)
-        self.assertEqual('mail', cfg['type'])
-
-    def test_load_config_reporter_config(self):
-        """Test load_config() with reporter in the config file."""
-        # pylint: disable=invalid-name
-        config_file = [
-            '[reporter]',
-            'type=stdio',
-        ]
-        args = ['--rc', '/tmp/testing.ini', 'report']
-        cfg = self.load_config_tester(config_file, args)
-        self.assertTupleEqual(('type', 'stdio'), cfg['reporter'][0])
 
     def test_load_config_runner_args(self):
         """Test load_config() with runner arguments."""
@@ -198,57 +95,6 @@ class TestExecutable(unittest.TestCase):
                 '--state', 'run', '--runner', 'myrunner', '[\'value\']']
         cfg = self.load_config_tester(config_file, args)
         self.assertListEqual(['myrunner', ['value']], cfg['runner'])
-
-    def test_load_config_with_state_arg(self):
-        """Test load_config() with state."""
-        config_file = [
-            '[state]',
-            'jobid_01=J:123456',
-            'jobid_02=J:234567',
-            'mergerepo_01=git://example.com/repo1',
-            'mergerepo_02=git://example.com/repo2',
-            'mergehead_01=master',
-            'mergehead_02=master',
-            'localpatch_01=/tmp/patch1.txt',
-            'localpatch_02=/tmp/patch2.txt',
-            'patchwork_01=http://patchwork.example.com/patch/1',
-            'patchwork_02=http://patchwork.example.com/patch/2',
-            'workdir=/tmp/workdir2',
-            'some_other_state=some_value',
-            '[publisher]',
-            'type=mypublisher',
-            'destination=/tmp/publish',
-            'baseurl=http://example.com/publish',
-            '[runner]',
-            'type=myrunner',
-            'jobtemplate=mytemplate.xml',
-        ]
-        args = ['--rc', '/tmp/lolwut.ini', '--workdir', '/tmp/workdir',
-                '--state', 'merge']
-        cfg = self.load_config_tester(config_file, args)
-
-        # Check that state was retrieved from the config file
-        self.assertSetEqual(set([u'J:123456', u'J:234567']), cfg['jobs'])
-        self.assertListEqual(
-            ['master', 'master'],
-            cfg['mergeheads']
-        )
-        self.assertListEqual(
-            ['git://example.com/repo1', 'git://example.com/repo2'],
-            cfg['mergerepos']
-        )
-        self.assertListEqual(
-            ['/tmp/patch1.txt', '/tmp/patch2.txt'],
-            cfg['localpatches']
-        )
-        self.assertListEqual(
-            [
-                'http://patchwork.example.com/patch/1',
-                'http://patchwork.example.com/patch/2'
-            ],
-            cfg['patchworks']
-        )
-        self.assertEqual('some_value', cfg['some_other_state'])
 
     def test_save_state(self):
         """Ensure save_state works."""
@@ -274,21 +120,6 @@ class TestExecutable(unittest.TestCase):
         executable.save_state(cfg, state)
 
         self.assertEqual(cfg, result)
-
-    @mock.patch('skt.publisher.ScpPublisher.publish')
-    def test_cmd_publish(self, mock_publish):
-        """Ensure cmd_publish() works and publisher object method."""
-        # pylint: disable=no-self-use
-        cfg = {'publisher': ['scp', 'a', 'b'], 'buildconf': 'a'}
-
-        mock_publish.return_value = "stdout"
-
-        executable.cmd_publish(cfg)
-        mock_publish.assert_called()
-
-        cfg['tarpkg'] = 'b'
-        executable.cmd_publish(cfg)
-        mock_publish.assert_called()
 
     def test_addtstamp(self):
         """Ensure addtstamp works."""

@@ -32,7 +32,7 @@ To run all tests execute:
 
 To run some specific tests, you can execute a specific test like this:
 
-    python -m unittest tests.test_publisher
+    python -m unittest tests.test_runner
 
 
 Installation
@@ -86,32 +86,11 @@ after the next command in the workflow has already ran.
 
 The following commands are supported by `skt`:
 
-* `merge`
-    - Fetch a kernel repository, checkout particular references, and
-      optionally apply patches from patchwork instances.
-* `build`
-    - Build the kernel with specified configuration and put it into a tarball.
-      This command expects `merge` command to have completed succesfully.
-* `publish`
-    - Publish (copy) the kernel tarball, configuration, and build information
-      to the specified location, generating their resulting URLs, using the
-      specified "publisher". Only "cp", "scp", and "sftp" publishers are
-      supported at the moment. This command expects `build` command to have
-      completed succesfully.
 * `run`
     - Run tests on a built kernel using the specified "runner". Only
       "Beaker" runner is currently supported. This command expects `publish`
       command to have completed succesfully.
-* `report`
-    - Report build and/or test results using the specified "reporter".
-      Currently results can be reported by e-mail or printed to stdout. This
-      command expects `run` command to have completed.
-* `console-check`
-    - Check the specified console logs for any traces, and report the first
-      trace found for each console log.
-* `all`
-    - Run the following commands in order: `merge`, `build`, `publish`, `run`,
-      `report` (if `--wait` option was specified).
+
 
 The following is a walk through the process of checking out a kernel commit,
 applying a patch from Patchwork, building the kernel, running the tests, and
@@ -120,138 +99,6 @@ reporting the results.
 All the following commands use the `-vv` option to increase verbosity of the
 command's output, so it's easier to debug problems. Remove the option for
 quieter, shorter output.
-
-### Merge
-
-To checkout a kernel tree run:
-
-    skt --rc <SKTRC> --state --workdir <WORKDIR> --output-dir <OUTDIR> -vv \
-        merge --baserepo <REPO_URL> --ref <REPO_REF>
-
-Here `<SKTRC>` would be the configuration file to retrieve the configuration
-and the state from, and store the updated state in. `<WORKDIR>` would be the
-directory to clone and checkout the kernel repo to, `<OUTDIR>` would be
-directory to store output files, `<REPO_URL>` would be the source
-kernel Git repo URL, and `<REPO_REF>` would be the reference to checkout.
-
-E.g. to checkout "master" branch of the "net-next" repo:
-
-    skt --rc skt-rc --state --workdir skt-workdir --output-dir skt-outdir -vv \
-        merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
-              --ref master
-
-To apply a patch from Patchwork run:
-
-    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-        merge --baserepo <REPO_URL> \
-              --ref <REPO_REF> \
-              --pw <PATCHWORK_PATCH_URL>
-
-Here, `<REPO_REF>` would be the reference to checkout, and to apply the patch
-on top of, and `<PATCHWORK_PATCH_URL>` would be the URL pointing to a patch on
-a Patchwork instance.
-
-E.g. to apply a particular patch to a particular, known-good commit from the
-"net-next" repo, run:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
-              --ref a870a02cc963de35452bbed932560ed69725c4f2 \
-              --pw https://patchwork.ozlabs.org/patch/886637
-
-To apply a local patch run:
-
-    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-        merge --baserepo <REPO_URL> \
-              --ref <REPO_REF> \
-              --patch <PATH_TO_PATCH>
-
-Here, `<PATH_TO_PATCH>` would be the patch file.
-E.g. to apply a particular patch to a particular, known-good commit from the
-"net-next" repo, run:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        merge --baserepo git://git.kernel.org/pub/scm/linux/kernel/git/davem/net-next.git \
-              --ref a870a02cc963de35452bbed932560ed69725c4f2 \
-              --patch net-next-cxgb4-notify-fatal-error-to-uld-drivers.patch
-
-#### Faster clones
-
-In some instances, a full git history is not needed. Shallow clones are git
-repositories that have a truncated history and they can be cloned much faster
-than a full copy of the repository. Use the `--fetch-depth` option with
-`skt merge`:
-
-    skt ... merge ... --fetch-depth 5
-
-In the example above, the repository will be cloned with a git history of five
-commits. This speeds up the cloning process, but it also prevents the use of
-any git references (tags, branches, etc) that were made before the last five
-commits.
-
-### Build
-
-And to build the kernel run:
-
-    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-        build -c `<CONFIG_FILE>`
-
-Where `<CONFIG_FILE>` would be the kernel configuration file to build the
-kernel with. The configuration will be applied with `make olddefconfig`, by
-default.
-
-E.g. to build with the current system's config file run:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        build -c /boot/config-`uname -r`
-
-**NOTE:** Kernels are built without debuginfo by default to save disk space
-and improve build times. In some cases, deep troubleshooting may require
-debug symbols. Use the `--enable-debuginfo` argument to build a kernel with
-debug symbols included.
-
-Provide additional arguments and options to `make` by using
-`--makeopts`.
-
-#### Kernel configuration file options
-
-Three kernel configuration file options are supported by `skt`:
-
-* Provide a kernel configuration file directly: `--config CONFIG_FILE_PATH`
-* Use a minimal configuration for a very small kernel: `--cfgtype tinyconfig`
-* Build kernel configuration files for Red Hat kernels: `--cfgtype rh-configs`
-
-Users must specify a filename glob using `--rh-configs-glob` with
-`--cfgtype rh-configs`. This allows `skt` to choose the correct kernel
-configuration file. The path should be relative to the path of the kernel
-source.
-
-The following example works for `x86_64`:
-
-    --rh-configs-glob "redhat/configs/kernel-*-x86_64.config"
-
-The following example works for POWER systems (little endian):
-
-    --rh-configs-glob "redhat/configs/kernel-*-ppc64le.config"
-
-### Publish
-
-To "publish" the resulting build using the simple "cp" (copy) publisher run:
-
-    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-        publish -p cp <DIRECTORY> <URL_PREFIX>
-
-Here `<DIRECTORY>` would be the location for the copied build artifacts, and
-`URL_PREFIX` would be the string to add to prepend the filenames with
-(together with a slash `/`) to construct the URLs the files will be reachable
-at. The resulting URLs will be passed to other commands, such as `run`, via
-the saved state in the configuration file.
-
-E.g. to publish to the `/srv/builds` directory available at
-`http://skt-server` run:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        publish -p cp /srv/builds http://skt-server
 
 ### Run
 
@@ -329,97 +176,6 @@ machines in `blacklist.txt` file execute:
         --runner beaker '{"jobtemplate": "beakerjob.xml", \
 	                  "blacklist": "blacklist.txt"}, \
         --wait
-
-### Report
-
-There are two "reporters" supported at the moment: "stdio" and "mail".
-The former prints the report on stdout and the latter sends it by mail to
-specified addresses, with specified "From" address.
-
-This command *requires* the runner parameters from the "run" command to be
-present in the configuration file. It needs this minimum "runner" section:
-
-    [runner]
-    type = beaker
-    jobtemplate = <JOBTEMPLATE>
-
-Here, `<JOBTEMPLATE>` is the same Beaker job template file name you used for
-the "run" command. E.g., continuing from the example above, it can be:
-
-    [runner]
-    type = beaker
-    jobtemplate = beakerjob.xml
-
-#### stdio Reporter
-
-The `stdio` reporter prints the report to stdout and requires no additional
-options:
-
-    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv \
-        report --reporter stdio
-
-#### mail Reporter
-
-The `mail` reporter sends an email to one or more recipients with the results
-of the testing. Multiple options are available:
-
-* `--mail-to`: one or more recipient email addresses *(required)*
-* `--mail-from`: the email address of the sender *(required)*
-* `--mail-subject`: the email subject *(optional)*
-* `--mail-header`: one or more email headers to add to the email *(optional)*
-
-The most basic email report can be sent using these arguments:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        report --reporter mail \
-        --mail-to developer@example.com \
-        --mail-from skt@example.com
-
-Multiple recipient addresses can be provided:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        report --reporter mail \
-        --mail-to developer@example.com --mail-to dev2@example.com \
-        --mail-from skt@example.com
-
-Here is a full example with multiple email headers:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        report --reporter mail \
-        --mail-to developer@example.com dev2@example.com \
-        --mail-from skt@example.com \
-        --mail-subject "Important tests results" \
-        --mail-header "X-Build-ID: 225" \
-        --mail-header "In-Reply-To: <messageid@example.com>"
-
-The `reporter` command is able to send a single report for multiple test
-runs. For now, only runs with same patch series and base are supported. This
-is especially useful if the same patch series are being tested on multiple
-architectures. To run reporter in multireport mode, add the `--result` option
-with an skt state file created by the `run` command you wish to report. The
-`--result` option can be repeated multiple times for multiple state files.
-
-Using the previous example of mail report command and state files
-`./state_x86` and `./state_s390x`, the command will be:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        report --reporter mail \
-        --mail-to developer@example.com --mail-to dev2@example.com \
-        --mail-from skt@example.com \
-        --result ./state_x86 --result ./state_s390x
-
-### Console check
-
-The console checker is not a part of the default flow, but allows parsing
-console logs to detect any call traces. A kernel release string is needed (can
-be grabbed from state file), and URL or file path to one or more console logs
-can be specified. Local files can be gzipped.
-
-Example of the command to check console log present at given URL, when the
-kernel release string is parsed out of state file:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv \
-        console-check --console http://beaker.example.com/skt-logs/console.log
 
 Developer Guide
 ---------------
