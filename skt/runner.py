@@ -264,6 +264,11 @@ class BeakerRunner(Runner):
             result = task.attrib.get('result')
             status = task.attrib.get('status')
 
+            # check ewd failure on boottest first
+            ewd = self._check_ewd(task)
+            if ewd is not None:
+                return ewd
+
             if result in ['Fail', 'Warn', 'Panic']:
                 if self.waiving and self.waiving_wrap.is_task_waived(task):
                     if result == 'Panic':
@@ -276,10 +281,6 @@ class BeakerRunner(Runner):
 
                     continue
                 else:
-                    ewd = self._check_ewd(task)
-                    if ewd is not None:
-                        return ewd
-
                     if result == 'Aborted' and prev_task_panicked_and_waived:
                         return SKT_SUCCESS
 
@@ -426,6 +427,12 @@ class BeakerRunner(Runner):
             self.__forget_taskspec(job_id)
 
     def __handle_test_abort(self, recipe, recipe_id, recipe_set_id, root):
+        # check ewd failure on boottest first
+        for task in recipe.findall('task'):
+            ewd = self._check_ewd(task)
+            if ewd is not None:
+                return ewd
+
         if self.decide_run_result_by_task(recipe) == SKT_SUCCESS:
             # A task that is waived aborted or panicked. Waived tasks are
             # appended to the end of the recipe, so we should be able to
