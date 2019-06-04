@@ -226,7 +226,7 @@ def load_config(args):
     """
     # NOTE(mhayden): The shell should do any tilde expansions on the path
     # before the rc path is provided to Python.
-    config_parser = configparser.ConfigParser()
+    config_parser = configparser.RawConfigParser()
     config_parser.read(os.path.abspath(args.rc))
 
     cfg = vars(args)
