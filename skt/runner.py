@@ -189,22 +189,34 @@ class BeakerRunner:
         else:
             raise ValueError("Unknown taskspec type: %s" % taskspec)
 
-    def _check_ewd(self, task):
-        """ For "Boot test" task only: goes through a list of <result>
-            elements. If there's EWD in element text, then kernel package
-            install task has likely failed.
-
-            Returns:
-                None - when no EWD or Boot test results found
-                SKT_FAIL - when EWD found in Boot test result
+    def _not_booting(self, recipe):
         """
-        if task.attrib['name'] == "Boot test":
+        Check if the kernel we should test failed to boot. In these cases, the
+        Boot test throws EWD. We need to check that EWD wasn't hit sooner (e.g.
+        the distro failed to install).
+
+        Returns:
+            True if the issue is caused by a kernel not booting,
+            False otherwise.
+        """
+        is_boot_test = False
+
+        for task in recipe.findall('task'):
+            if task.attrib['name'] == "Boot test":
+                is_boot_test = True
+
             for res in task.findall('.//results/'):
                 if res.text and 'External Watchdog Expired' in res.text:
-                    # suspicious, we hit EWD in kernel install task!
-                    return SKT_FAIL
+                    if is_boot_test:
+                        return True
+                    else:
+                        return False
 
-        return None
+            if is_boot_test:
+                # If we got here it means that we got past the boot without
+                # hitting EWD. Since we want to only check the boot failure and
+                # not test troubles, return here.
+                return False
 
     def decide_run_result_by_task(self, recipe_result):
         """ Decide run result by tasks. If we have test waiving enabled and the
@@ -226,15 +238,13 @@ class BeakerRunner:
             * else: skip over 'Pass' / 'Skip' so eventually -> SKT_SUCCESS
 
         """
+        if self._not_booting(recipe_result):
+            return SKT_FAIL
+
         prev_task_panicked_and_waived = False
         for task in recipe_result.findall('task'):
             result = task.attrib.get('result')
             status = task.attrib.get('status')
-
-            # check ewd failure on boottest first
-            ewd = self._check_ewd(task)
-            if ewd is not None:
-                return ewd
 
             if result in ['Fail', 'Warn', 'Panic']:
                 if self.waiving and self.waiving_wrap.is_task_waived(task):
@@ -391,11 +401,8 @@ class BeakerRunner:
             self.__forget_taskspec(job_id)
 
     def __handle_test_abort(self, recipe, recipe_id, recipe_set_id, root):
-        # check ewd failure on boottest first
-        for task in recipe.findall('task'):
-            ewd = self._check_ewd(task)
-            if ewd is not None:
-                return ewd
+        if self._not_booting(recipe):
+            return
 
         if self.decide_run_result_by_task(recipe) == SKT_SUCCESS:
             # A task that is waived aborted or panicked. Waived tasks are
