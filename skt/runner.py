@@ -189,22 +189,41 @@ class BeakerRunner:
         else:
             raise ValueError("Unknown taskspec type: %s" % taskspec)
 
-    def _check_ewd(self, task):
-        """ For "Boot test" task only: goes through a list of <result>
-            elements. If there's EWD in element text, then kernel package
-            install task has likely failed.
+    def _check_ewd_bad_kernel(self, recipe):
+        """ Checks EWD hit on "Boot test" task results. If EWD was hit on all
+            tasks, then we assume infra-error. If EWD was hit on boottest and
+            all following tasks, we consider it a kernel failure. All other
+            cases - no.
 
-            Returns:
-                None - when no EWD or Boot test results found
-                SKT_FAIL - when EWD found in Boot test result
+            Returns: True  - this ewd likely indicates kernel failure
+                     False - this ewd likely doesn't indicate kernel failure
         """
-        if task.attrib['name'] == "Boot test":
+        def task_has_ewd(task):
             for res in task.findall('.//results/'):
                 if res.text and 'External Watchdog Expired' in res.text:
-                    # suspicious, we hit EWD in kernel install task!
-                    return SKT_FAIL
+                    # found EWD hit in kernel install task
+                    return True
 
-        return None
+        # recipe has ewd on boottest
+        recipe_boottest_ewd = False
+        # actual count of ewds after boottest
+        ewd_count_after_boottest = 0
+        # this will be set to a maximum of ewd hits after boottest
+        following_ewd_maxcount = None
+        # we're processing all tasks of a recipe
+        all_tasks = recipe.findall('task')
+
+        for i, task in enumerate(all_tasks):
+            if task_has_ewd(task):
+                if recipe_boottest_ewd:
+                    ewd_count_after_boottest += 1
+                elif task.attrib['name'] == "Boot test":
+                    recipe_boottest_ewd = True
+
+                    following_ewd_maxcount = len(all_tasks[i + 1:])
+
+        # will be true, if all tasks after boottest were also hit
+        return ewd_count_after_boottest == following_ewd_maxcount
 
     def decide_run_result_by_task(self, recipe_result):
         """ Decide run result by tasks. If we have test waiving enabled and the
@@ -226,15 +245,14 @@ class BeakerRunner:
             * else: skip over 'Pass' / 'Skip' so eventually -> SKT_SUCCESS
 
         """
+        # check ewd failure on boottest first
+        if self._check_ewd_bad_kernel(recipe_result):
+            return SKT_FAIL
+
         prev_task_panicked_and_waived = False
         for task in recipe_result.findall('task'):
             result = task.attrib.get('result')
             status = task.attrib.get('status')
-
-            # check ewd failure on boottest first
-            ewd = self._check_ewd(task)
-            if ewd is not None:
-                return ewd
 
             if result in ['Fail', 'Warn', 'Panic']:
                 if self.waiving and self.waiving_wrap.is_task_waived(task):
@@ -392,10 +410,8 @@ class BeakerRunner:
 
     def __handle_test_abort(self, recipe, recipe_id, recipe_set_id, root):
         # check ewd failure on boottest first
-        for task in recipe.findall('task'):
-            ewd = self._check_ewd(task)
-            if ewd is not None:
-                return ewd
+        if self._check_ewd_bad_kernel(recipe):
+            return
 
         if self.decide_run_result_by_task(recipe) == SKT_SUCCESS:
             # A task that is waived aborted or panicked. Waived tasks are
