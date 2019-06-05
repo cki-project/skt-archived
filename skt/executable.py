@@ -13,7 +13,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import configparser
-import ast
 import atexit
 import logging
 import os
@@ -145,18 +144,6 @@ def setup_parser():
         help="Path to rc file",
         required=True
     )
-    # FIXME Storing state in config file can break the whole system in case
-    #       state saving aborts. It's better to save state separately.
-    #       It also breaks separation of concerns, as in principle skt doesn't
-    #       need to modify its own configuration otherwise.
-    parser.add_argument(
-        "--state",
-        help=(
-            "Save/read state from 'state' section of rc file"
-        ),
-        action="store_true",
-        default=False
-    )
     parser.add_argument(
         "--waiving",
         help=(
@@ -170,23 +157,6 @@ def setup_parser():
 
     # These arguments apply to the 'run' skt command
     parser_run = subparsers.add_parser("run", add_help=False)
-    parser_run.add_argument(
-        "-r",
-        "--runner",
-        nargs=2,
-        type=str,
-        help="Runner config in 'type \"{'key' : 'val', ...}\"' format"
-    )
-    parser_run.add_argument(
-        "--buildurl",
-        type=str,
-        help="Build tarpkg url"
-    )
-    parser_run.add_argument(
-        "--krelease",
-        type=str,
-        help="Kernel release version of the build"
-    )
     parser_run.add_argument(
         '--max-aborted-count',
         type=int,
@@ -230,34 +200,7 @@ def load_config(args):
     config_parser.read(os.path.abspath(args.rc))
 
     cfg = vars(args)
-    cfg['_parser'] = config_parser
-    cfg['_testcases'] = []
 
-    # Read 'state' section first so that it is not overwritten by 'config'
-    # section values.
-    if cfg.get('state') and config_parser.has_section('state'):
-        for (name, value) in config_parser.items('state'):
-            if not cfg.get(name):
-                if name.startswith("jobid_"):
-                    cfg.setdefault("jobs", set()).add(value)
-                if name.startswith('recipesetid_'):
-                    cfg.setdefault("recipe_sets", set()).add(value)
-                cfg[name] = value
-
-    if config_parser.has_section('config'):
-        for (name, value) in config_parser.items('config'):
-            if not cfg.get(name):
-                cfg[name] = value
-
-    if config_parser.has_section('runner') and not cfg.get('runner'):
-        rcfg = {}
-        for (key, val) in config_parser.items('runner'):
-            if key != 'type':
-                rcfg[key] = val
-        cfg['runner'] = [config_parser.get('runner', 'type'), rcfg]
-    elif cfg.get('runner'):
-        cfg['runner'] = [cfg.get('runner')[0],
-                         ast.literal_eval(cfg.get('runner')[1])]
 
     # Get an absolute path for the work directory
     if cfg.get('workdir'):
@@ -265,20 +208,8 @@ def load_config(args):
     else:
         cfg['workdir'] = tempfile.mkdtemp()
 
-    # Get an absolute path for the kernel configuration file
-    if cfg.get('basecfg'):
-        cfg['basecfg'] = full_path(cfg.get('basecfg'))
-
     # Get an absolute path for the configuration file
     cfg['rc'] = full_path(cfg.get('rc'))
-
-    # Get an absolute path for the buildconf
-    if cfg.get('buildconf'):
-        cfg['buildconf'] = full_path(cfg.get('buildconf'))
-
-    # Get an absolute path for the tarpkg
-    if cfg.get('tarpkg'):
-        cfg['tarpkg'] = full_path(cfg.get('tarpkg'))
 
     # Get absolute paths to state files for multireport
     # Handle "result" being None if none are specified
