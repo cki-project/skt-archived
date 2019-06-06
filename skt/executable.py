@@ -13,6 +13,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import configparser
+import ast
 import atexit
 import logging
 import os
@@ -151,6 +152,18 @@ def setup_parser():
         ),
         type=lambda x: (str(x).lower() == 'true'),
         default=True
+    )
+    # FIXME Storing state in config file can break the whole system in case
+    #       state saving aborts. It's better to save state separately.
+    #       It also breaks separation of concerns, as in principle skt doesn't
+    #       need to modify its own configuration otherwise.
+    parser.add_argument(
+        "--state",
+        help=(
+            "Save/read state from 'state' section of rc file"
+        ),
+        action="store_true",
+        default=False
     )
 
     subparsers = parser.add_subparsers()
