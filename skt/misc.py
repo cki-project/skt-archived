@@ -40,7 +40,7 @@ class WaivingWrap(object):
         is_task_waived = False
         for param in task.findall('.//param'):
             try:
-                if param.attrib.get('name').lower() == '_waived' and \
+                if param.attrib.get('name').lower() == 'cki_waived' and \
                         param.attrib.get('value').lower() == 'true':
                     is_task_waived = True
                     break
