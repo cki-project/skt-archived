@@ -51,7 +51,7 @@
       <task name='/distribution/install' result='Pass' />
       <task name='/test/we/ran' result="Pass">
         <params>
-          <param name="_WAIVED" value="true"/>
+          <param name="CKI_WAIVED" value="true"/>
         </params>
       </task>
 
