@@ -23,12 +23,12 @@
     </task>
     <task name='/a/failed/waived/test' result='Fail' status='Completed'>
       <params>
-        <param name="_WAIVED" value="true"/>
+        <param name="CKI_WAIVED" value="true"/>
       </params>
     </task>
     <task name='/a/passed/waived/test' result='Pass' status='Completed'>
       <params>
-        <param name="_WAIVED" value="true"/>
+        <param name="CKI_WAIVED" value="true"/>
       </params>
     </task>
     <task name='/a/test/with/no/waive' result='Fail' status='Completed'></task>

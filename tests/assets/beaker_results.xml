@@ -13,12 +13,12 @@
       </logs>
       <task name="/test/misc/boottest" result="Fail">
                 <params>
-          <param name="_WAIVED" value="true"/>
+          <param name="CKI_WAIVED" value="true"/>
         </params>
         <fetch url="kpkginstall"/></task>
       <task name='/test/misc/machineinfo' result="Fail">
         <params>
-          <param name="_WAIVED" value="true"/>
+          <param name="CKI_WAIVED" value="true"/>
         </params>
         <logs>
           <log name='machinedesc.log' href="http://example.com/machinedesc.log">
