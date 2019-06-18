@@ -1,5 +1,10 @@
 # Changelog for skt
 
+## June 2019
+
+* All commands except for `skt run` dropped; this has been replaced with
+  GitLab pipeline yaml. SKT serves only to submit and watch Beaker jobs.
+
 ## June 2018
 
 * Arguments for `skt merge` should now be used multiple times instead of

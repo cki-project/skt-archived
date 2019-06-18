@@ -12,27 +12,22 @@ Dependencies
 
 Install dependencies needed for running skt like this:
 
-    sudo dnf install -y python2 beaker-client
-
-Dependencies needed to build kernels:
-
-    sudo dnf install -y bison flex dnf-plugins-core
-    sudo dnf builddep -y kernel-`uname -r`
+    sudo dnf install -y python3 beaker-client
 
 Extra dependencies needed for running the testsuite:
 
-    sudo dnf install -y python2-mock PyYAML
+    sudo dnf install -y python3-mock
 
 Run tests
 ---------
 
 To run all tests execute:
 
-    python -m unittest discover tests
+    python3 -m unittest discover tests
 
 To run some specific tests, you can execute a specific test like this:
 
-    python -m unittest tests.test_runner
+    python3 -m unittest tests.test_runner
 
 
 Installation
@@ -62,11 +57,11 @@ summary of particular command's options and arguments, run `skt <COMMAND>
 --help`, where `<COMMAND>` would be the command of interest.
 
 Most of command-line options can also be read by `skt` from its configuration
-file, which is `~/.sktrc` by default, but can also be specified using the
-global `--rc` command-line option. However, there are some command-line
-options which cannot be stored in the configuration file, and there are some
-options read from the configuration file by some `skt` commands, which cannot
-be passed via the command line. Some of the latter are required for operation.
+file, which is specified using the global `--rc` command-line option. However,
+there are some command-line options which cannot be stored in the configuration
+file, and there are some options read from the configuration file by some `skt`
+commands, which cannot be passed via the command line. Some of the latter are
+required for operation.
 
 Most `skt` commands can write their state to the configuration file as they
 work, so that the other commands can take the workflow task over from them.
