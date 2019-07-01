@@ -13,7 +13,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
 import configparser
-import ast
 import atexit
 import logging
 import os
@@ -32,68 +31,72 @@ def full_path(path):
     return os.path.abspath(os.path.expanduser(path))
 
 
-def save_state(cfg, state):
+def save_state(config_set, state):
     """
-    Merge state to cfg, and then save cfg.
+    Merge state to config_set, and then save config_set.
 
     Args:
-        cfg:    A dictionary of skt configuration.
-        state:  A dictionary of skt current state.
+        config_set: A dictionary of skt configuration.
+        state:      A dictionary of skt current state.
     """
 
-    for (key, val) in state.items():
-        cfg[key] = val
-
-    if not cfg.get('state'):
-        return
-
-    config = cfg.get('_parser')
-    if not config.has_section("state"):
-        config.add_section("state")
+    config_dict = {'state': {}, 'runner': {}}
 
     for (key, val) in state.items():
-        if val is not None:
+        # print info about change of existing keys or addition of new
+        if key not in config_set.keys() or config_set[key] != val:
             logging.debug("state: %s -> %s", key, val)
-            config.set('state', key, str(val))
 
-    with open(cfg.get('rc'), 'w') as fileh:
-        config.write(fileh)
+        if key in ['type', 'jobtemplate', 'jobowner', 'blacklist']:
+            config_dict['runner'][key] = val
+        else:
+            config_dict['state'][key] = val
+
+        config_set[key] = val
+
+    # create parser to safely read dict and output config file
+    temp_parser = configparser.RawConfigParser()
+    temp_parser.read_dict(config_dict)
+
+    # write parser content to the rc-file
+    with open(config_set.get('rc'), 'w') as fileh:
+        temp_parser.write(fileh)
 
 
-def cmd_run(cfg):
+def cmd_run(config_set):
     """
     Run tests on a built kernel using the specified "runner". Only "Beaker"
     runner is currently supported.
 
     Args:
-        cfg:    A dictionary of skt configuration.
+        config_set:    A dictionary of skt configuration.
     """
-    runner_config = cfg.get('runner')
-    runner_config = [x for x in runner_config if isinstance(x, dict)][0]
-
-    runner = BeakerRunner(**runner_config)
+    jobtemplate = config_set.get('jobtemplate')
+    jobowner = config_set.get('jobowner')
+    blacklist = config_set.get('blacklist')
+    runner = BeakerRunner(jobtemplate, jobowner, blacklist)
 
     atexit.register(runner.cleanup_handler)
     signal.signal(signal.SIGINT, runner.signal_handler)
     signal.signal(signal.SIGTERM, runner.signal_handler)
-    retcode = runner.run(cfg.get('kernel_package_url'),
-                         cfg.get('max_aborted_count'),
-                         cfg.get('kernel_version'),
-                         cfg.get('wait'),
-                         arch=cfg.get("kernel_arch"),
-                         waiving=cfg.get('waiving'))
+    retcode = runner.run(config_set.get('kernel_package_url'),
+                         config_set.get('max_aborted_count'),
+                         config_set.get('kernel_version'),
+                         config_set.get('wait'),
+                         arch=config_set.get("kernel_arch"),
+                         waiving=config_set.get('waiving'))
 
     recipe_set_index = 0
     for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
-        save_state(cfg, {'jobid_%s' % (index): job})
+        save_state(config_set, {'jobid_%s' % (index): job})
         for recipe_set in runner.job_to_recipe_set_map[job]:
-            save_state(cfg,
+            save_state(config_set,
                        {'recipesetid_%s' % (recipe_set_index): recipe_set})
             recipe_set_index += 1
 
-    cfg['jobs'] = runner.job_to_recipe_set_map.keys()
+    config_set['jobs'] = runner.job_to_recipe_set_map.keys()
 
-    save_state(cfg, {'retcode': retcode})
+    save_state(config_set, {'retcode': retcode})
 
     return retcode
 
@@ -114,6 +117,7 @@ def setup_logging(verbose):
 def setup_parser():
     """
     Create an skt command line parser.
+    PLEASE SET DEFAULTS IN post_fixture() only.
 
     Returns:
         The created parser.
@@ -121,38 +125,15 @@ def setup_parser():
     parser = argparse.ArgumentParser()
 
     # These arguments apply to all commands within skt
-    parser.add_argument(
-        "-d",
-        "--workdir",
-        type=str,
-        help="Path to work dir"
-    )
-    parser.add_argument(
-        "-o",
-        "--output-dir",
-        type=str,
-        help="Path to output directory"
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        help="Increase verbosity level",
-        action="count",
-        default=0
-    )
-    parser.add_argument(
-        "--rc",
-        help="Path to rc file",
-        required=True
-    )
-    parser.add_argument(
-        "--waiving",
-        help=(
-            "Hide waived tests."
-        ),
-        type=lambda x: (str(x).lower() == 'true'),
-        default=True
-    )
+    parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
+    parser.add_argument("-o", "--output-dir", type=str,
+                        help="Path to output directory")
+    parser.add_argument("-v", "--verbose", help="Increase verbosity level",
+                        action="count", default=0)
+    parser.add_argument("--rc", help="Path to rc file", required=True)
+    parser.add_argument("--waiving", help=("Hide waived tests."),
+                        type=lambda x: (str(x).lower() == 'true'),
+                        default=True)
     # FIXME Storing state in config file can break the whole system in case
     #       state saving aborts. It's better to save state separately.
     #       It also breaks separation of concerns, as in principle skt doesn't
@@ -170,30 +151,55 @@ def setup_parser():
 
     # These arguments apply to the 'run' skt command
     parser_run = subparsers.add_parser("run", add_help=False)
-    parser_run.add_argument(
-        '--max-aborted-count',
-        type=int,
-        help='Ignore <count> aborted jobs to work around temporary '
-        + 'infrastructure issues. Defaults to 3.'
-    )
-    parser_run.add_argument(
-        "--wait",
-        action="store_true",
-        default=False,
-        help="Do not exit until tests are finished"
-    )
+    parser_run.add_argument('--max-aborted-count', type=int,
+                            help='Ignore <count> aborted jobs to work around '
+                                 'temporary infrastructure issues. Defaults '
+                                 'to 3.')
+    parser_run.add_argument("--wait", action="store_true",
+                            help="Do not exit until tests are finished")
 
-    parser_run.add_argument(
-        "-h",
-        "--help",
-        help="Run sub-command help",
-        action="help"
-    )
+    parser_run.add_argument("-h", "--help", help="Run sub-command help",
+                            action="help")
 
     parser_run.set_defaults(func=cmd_run)
     parser_run.set_defaults(_name="run")
 
     return parser
+
+
+def post_fixture(config_set):
+    """ Modifies skt configuration to set defaults or modify params."""
+    # Get an absolute path for the work directory
+    if config_set.get('workdir'):
+        config_set['workdir'] = full_path(config_set.get('workdir'))
+    else:
+        config_set['workdir'] = tempfile.mkdtemp()
+
+    # Assign default --wait value if not specified
+    if not config_set.get('wait'):
+        config_set['wait'] = True
+
+    # Assign default max aborted count if it's not defined in config file
+    if not config_set.get('max_aborted_count'):
+        config_set['max_aborted_count'] = 3
+
+    # Get absolute path to blacklist file
+    if config_set.get('blacklist'):
+        config_set['blacklist'] = full_path(config_set['blacklist'])
+
+    # Create and get an absolute path for the output directory
+    if config_set.get('output_dir'):
+        config_set['output_dir'] = full_path(config_set.get('output_dir'))
+        try:
+            os.mkdir(config_set.get('output_dir'))
+        except OSError:
+            pass
+    elif os.access(config_set.get('workdir'), os.W_OK | os.X_OK):
+        config_set['output_dir'] = config_set.get('workdir')
+    else:
+        config_set['output_dir'] = os.getcwd()
+
+    return config_set
 
 
 def load_config(args):
@@ -207,52 +213,35 @@ def load_config(args):
     Returns:
         Loaded configuration dictionary.
     """
-    # NOTE(mhayden): The shell should do any tilde expansions on the path
+    # NOTE: The shell should do any tilde expansions on the path
     # before the rc path is provided to Python.
+
+    # create output object; config file settings overriden by cmd-line params
+    config_set = vars(args)
+
+    # read input file (rc-file) using config file parser
     config_parser = configparser.RawConfigParser()
-    config_parser.read(os.path.abspath(args.rc))
+    config_parser.read(args.rc)
 
-    cfg = vars(args)
+    # if there are unset values in command-line args, use config values
+    seen_config_keys = set()
+    for section in config_parser.sections():
+        for key, value in config_parser.items(section):
+            if key in seen_config_keys:
+                # we don't allow non-globally-unique keys
+                raise RuntimeError('input config file is not flat!')
 
+            if config_set.get(key):
+                # cmd-line args override config, not vice-versa
+                continue
 
-    # Get an absolute path for the work directory
-    if cfg.get('workdir'):
-        cfg['workdir'] = full_path(cfg.get('workdir'))
-    else:
-        cfg['workdir'] = tempfile.mkdtemp()
+            # write a new value
+            config_set[key] = value
 
-    # Get an absolute path for the configuration file
-    cfg['rc'] = full_path(cfg.get('rc'))
+            # add seen key
+            seen_config_keys.add(key)
 
-    # Get absolute paths to state files for multireport
-    # Handle "result" being None if none are specified
-    for idx, statefile_path in enumerate(cfg.get('result') or []):
-        cfg['result'][idx] = full_path(statefile_path)
-
-    # Assign default max aborted count if it's not defined in config file
-    if not cfg.get('max_aborted_count'):
-        cfg['max_aborted_count'] = 3
-
-    # Get absolute path to blacklist file
-    if cfg.get('runner') and cfg['runner'][0] == 'beaker' and \
-            'blacklist' in cfg['runner'][1]:
-        cfg['runner'][1]['blacklist'] = full_path(
-            cfg['runner'][1]['blacklist']
-        )
-
-    # Create and get an absolute path for the output directory
-    if cfg.get('output_dir'):
-        cfg['output_dir'] = full_path(cfg.get('output_dir'))
-        try:
-            os.mkdir(cfg.get('output_dir'))
-        except OSError:
-            pass
-    elif os.access(cfg.get('workdir'), os.W_OK | os.X_OK):
-        cfg['output_dir'] = cfg.get('workdir')
-    else:
-        cfg['output_dir'] = os.getcwd()
-
-    return cfg
+    return config_set
 
 
 def main():
@@ -261,13 +250,15 @@ def main():
     try:
         parser = setup_parser()
         args = parser.parse_args()
+        # make sure path to rc-file is absolute
+        args.rc = full_path(args.rc)
 
         setup_logging(args.verbose)
 
-        # We are gradually migrating away from messing with cfg and passing
-        # it everywhere.
-        cfg = load_config(args)
-        retcode = args.func(cfg)
+        config_set = load_config(args)
+        config_set = post_fixture(config_set)
+
+        retcode = args.func(config_set)
 
         sys.exit(retcode)
     except KeyboardInterrupt:
