@@ -126,8 +126,6 @@ def setup_parser():
 
     # These arguments apply to all commands within skt
     parser.add_argument("-d", "--workdir", type=str, help="Path to work dir")
-    parser.add_argument("-o", "--output-dir", type=str,
-                        help="Path to output directory")
     parser.add_argument("-v", "--verbose", help="Increase verbosity level",
                         action="count", default=0)
     parser.add_argument("--rc", help="Path to rc file", required=True)
@@ -186,18 +184,6 @@ def post_fixture(config_set):
     # Get absolute path to blacklist file
     if config_set.get('blacklist'):
         config_set['blacklist'] = full_path(config_set['blacklist'])
-
-    # Create and get an absolute path for the output directory
-    if config_set.get('output_dir'):
-        config_set['output_dir'] = full_path(config_set.get('output_dir'))
-        try:
-            os.mkdir(config_set.get('output_dir'))
-        except OSError:
-            pass
-    elif os.access(config_set.get('workdir'), os.W_OK | os.X_OK):
-        config_set['output_dir'] = config_set.get('workdir')
-    else:
-        config_set['output_dir'] = os.getcwd()
 
     return config_set
 
