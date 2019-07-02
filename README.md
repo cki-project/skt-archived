@@ -4,8 +4,7 @@ skt - sonic kernel testing
 [![Travis CI Build Status][travis_badge]][travis_page]
 [![Test Coverage Status][coveralls_badge]][coveralls_page]
 
-Skt is a tool for automatically fetching, building, and testing kernel
-patches published on Patchwork instances.
+Skt is a tool for monitoring Beaker jobs and resubmitting them.
 
 Dependencies
 ------------
@@ -68,8 +67,7 @@ work, so that the other commands can take the workflow task over from them.
 Some commands can receive that state from the command line, via options, but
 some require some information stored in the configuration file. For this
 reason, to support a complete workflow, it is necessary to always make the
-commands transfer their state via the configuration file. That can be done by
-passing the global `--state` option with every command.
+commands transfer their state via the configuration file.
 
 To separate the actual configuration from the specific workflow's state, and
 to prevent separate tasks from interfering with each other, you can store your
@@ -86,10 +84,8 @@ The following commands are supported by `skt`:
       "Beaker" runner is currently supported. This command expects `publish`
       command to have completed succesfully.
 
-
-The following is a walk through the process of checking out a kernel commit,
-applying a patch from Patchwork, building the kernel, running the tests, and
-reporting the results.
+Currently, skt is being used only to monitor Beaker test results. Section below
+describes this.
 
 All the following commands use the `-vv` option to increase verbosity of the
 command's output, so it's easier to debug problems. Remove the option for
@@ -148,11 +144,17 @@ Below is an example of a superficial template. Note that it won't work as is.
 Provided you have both Beaker access and a suitable job XML template, you can
 run the tests with the built kernel as such:
 
-    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv run \
-        --runner beaker '{"jobtemplate": "<JOBTEMPLATE>"}' \
-        --wait
+    skt --rc <SKTRC> --state --workdir <WORKDIR> -vv run --wait
 
-Here, `<JOBTEMPLATE>` would be the name of the file with the Beaker job XML
+The `<SKTRC>` is a config file with contents like this:
+
+[runner]
+type=beaker
+jobtemplate=beaker.xml
+jobowner=username
+blacklist=beaker-blacklist.txt
+
+Here, `<jobtemplate>` is the name of the file with the Beaker job XML
 template. If you remove the `--wait` option, the command will return once the
 job was submitted. Otherwise it will wait for its completion and report the
 result.
@@ -163,14 +165,6 @@ parameter. Tests will not attempt to run on machines which names are specified
 in the file. This is useful for example as a temporary fix in case the hardware
 is buggy and the maintainer of the pool doesn't have time to exclude it from
 the pool.
-
-E.g. to run the tests from a job XML template named `beakerjob.xml` and exclude
-machines in `blacklist.txt` file execute:
-
-    skt --rc skt-rc --state --workdir skt-workdir -vv run \
-        --runner beaker '{"jobtemplate": "beakerjob.xml", \
-	                  "blacklist": "blacklist.txt"}, \
-        --wait
 
 Developer Guide
 ---------------
