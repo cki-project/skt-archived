@@ -40,19 +40,23 @@ def save_state(config_set, state):
         state:      A dictionary of skt current state.
     """
 
+    def set_field(key, val, dst):
+        if key in ['type', 'jobtemplate', 'jobowner', 'blacklist']:
+            dst['runner'][key] = val
+        else:
+            dst['state'][key] = val
+
     config_dict = {'state': {}, 'runner': {}}
 
-    for (key, val) in state.items():
+    for key, val in config_set.items():
+        set_field(key, val, config_dict)
+
+    for key, val in state.items():
         # print info about change of existing keys or addition of new
         if key not in config_set.keys() or config_set[key] != val:
             logging.debug("state: %s -> %s", key, val)
 
-        if key in ['type', 'jobtemplate', 'jobowner', 'blacklist']:
-            config_dict['runner'][key] = val
-        else:
-            config_dict['state'][key] = val
-
-        config_set[key] = val
+        set_field(key, val, config_dict)
 
     # create parser to safely read dict and output config file
     temp_parser = configparser.RawConfigParser()
