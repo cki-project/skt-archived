@@ -57,6 +57,7 @@ def save_state(config_set, state):
             logging.debug("state: %s -> %s", key, val)
 
         set_field(key, val, config_dict)
+        config_set[key] = val
 
     # create parser to safely read dict and output config file
     temp_parser = configparser.RawConfigParser()
@@ -98,7 +99,8 @@ def cmd_run(config_set):
                        {'recipesetid_%s' % (recipe_set_index): recipe_set})
             recipe_set_index += 1
 
-    config_set['jobs'] = runner.job_to_recipe_set_map.keys()
+    config_set['jobs'] = ' '.join(runner.job_to_recipe_set_map.keys())
+
 
     save_state(config_set, {'retcode': retcode})
 
