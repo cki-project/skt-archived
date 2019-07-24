@@ -19,6 +19,7 @@ import logging
 SKT_SUCCESS = 0
 SKT_FAIL = 1
 SKT_ERROR = 2
+SKT_BOOT = 3
 
 LOGGER = logging.getLogger()
 
