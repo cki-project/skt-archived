@@ -149,8 +149,9 @@ class TestRunner(unittest.TestCase):
         # pylint: disable=W0212,E1101
         j_jobid = 'J:123'
         setid = '456'
-        test_xml = bytearray("""<xml><whiteboard>yeah-that-whiteboard</whiteboard>
-        <recipeSet id="{}" /></xml>""".format(setid), 'utf-8')
+        test_xml = bytearray(
+            """<xml><whiteboard>yeah-that-whiteboard</whiteboard>
+            <recipeSet id="{}" /></xml>""".format(setid), 'utf-8')
 
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = (test_xml, '')
@@ -350,8 +351,9 @@ class TestRunner(unittest.TestCase):
         j_jobid = 'J:123'
         setid = '456'
         s_setid = 'RS:{}'.format(setid)
-        test_xml = bytearray("""<xml><whiteboard>yeah-that-whiteboard</whiteboard>
-        <recipeSet id="{}" /></xml>""".format(setid), 'utf-8')
+        test_xml = bytearray(
+            """<xml><whiteboard>yeah-that-whiteboard</whiteboard>
+            <recipeSet id="{}" /></xml>""".format(setid), 'utf-8')
 
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = (test_xml, '')

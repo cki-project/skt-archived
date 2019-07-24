@@ -101,7 +101,6 @@ def cmd_run(config_set):
 
     config_set['jobs'] = ' '.join(runner.job_to_recipe_set_map.keys())
 
-
     save_state(config_set, {'retcode': retcode})
 
     return retcode
