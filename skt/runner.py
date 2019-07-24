@@ -24,7 +24,7 @@ import time
 from defusedxml.ElementTree import fromstring
 from defusedxml.ElementTree import tostring
 
-from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR
+from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
 from skt.misc import WaivingWrap
 
 
@@ -239,7 +239,7 @@ class BeakerRunner:
 
         """
         if self._not_booting(recipe_result):
-            return SKT_FAIL
+            return SKT_BOOT
 
         prev_task_panicked_and_waived = False
         for task in recipe_result.findall('task'):
@@ -648,6 +648,7 @@ class BeakerRunner:
                    SKT_FAIL if testing failed
                    SKT_ERROR in case of infrastructure error (exceptions are
                                                               logged)
+                   SKT_BOOT if the boot test failed
         """
         # pylint: disable=too-many-arguments
         ret = SKT_SUCCESS
