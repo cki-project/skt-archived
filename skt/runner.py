@@ -624,6 +624,19 @@ class BeakerRunner:
 
         return jobid
 
+    def add_blacklist2recipes(self, job_xml_tree):
+        """ Make sure blacklist is added to all recipes.
+
+            Args:
+               job_xml_tree: ElementTree.Element with all recipeSets/recipes
+
+        """
+        for recipe in job_xml_tree.findall('recipeSet/recipe'):
+            hreq = recipe.find('hostRequires')
+            new_hreq = self.__blacklist_hreq(hreq)
+            recipe.remove(hreq)
+            recipe.append(new_hreq)
+
     def run(self, url, max_aborted, release, wait=False,
             arch=platform.machine(), waiving=True):
         """
@@ -667,11 +680,8 @@ class BeakerRunner:
                  'KPKG_URL': url,
                  'ARCH': arch}
             ))
-            for recipe in job_xml_tree.findall('recipeSet/recipe'):
-                hreq = recipe.find('hostRequires')
-                new_hreq = self.__blacklist_hreq(hreq)
-                recipe.remove(hreq)
-                recipe.append(new_hreq)
+            # add blacklist to all recipes
+            self.add_blacklist2recipes(job_xml_tree)
 
             jobid = self.__jobsubmit(tostring(job_xml_tree))
 
