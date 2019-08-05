@@ -683,10 +683,13 @@ class BeakerRunner:
             # add blacklist to all recipes
             self.add_blacklist2recipes(job_xml_tree)
 
+            # convert etree to xml and submit the job to Beaker
             jobid = self.__jobsubmit(tostring(job_xml_tree))
 
             if wait:
+                # wait for completion, resubmit jobs as needed
                 self.wait(jobid)
+                # get return code and report it
                 ret = self.__getresults()
                 logging.debug(
                     "Got return code when gathering results: %s", ret
