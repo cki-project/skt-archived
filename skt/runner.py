@@ -26,6 +26,7 @@ from defusedxml.ElementTree import tostring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
 from skt.misc import WaivingWrap
+from skt.misc import shell_run
 
 
 class BeakerRunner:
@@ -596,33 +597,26 @@ class BeakerRunner:
 
     def __jobsubmit(self, xml):
         # pylint: disable=no-self-use
-        jobid = None
-        args = ["bkr", "job-submit"]
+        owner = f"--job-owner={self.jobowner if self.jobowner else ''}"
 
-        if self.jobowner is not None:
-            args += ["--job-owner=%s" % self.jobowner]
+        # craft a command
+        cmd = f"bkr job-submit {owner} -"
+        # run it
+        out, err, rc = shell_run(cmd, stdin=subprocess.PIPE,
+                                 stdout=subprocess.PIPE, stdin_data=xml)
 
-        args += ["-"]
-
-        bkr = subprocess.Popen(args, stdin=subprocess.PIPE,
-                               stdout=subprocess.PIPE)
-
-        (stdout, _) = bkr.communicate(xml)
-        if stdout:
-            stdout = stdout.decode('utf-8')
-
-        for line in stdout.split("\n"):
-            match = re.match(r"^Submitted: \['([^']+)'\]$", line)
-            if match:
-                jobid = match.group(1)
-                break
-
-        if not jobid:
+        # compile regex to determine what jobid was set
+        rgx_submitted = re.compile(r"^Submitted: \['([^']+)'\]$")
+        matches = [rgx_submitted.match(line) for line in out.splitlines()]
+        # filter-out what wasn't matched
+        jobids = list(filter(lambda e: e is not None, matches))
+        if not jobids:
             raise Exception('Unable to submit the job!')
 
-        logging.info("submitted jobid: %s", jobid)
+        # log and return first jobid
+        logging.info("submitted jobid: %s", jobids[0])
 
-        return jobid
+        return jobids[0]
 
     def add_blacklist2recipes(self, job_xml_tree):
         """ Make sure blacklist is added to all recipes.
