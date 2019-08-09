@@ -258,7 +258,7 @@ class BeakerRunner:
 
                     continue
                 else:
-                    if result == 'Aborted' and prev_task_panicked_and_waived:
+                    if status == 'Aborted' and prev_task_panicked_and_waived:
                         return SKT_SUCCESS
 
                     if result == 'Panic':
