@@ -100,6 +100,9 @@ def cmd_run(config_set):
             recipe_set_index += 1
 
     config_set['jobs'] = ' '.join(runner.job_to_recipe_set_map.keys())
+    # save maximum indexes we've used to simplify statefile merging
+    config_set['max_recipe_set_index'] = recipe_set_index
+    config_set['max_job_index'] = len(runner.job_to_recipe_set_map.keys())
 
     save_state(config_set, {'retcode': retcode})
 
