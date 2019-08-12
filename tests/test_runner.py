@@ -143,10 +143,11 @@ class TestRunner(unittest.TestCase):
             mock_popen.assert_called_once_with(args, stdin=subprocess.PIPE,
                                                stdout=subprocess.PIPE)
 
+    @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
-    def test_cancel_pending_jobs(self, mock_popen):
+    def test_cancel_pending_jobs(self, mock_popen, mock_open):
         """ Ensure cancel_pending_jobs works."""
-        # pylint: disable=W0212,E1101
+        # pylint: disable=W0212,E1101,W0613
         j_jobid = 'J:123'
         setid = '456'
         test_xml = bytearray(
@@ -301,14 +302,15 @@ class TestRunner(unittest.TestCase):
         expected_xml = self.test_xml.replace("##ARCH##", "s390x")
         self.assertEqual(result, expected_xml)
 
+    @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
     @mock.patch('logging.error')
     @mock.patch('subprocess.call')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_cleanup_called(self, mock_jobsubmit, mock_call, mock_log_err,
-                            mock_popen):
+                            mock_popen, mock_open):
         """Ensure BeakerRunner.signal_handler works."""
-        # pylint: disable=W0613
+        # pylint: disable=W0613,R0913
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
         release = "4.17.0-rc1"
         wait = True
@@ -333,14 +335,15 @@ class TestRunner(unittest.TestCase):
 
         self.assertTrue(self.myrunner.cleanup_done)
 
+    @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
     @mock.patch('logging.error')
     @mock.patch('subprocess.call')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_cleanup_called2(self, mock_jobsubmit, mock_call, mock_log_err,
-                             mock_popen):
+                             mock_popen, mock_open):
         """Ensure BeakerRunner cleanup isn't called twice."""
-        # pylint: disable=W0613
+        # pylint: disable=W0613,R0913
 
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
         release = "4.17.0-rc1"
@@ -367,10 +370,11 @@ class TestRunner(unittest.TestCase):
 
         self.assertFalse(mock_call.called)
 
+    @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
-    def test_add_to_watchlist(self, mock_popen):
+    def test_add_to_watchlist(self, mock_popen, mock_open):
         """Ensure __add_to_watchlist() works."""
-        # pylint: disable=W0212,E1101
+        # pylint: disable=W0212,E1101,W0613
         j_jobid = 'J:123'
         setid = '456'
         s_setid = 'RS:{}'.format(setid)
@@ -400,9 +404,11 @@ class TestRunner(unittest.TestCase):
         # test that no recipes completed
         self.assertEqual(self.myrunner.completed_recipes[s_setid], set())
 
+    @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
-    def test_getresultstree(self, mock_popen):
+    def test_getresultstree(self, mock_popen, mock_open):
         """Ensure getresultstree() works."""
+        # pylint: disable=W0613
         test_xml = bytearray("<xml><test>TEST</test></xml>", 'utf-8')
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = (test_xml, '')
