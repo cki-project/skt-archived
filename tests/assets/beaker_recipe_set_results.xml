@@ -1,5 +1,5 @@
 <recipeSet id="1234">
-  <recipe system='machine.beaker.org' result='Pass' status='Completed'>
+  <recipe id="5678" system='machine.beaker.org' result='Pass' status='Completed'>
     <hostRequires>
       <and>
         <arch op="=" value="x86_64"/>
@@ -21,6 +21,6 @@
     <task name='/distribution/kpkginstall' result='Pass' status='Completed'>
       <fetch url="https://github.com/CKI-project/tests-beaker/archive/master.zip#distribution/kpkginstall"/>
     </task>
-    <task name='/test/we/ran' result='Pass' status='Completed'></task>
+    <task name='/test/we/ran' result='Pass' status='Completed' />
   </recipe>
 </recipeSet>

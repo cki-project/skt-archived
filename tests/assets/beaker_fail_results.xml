@@ -1,5 +1,5 @@
 <recipeSet>
-  <recipe result='Fail' status='Completed'>
+  <recipe id="1234" result='Fail' status='Completed'>
     <logs>
       <log name='console.log' href="http://example.com/">
         TEST RESULT

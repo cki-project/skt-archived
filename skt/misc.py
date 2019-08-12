@@ -24,28 +24,21 @@ SKT_BOOT = 3
 LOGGER = logging.getLogger()
 
 
-class WaivingWrap(object):
-    """ This handles getting/updating waived data and simplifies mocking."""
-    # pylint: disable=too-few-public-methods
-    def __init__(self, waiving):
-        self.waiving = waiving
+def is_task_waived(task):
+    """ Check XML param to see if the test is waived.
+        Args:
+            task: xml node
 
-    @classmethod
-    def is_task_waived(cls, task):
-        """ Check XML param to see if the test is waived.
-            Args:
-                task: xml node
+        Returns: True if test is waived, otherwise False
+    """
+    is_task_waived_val = False
+    for param in task.findall('.//param'):
+        try:
+            if param.attrib.get('name').lower() == 'cki_waived' and \
+                    param.attrib.get('value').lower() == 'true':
+                is_task_waived_val = True
+                break
+        except ValueError:
+            pass
 
-            Returns: True if test is waived, otherwise False
-        """
-        is_task_waived = False
-        for param in task.findall('.//param'):
-            try:
-                if param.attrib.get('name').lower() == 'cki_waived' and \
-                        param.attrib.get('value').lower() == 'true':
-                    is_task_waived = True
-                    break
-            except ValueError:
-                pass
-
-        return is_task_waived
+    return is_task_waived_val
