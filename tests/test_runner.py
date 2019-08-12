@@ -197,6 +197,22 @@ class TestRunner(unittest.TestCase):
 
         self.assertEqual(hostnames, self.myrunner.blacklisted)
 
+    def test_blacklist_test_force(self):
+        """ Ensure blacklist_hreq does not override when force= is set."""
+        # pylint: disable=W0212,E1101
+        initial = """<hostRequires force="srv" />"""
+
+        hreq_node = fromstring(initial)
+
+        # load blacklist ['host1', 'host2']
+        self.test_load_blacklist()
+
+        etree_result = self.myrunner._BeakerRunner__blacklist_hreq(hreq_node)
+        # result must be the same as initial
+        result = tostring(etree_result).decode('utf-8')
+        self.assertEqual(re.sub(r'[\s]+', '', initial),
+                         re.sub(r'[\s]+', '', result))
+
     def test_blacklist_hreq_noand(self):
         """ Ensure blacklist_hreq works without <and> element."""
         # pylint: disable=W0212,E1101
