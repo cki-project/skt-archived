@@ -312,6 +312,11 @@ class BeakerRunner:
         Returns:
             Modified "hostRequires" etree node.
         """
+
+        if host_requires.get('force'):
+            # don't add blacklist if the host is forced
+            return host_requires
+
         and_node = host_requires.find('and')
         if and_node is None:
             and_node = fromstring('<and />')
