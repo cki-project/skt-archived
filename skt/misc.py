@@ -13,7 +13,6 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Functions and constants used by multiple parts of skt."""
 import logging
-import subprocess
 
 
 # SKT Result
@@ -23,23 +22,6 @@ SKT_ERROR = 2
 SKT_BOOT = 3
 
 LOGGER = logging.getLogger()
-
-
-def shell_run(cmd, stdin_data=None, **kwargs):
-    """ Runs a shell command with specified stdin data and keyword args.
-
-        Args:
-            stdin_data: None or str, use None when you don't want to input
-                        stdin string
-            kwargs:     keyword arguments to pass to Popen
-    """
-    subproc = subprocess.Popen(cmd, **kwargs)
-
-    out, cmd_err = subproc.communicate(stdin_data)
-
-    out = out.decode('utf-8')
-    cmd_err = cmd_err.decode('utf-8')
-    return out, cmd_err, subproc.returncode
 
 
 class WaivingWrap(object):
