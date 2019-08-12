@@ -113,16 +113,16 @@ class TestRunner(unittest.TestCase):
         """ Ensure __jobsubmit works."""
         self.myrunner.jobowner = 'beaker-gods'
 
-        cmd = "bkr job-submit --job-owner=beaker-gods -"
+        args = ["bkr", "job-submit", "--job-owner=beaker-gods", "-"]
 
         mock_popen.return_value.returncode = 0
         mock_popen.return_value.communicate.return_value = \
-            (bytearray("Submitted: ['123']", 'utf-8'), bytearray('', 'utf-8'))
+            (bytearray("Submitted: ['123']", 'utf-8'), '')
 
         # pylint: disable=W0212,E1101
         self.myrunner._BeakerRunner__jobsubmit('<xml />')
 
-        mock_popen.assert_called_once_with(cmd, stdin=subprocess.PIPE,
+        mock_popen.assert_called_once_with(args, stdin=subprocess.PIPE,
                                            stdout=subprocess.PIPE)
 
     @mock.patch('subprocess.Popen')
