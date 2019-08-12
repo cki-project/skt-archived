@@ -25,7 +25,76 @@ from defusedxml.ElementTree import fromstring
 from defusedxml.ElementTree import tostring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
-from skt.misc import WaivingWrap
+from skt.misc import is_task_waived
+
+
+class ConditionCheck:
+    def __init__(self, retval, **kwargs):
+        self.retval = retval
+        self.kwargs = kwargs
+
+    def __str__(self):
+        values = ' '.join([f'{arg}={self.kwargs[arg]}' for arg in self.kwargs])
+
+        return f'retval={self.retval} {values}'
+
+    def __call__(self, task, waiving, is_task_waived_func, prev_task):
+        """ Evaluates the condition and return retval if matched, else None.
+
+            Args:
+                task: defusedxml of the task node
+                waiving: bool, determines if waiving is enabled
+                is_task_waived_func: function used to test whether the task
+                                     is waived
+                prev_task: task that was run before this one, or None if this
+                           task is the first task in the recipe
+        """
+        task_results = {
+            'result': task.attrib.get('result'),
+            'status': task.attrib.get('status'),
+            'waived': True if waiving and is_task_waived_func(task) else False,
+            'prev_task_panicked_and_waived':
+                True if prev_task is not None and (
+                waiving and is_task_waived_func(prev_task) and
+                prev_task.attrib.get('result') == 'Panic') else False
+        }
+
+        if not self.kwargs:
+            # don't match empty conditions as satisfied
+            return None
+
+        for arg in self.kwargs:
+            if task_results[arg] != self.kwargs[arg]:
+                # the status entry doesn't match all the conditions
+                return None
+
+        # the status entry matches all the conditions
+        return self.retval
+
+
+result_condition_checks = [
+    # This contains objects that will return <retval> (first parameter), when
+    # all the specified conditions are met. Empty conditions with no keywords
+    # are never met.
+
+    # Previous task was waived and panicked, which causes the next
+    # task to abort. The task is waived for a reason, return
+    # SKT_SUCCESS.
+    ConditionCheck(SKT_SUCCESS, result='Warn', waived=False, status='Aborted',
+                   prev_task_panicked_and_waived=True),
+
+    # A non-waived task panicked, return SKT_FAIL and don't confuse
+    # this with infra-errors.
+    ConditionCheck(SKT_FAIL, result='Panic', waived=False),
+
+    # A non-waived tasked aborted, return SKT_ERROR, possible
+    # infra issue.
+    ConditionCheck(SKT_FAIL, result='Warn',  waived=False, status='Aborted'),
+
+    # The rest of the fall-through conditions.
+    ConditionCheck(SKT_FAIL, result='Warn', waived=False),
+    ConditionCheck(SKT_FAIL, result='Fail', waived=False),
+]
 
 
 class BeakerRunner:
@@ -73,8 +142,6 @@ class BeakerRunner:
 
         # if True, keep waived tests hidden for this run
         self.waiving = None
-        # waiving-wrap interface
-        self.waiving_wrap = None
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -130,9 +197,9 @@ class BeakerRunner:
                     if to_replace in replacements:
                         if not isinstance(replacements[to_replace], str):
                             raise ValueError('XML replace: string expected but'
-                                             ' {} is {}'.format(
-                                                 to_replace,
-                                                 replacements[to_replace]))
+                                             ' {} is {}'.format(to_replace,
+                                                                replacements
+                                                                [to_replace]))
                         line = line.replace(match.group(0),
                                             replacements[to_replace])
 
@@ -218,60 +285,39 @@ class BeakerRunner:
                 # not test troubles, return here.
                 return False
 
-    def decide_run_result_by_task(self, recipe_result):
-        """ Decide run result by tasks. If we have test waiving enabled and the
-            test is waived in XML, ignore 'Warn' / 'Panic' / 'Fail' results.
+    def decide_run_result_by_task(self, recipe_result, recipe_id):
+        """ Return result of a single recipe decided by tasks. The conditions
+            to test are read from result_condition_checks in their natural
+            specified order.
 
             Args:
                 recipe_result: a defused xml
-
-            * When kernel install task hits EWD             -> SKT_FAIL
-            * When any task aborts and task isn't waived    -> SKT_ERROR
-
-            * When any task warns  and task isn't waived    -> SKT_FAIL
-            * When any task fails  and task isn't waived    -> SKT_FAIL
-            * When any task panics and task isn't waived    -> SKT_FAIL
-
-            * When a waived task panicks and a following
-              task aborts                                   -> SKT_SUCCESS
-
-            * else: skip over 'Pass' / 'Skip' so eventually -> SKT_SUCCESS
+                recipe_id: id of the recipe from the XML, prefixed with R:
+            Returns:
+                retval, msg where retval is a return code like SKT_SUCCESS,
+                            SKT_BOOT, ... and msg is an explanation of why
 
         """
+        # If the recipe passed, then there's little to do.
+        if recipe_result.attrib.get('result') == 'Pass':
+            return SKT_SUCCESS, f'recipeid {recipe_id} passed all tests'
+
         if self._not_booting(recipe_result):
-            return SKT_BOOT
+            return SKT_BOOT, f'recipeid {recipe_id} hit EWD in boottest!'
 
-        prev_task_panicked_and_waived = False
+        prev_task = None
         for task in recipe_result.findall('task'):
-            result = task.attrib.get('result')
-            status = task.attrib.get('status')
+            for cond_check in result_condition_checks:
+                retval = cond_check(task, self.waiving, is_task_waived,
+                                    prev_task)
+                if retval is not None:
+                    return retval, f'recipeid {recipe_id} -> {str(cond_check)}'
 
-            if result in ['Fail', 'Warn', 'Panic']:
-                if self.waiving and self.waiving_wrap.is_task_waived(task):
-                    if result == 'Panic':
-                        # If it's waived, it must not affect the result, but
-                        # if following tasks aborts because of this panic,
-                        # we must return last status, which was success.
-                        # This may mask some infra issues, but returning fails
-                        # for faulty-waived tasks is probably worse.
-                        prev_task_panicked_and_waived = True
+            # remember the previous task
+            prev_task = task
 
-                    continue
-                else:
-                    if result == 'Aborted' and prev_task_panicked_and_waived:
-                        return SKT_SUCCESS
-
-                    if result == 'Panic':
-                        return SKT_FAIL
-
-                    if status == 'Aborted':
-                        return SKT_ERROR
-
-                    return SKT_FAIL
-            if result in ['Pass', 'Skip']:
-                continue
-
-        return SKT_SUCCESS
+        # It's possible that failing tests were just waived...
+        return SKT_SUCCESS, f'recipeid {recipe_id} passed with waived tests'
 
     def __getresults(self):
         """
@@ -291,12 +337,16 @@ class BeakerRunner:
             for recipe_set_id in recipe_sets:
                 results = self.recipe_set_results[recipe_set_id]
                 for recipe_result in results.findall('.//recipe'):
-                    if recipe_result.attrib.get('result') != 'Pass':
-                        ret = self.decide_run_result_by_task(recipe_result)
+                    rcpid = 'R:' + recipe_result.attrib.get('id')
+                    ret, msg = self.decide_run_result_by_task(recipe_result,
+                                                              rcpid)
 
-                        if ret != SKT_SUCCESS:
-                            logging.info('Failure in a recipe detected!')
-                            return ret
+                    # log output of decide_run_result_by_task for final rc only
+                    logging.info(msg)
+
+                    if ret != SKT_SUCCESS:
+                        logging.info('Failure in a recipe detected!')
+                        return ret
 
         logging.info('Testing passed!')
         return SKT_SUCCESS
@@ -409,7 +459,8 @@ class BeakerRunner:
         if self._not_booting(recipe):
             return
 
-        if self.decide_run_result_by_task(recipe) == SKT_SUCCESS:
+        retval, _ = self.decide_run_result_by_task(recipe, recipe_id)
+        if retval == SKT_SUCCESS:
             # A task that is waived aborted or panicked. Waived tasks are
             # appended to the end of the recipe, so we should be able to
             # safely ignore this.
@@ -429,7 +480,7 @@ class BeakerRunner:
 
         self.__forget_taskspec(recipe_set_id)
 
-    def __handle_test_fail(self, recipe):
+    def __handle_test_fail(self, recipe, recipe_id):
         # Something in the recipe set really reported failure
         test_failure = False
         # set to True when test failed, but is waived
@@ -441,7 +492,8 @@ class BeakerRunner:
             # everything is a test
             test_failure = True
 
-        elif self.decide_run_result_by_task(recipe) == SKT_SUCCESS:
+        elif self.decide_run_result_by_task(recipe, recipe_id)[0]\
+                == SKT_SUCCESS:
             # A task that is waived failed. Waived tasks are
             # appended to the end of the recipe, so we should be able to
             # safely ignore this.
@@ -508,7 +560,8 @@ class BeakerRunner:
                         continue
 
                     # check for test failure
-                    test_failure, waive_skip = self.__handle_test_fail(recipe)
+                    test_failure, waive_skip = \
+                        self.__handle_test_fail(recipe, recipe_id)
                     if waive_skip:
                         logging.info("recipe %s waived task(s) failed",
                                      recipe_id)
@@ -677,7 +730,6 @@ class BeakerRunner:
         self.aborted_count = 0
         self.max_aborted = max_aborted
         self.waiving = waiving
-        self.waiving_wrap = WaivingWrap(self.waiving)
 
         try:
             job_xml_tree = fromstring(self.__getxml(
