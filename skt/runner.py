@@ -26,6 +26,7 @@ from defusedxml.ElementTree import tostring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
 from skt.misc import is_task_waived
+from skt.misc import safe_popen
 
 
 class ConditionCheck:
@@ -223,10 +224,7 @@ class BeakerRunner:
         """
         args = ["bkr", "job-results", "--prettyxml", taskspec]
 
-        bkr = subprocess.Popen(args, stdout=subprocess.PIPE)
-        (stdout, _) = bkr.communicate()
-        if stdout:
-            stdout = stdout.decode('utf-8')
+        stdout, _, _ = safe_popen(args, stdout=subprocess.PIPE)
 
         # Write the Beaker results locally so they could be stored as an
         # artifact.
@@ -467,7 +465,7 @@ class BeakerRunner:
         logging.info('Cancelling pending jobs!')
 
         for job_id in set(self.job_to_recipe_set_map):
-            ret = subprocess.call(['bkr', 'job-cancel', job_id])
+            _, _, ret = safe_popen(['bkr', 'job-cancel', job_id])
             if ret:
                 logging.info('Failed to cancel the remaining recipe sets!')
 
@@ -683,12 +681,8 @@ class BeakerRunner:
 
         args += ["-"]
 
-        bkr = subprocess.Popen(args, stdin=subprocess.PIPE,
-                               stdout=subprocess.PIPE)
-
-        (stdout, _) = bkr.communicate(xml)
-        if stdout:
-            stdout = stdout.decode('utf-8')
+        stdout, _, _ = safe_popen(args, stdin_data=xml, stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE)
 
         for line in stdout.split("\n"):
             match = re.match(r"^Submitted: \['([^']+)'\]$", line)

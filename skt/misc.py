@@ -13,7 +13,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Functions and constants used by multiple parts of skt."""
 import logging
-
+import subprocess
 
 # SKT Result
 SKT_SUCCESS = 0
@@ -22,6 +22,32 @@ SKT_ERROR = 2
 SKT_BOOT = 3
 
 LOGGER = logging.getLogger()
+
+
+def safe_popen(*args, stdin_data=None, **kwargs):
+    """ Open a process with specified arguments, keyword arguments and
+        possibly stdin data. This function blocks until process finishes. Uses
+        utf-8 to decode stdout/stderr, if there's any output on them.
+        Intended as a common interface to bkr or other shell commands skt uses.
+
+        Args:
+            args:       arguments to pass to Popen
+            stdin_data: None or str, use None when you don't want to pass
+                        string data to stdin
+            kwargs:     keyword arguments to pass to Popen
+        Returns:
+            tuple (stdout, stderr, returncode) where
+                stdout is a string
+                stderr is a string
+                returncode is an integer
+    """
+    subproc = subprocess.Popen(*args, **kwargs)
+
+    stdout, stderr = subproc.communicate(stdin_data)
+    stdout = stdout.decode('utf-8') if stdout else ''
+    stderr = stderr.decode('utf-8') if stderr else ''
+
+    return stdout, stderr, subproc.returncode
 
 
 def is_task_waived(task):
