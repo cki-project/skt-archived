@@ -305,18 +305,15 @@ class TestRunner(unittest.TestCase):
     @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
     @mock.patch('logging.error')
-    @mock.patch('subprocess.call')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_cleanup_called(self, mock_jobsubmit, mock_call, mock_log_err,
-                            mock_popen, mock_open):
+    def test_cleanup_called(self, mock_jobsubmit, mock_log_err, mock_popen,
+                            mock_open):
         """Ensure BeakerRunner.signal_handler works."""
         # pylint: disable=W0613,R0913
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
         release = "4.17.0-rc1"
         wait = True
         mock_jobsubmit.return_value = "J:0001"
-
-        mock_call.return_value = 0
 
         mock_popen.return_value = 0
 
@@ -338,10 +335,9 @@ class TestRunner(unittest.TestCase):
     @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
     @mock.patch('logging.error')
-    @mock.patch('subprocess.call')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_cleanup_called2(self, mock_jobsubmit, mock_call, mock_log_err,
-                             mock_popen, mock_open):
+    def test_cleanup_called2(self, mock_jobsubmit, mock_log_err, mock_popen,
+                             mock_open):
         """Ensure BeakerRunner cleanup isn't called twice."""
         # pylint: disable=W0613,R0913
 
@@ -350,7 +346,6 @@ class TestRunner(unittest.TestCase):
         wait = True
         mock_jobsubmit.return_value = "J:0001"
 
-        mock_call.return_value = 0
         mock_popen.return_value = 0
 
         signal.signal(signal.SIGINT, self.myrunner.signal_handler)
@@ -368,7 +363,7 @@ class TestRunner(unittest.TestCase):
         except (KeyboardInterrupt, SystemExit):
             logging.info('Thread cancelling...')
 
-        self.assertFalse(mock_call.called)
+        self.assertFalse(mock_popen.called)
 
     @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
