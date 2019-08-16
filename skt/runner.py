@@ -321,18 +321,26 @@ class BeakerRunner:
 
     def __getresults(self):
         """
-        Get return code based on the job results.
+        Get return code based on the job results. This processes all recipes.
+        The priority is (from highest to lowest):
+        # 0) Infra issue - all tests aborted or cancelled
+        # 1) Unwaived infra issue in any recipe
+        # 2) Boot failure
+        # 3) Unwaived test failure
+        # 4) All tests OK or alle OK with test waived
 
         Returns:
             SKT_SUCCESS if all jobs passed,
             SKT_FAIL in case of failures, and
             SKT_ERROR in case of infrastructure failures.
+            SKT_BOOT in case of boot failure.
         """
         if not self.job_to_recipe_set_map:
             # We forgot every job / recipe set
             logging.error('All test sets aborted or were cancelled!')
             return SKT_ERROR
 
+        rcpid_and_results = []
         for _, recipe_sets in self.job_to_recipe_set_map.items():
             for recipe_set_id in recipe_sets:
                 results = self.recipe_set_results[recipe_set_id]
@@ -344,9 +352,14 @@ class BeakerRunner:
                     # log output of decide_run_result_by_task for final rc only
                     logging.info(msg)
 
-                    if ret != SKT_SUCCESS:
-                        logging.info('Failure in a recipe detected!')
-                        return ret
+                    rcpid_and_results.append((rcpid, ret))
+
+        for ret in [SKT_ERROR, SKT_BOOT, SKT_FAIL]:
+            for rcpid, result in rcpid_and_results:
+                if ret == result:
+                    logging.info(f'Failure ({ret}) in recipeid {rcpid}'
+                                 f' detected!')
+                    return ret
 
         logging.info('Testing passed!')
         return SKT_SUCCESS
