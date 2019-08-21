@@ -143,6 +143,9 @@ class BeakerRunner:
         # if True, keep waived tests hidden for this run
         self.waiving = None
 
+        # retcode used here only to decided if cleanup handler should be run
+        self.retcode = None
+
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
 
@@ -434,8 +437,9 @@ class BeakerRunner:
         Returns:
              None
         """
-        # don't run cleanup handler twice by accident
-        if self.cleanup_done:
+        # don't run cleanup handler twice by accident and don't try to cancel
+        # jobs that are completed and passed
+        if self.cleanup_done or self.retcode == 0:
             return
 
         # skt is being terminated, cancel its jobs
@@ -770,5 +774,7 @@ class BeakerRunner:
                 # call cleanup handler to kill submitted jobs
                 self.cleanup_handler()
             ret = SKT_ERROR
+
+        self.retcode = ret
 
         return ret
