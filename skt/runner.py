@@ -443,7 +443,12 @@ class BeakerRunner:
             return
 
         # skt is being terminated, cancel its jobs
-        self.cancel_pending_jobs()
+        # NOTE(mhayden): Per ticket #1140, Beaker jobs must continue to run
+        # when a timeout is reached and skt is killed in the GitLab pipeline.
+        logging.info(
+            "Timeout reached but skt is not killing Beaker jobs (see #1140)"
+        )
+        # self.cancel_pending_jobs()
 
         self.cleanup_done = True
 
