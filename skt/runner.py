@@ -89,7 +89,7 @@ result_condition_checks = [
 
     # A non-waived tasked aborted, return SKT_ERROR, possible
     # infra issue.
-    ConditionCheck(SKT_FAIL, result='Warn',  waived=False, status='Aborted'),
+    ConditionCheck(SKT_ERROR, result='Warn',  waived=False, status='Aborted'),
 
     # The rest of the fall-through conditions.
     ConditionCheck(SKT_FAIL, result='Warn', waived=False),
