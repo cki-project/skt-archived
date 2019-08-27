@@ -496,7 +496,10 @@ class BeakerRunner:
             newjobid = self.__jobsubmit(tostring(newjob))
             self.__add_to_watchlist(newjobid)
 
-        self.__forget_taskspec(recipe_set_id)
+            # discard aborted result only if we have attempts left
+            self.__forget_taskspec(recipe_set_id)
+        else:
+            self.watchlist.discard(recipe_set_id)
 
     def __handle_test_fail(self, recipe, recipe_id):
         # Something in the recipe set really reported failure
