@@ -22,6 +22,7 @@ import tempfile
 
 import argparse
 from skt.runner import BeakerRunner
+from skt.misc import SKT_ERROR, SKT_SUCCESS
 
 LOGGER = logging.getLogger()
 
@@ -80,33 +81,62 @@ def cmd_run(config_set):
     jobowner = config_set.get('jobowner')
     blacklist = config_set.get('blacklist')
     runner = BeakerRunner(jobtemplate, jobowner, blacklist)
+    try:
+        cmd_run.cleanup_done
+    except AttributeError:
+        cmd_run.cleanup_done = False
 
-    atexit.register(runner.cleanup_handler)
-    signal.signal(signal.SIGINT, runner.signal_handler)
-    signal.signal(signal.SIGTERM, runner.signal_handler)
-    retcode = runner.run(config_set.get('kernel_package_url'),
-                         config_set.get('max_aborted_count'),
-                         config_set.get('kernel_version'),
-                         config_set.get('wait'),
-                         arch=config_set.get("kernel_arch"),
-                         waiving=config_set.get('waiving'))
+    def cleanup_handler():
+        """ Save SKT job state (jobid_?, recipesetid_?, max_recipe_set_index,
+            max_job_index, jobs, retcode) to rc-file and mark in runner that
+            cleanup_handler() ran. Jobs are not cancelled, see ticket #1140.
 
-    recipe_set_index = 0
-    for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
-        save_state(config_set, {'jobid_%s' % (index): job})
-        for recipe_set in runner.job_to_recipe_set_map[job]:
-            save_state(config_set,
-                       {'recipesetid_%s' % (recipe_set_index): recipe_set})
-            recipe_set_index += 1
+            Returns:
+                 None
+        """
+        # don't run cleanup handler twice by accident and don't try to cancel
+        # jobs that are completed and passed
+        if cmd_run.cleanup_done or runner.retcode == SKT_SUCCESS:
+            return
 
-    config_set['jobs'] = ' '.join(runner.job_to_recipe_set_map.keys())
-    # save maximum indexes we've used to simplify statefile merging
-    config_set['max_recipe_set_index'] = recipe_set_index
-    config_set['max_job_index'] = len(runner.job_to_recipe_set_map.keys())
+        recipe_set_index = 0
+        for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
+            save_state(config_set, {'jobid_%s' % (index): job})
+            for recipe_set in runner.job_to_recipe_set_map[job]:
+                save_state(config_set,
+                           {'recipesetid_%s' % (recipe_set_index): recipe_set})
+                recipe_set_index += 1
 
-    save_state(config_set, {'retcode': retcode})
+        config_set['jobs'] = ' '.join(runner.job_to_recipe_set_map.keys())
+        # save maximum indexes we've used to simplify statefile merging
+        config_set['max_recipe_set_index'] = recipe_set_index
+        config_set['max_job_index'] = len(runner.job_to_recipe_set_map.keys())
 
-    return retcode
+        save_state(config_set, {'retcode': runner.retcode})
+
+        # NOTE: Don't cancel jobs. Per ticket #1140, Beaker jobs must continue
+        # to run when a timeout is reached and skt is killed in the GitLab
+        # pipeline.
+        cmd_run.cleanup_done = True
+
+    def signal_handler(sig, frame):
+        # pylint: disable=unused-argument
+        """
+        Handle SIGTERM|SIGINT: call cleanup_handler() and exit.
+        """
+        cleanup_handler()
+
+        sys.exit(SKT_ERROR)
+
+    atexit.register(cleanup_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    return runner.run(config_set.get('kernel_package_url'),
+                      config_set.get('max_aborted_count'),
+                      config_set.get('kernel_version'),
+                      config_set.get('wait'),
+                      arch=config_set.get("kernel_arch"),
+                      waiving=config_set.get('waiving'))
 
 
 def setup_logging(verbose):

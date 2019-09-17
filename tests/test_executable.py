@@ -14,13 +14,30 @@
 """Test cases for runner module."""
 import logging
 import os
+import signal
+import threading
+import time
 import unittest
 
+import mock
+
 from skt import executable
+from skt.runner import BeakerRunner
+from tests import misc
+
+
+def trigger_signal():
+    """ Send SIGTERM to self after 2 seconds."""
+    time.sleep(2)
+    pid = os.getpid()
+    os.kill(pid, signal.SIGTERM)
 
 
 class TestExecutable(unittest.TestCase):
     """Test cases for executable module."""
+
+    def setUp(self) -> None:
+        self.myrunner = BeakerRunner(**misc.DEFAULT_ARGS)
 
     def test_full_path_relative(self):
         """Verify that full_path() expands a relative path."""
@@ -53,3 +70,67 @@ class TestExecutable(unittest.TestCase):
         current_logger = logging.getLogger('executable')
         self.assertEqual(current_logger.getEffectiveLevel(), logging.WARNING -
                          (verbose * 10))
+
+    @mock.patch('skt.executable.save_state')
+    @mock.patch('skt.executable.BeakerRunner')
+    @mock.patch('builtins.open', create=True)
+    @mock.patch('subprocess.Popen')
+    @mock.patch('logging.error')
+    @mock.patch('subprocess.call')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_cleanup_called(self, mock_jobsubmit, mock_call, mock_log_err,
+                            mock_popen, mock_open, mock_runner, mock_sstate):
+        """Ensure BeakerRunner.signal_handler works."""
+        # pylint: disable=W0613,R0913
+        mock_runner.return_value = self.myrunner
+
+        mock_jobsubmit.return_value = "J:0001"
+
+        mock_call.return_value = 0
+        mock_popen.return_value = 0
+
+        thread = threading.Thread(target=trigger_signal)
+        try:
+            thread.start()
+
+            executable.cmd_run({})
+            thread.join()
+        except (KeyboardInterrupt, SystemExit):
+            logging.info('Thread cancelling...')
+
+        self.assertTrue(executable.cmd_run.cleanup_done)
+        # check that save_state function was called, which probably means
+        # that cleanup_handler was called also
+        self.assertTrue(mock_sstate.called)
+
+    @mock.patch('skt.executable.save_state')
+    @mock.patch('skt.executable.BeakerRunner')
+    @mock.patch('builtins.open', create=True)
+    @mock.patch('subprocess.Popen')
+    @mock.patch('logging.error')
+    @mock.patch('subprocess.call')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_cleanup_not_called_twice(self, mock_jobsubmit, mock_call,
+                                      mock_log_err, mock_popen, mock_open,
+                                      mock_runner, mock_sstate):
+        """Ensure BeakerRunner cleanup isn't called twice."""
+        # pylint: disable=W0613,R0913
+        mock_runner.return_value = self.myrunner
+        mock_jobsubmit.return_value = "J:0001"
+
+        mock_call.return_value = 0
+        mock_popen.return_value = 0
+
+        executable.cmd_run.cleanup_done = True
+        thread = threading.Thread(target=trigger_signal)
+        try:
+            thread.start()
+
+            executable.cmd_run({})
+            thread.join()
+        except (KeyboardInterrupt, SystemExit):
+            logging.info('Thread cancelling...')
+
+        # check that save_state function wasn't called, which probably means
+        # that cleanup_handler wasn't called either
+        self.assertFalse(mock_sstate.called)
