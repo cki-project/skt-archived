@@ -112,6 +112,9 @@ def cmd_run(config_set):
         config_set['max_recipe_set_index'] = recipe_set_index
         config_set['max_job_index'] = len(runner.job_to_recipe_set_map.keys())
 
+        logging.debug(
+            "Writing return code to rc file: %s", runner.retcode
+        )
         save_state(config_set, {'retcode': runner.retcode})
 
         # NOTE: Don't cancel jobs. Per ticket #1140, Beaker jobs must continue
