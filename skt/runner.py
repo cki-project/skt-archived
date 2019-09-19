@@ -25,7 +25,7 @@ from defusedxml.ElementTree import tostring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
 from skt.misc import is_task_waived
-from skt.misc import safe_popen
+from skt.misc import safe_popen, retry_safe_popen
 
 
 class ConditionCheck:
@@ -649,9 +649,12 @@ class BeakerRunner:
             args += ["--job-owner=%s" % self.jobowner]
 
         args += ["-"]
-
-        stdout, _, _ = safe_popen(args, stdin_data=xml, stdin=subprocess.PIPE,
-                                  stdout=subprocess.PIPE)
+        err_strings = ["connection to beaker.engineering.redhat.com failed",
+                       "Can't connect to MySQL server on"]
+        stdout, _, _ = retry_safe_popen(err_strings, args, stdin_data=xml,
+                                        stdin=subprocess.PIPE,
+                                        stderr=subprocess.PIPE,
+                                        stdout=subprocess.PIPE)
 
         for line in stdout.split("\n"):
             match = re.match(r"^Submitted: \['([^']+)'\]$", line)
