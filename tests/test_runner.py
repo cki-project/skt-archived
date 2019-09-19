@@ -104,7 +104,8 @@ class TestRunner(unittest.TestCase):
         self.myrunner._BeakerRunner__jobsubmit('<xml />')
 
         mock_popen.assert_called_once_with(args, stdin=subprocess.PIPE,
-                                           stdout=subprocess.PIPE)
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE)
 
     @mock.patch('subprocess.Popen')
     def test_jobsubmit_exc(self, mock_popen):
