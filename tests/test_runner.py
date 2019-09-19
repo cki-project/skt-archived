@@ -12,18 +12,37 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 """Test cases for runner module."""
+import logging
+import os
 import re
+import signal
 import subprocess
 import tempfile
+import threading
+import time
 import unittest
 
-import mock
 from defusedxml.ElementTree import fromstring
 from defusedxml.ElementTree import tostring
+import mock
 
 from skt import runner
 from skt.misc import SKT_FAIL, SKT_SUCCESS, SKT_ERROR
+
 from tests import misc
+
+SCRIPT_PATH = os.path.dirname(__file__)
+
+DEFAULT_ARGS = {
+    'jobtemplate': '{}/assets/test.xml'.format(SCRIPT_PATH)
+}
+
+
+def trigger_signal():
+    """ Send SIGTERM to self after 2 seconds."""
+    time.sleep(2)
+    pid = os.getpid()
+    os.kill(pid, signal.SIGTERM)
 
 
 class TestRunner(unittest.TestCase):
@@ -32,9 +51,9 @@ class TestRunner(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.myrunner = runner.BeakerRunner(**misc.DEFAULT_ARGS)
+        self.myrunner = runner.BeakerRunner(**DEFAULT_ARGS)
 
-        with open('{}/assets/test.xml'.format(misc.SCRIPT_PATH), 'r') as fileh:
+        with open('{}/assets/test.xml'.format(SCRIPT_PATH), 'r') as fileh:
             self.test_xml = fileh.read()
 
         self.max_aborted = 3
@@ -282,6 +301,69 @@ class TestRunner(unittest.TestCase):
         result = self.myrunner._BeakerRunner__getxml({'ARCH': 's390x'})
         expected_xml = self.test_xml.replace("##ARCH##", "s390x")
         self.assertEqual(result, expected_xml)
+
+    @mock.patch('builtins.open', create=True)
+    @mock.patch('subprocess.Popen')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_cleanup_called(self, mock_jobsubmit, mock_log_err, mock_popen,
+                            mock_open):
+        """Ensure BeakerRunner.signal_handler works."""
+        # pylint: disable=W0613,R0913
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = True
+        mock_jobsubmit.return_value = "J:0001"
+
+        mock_popen.return_value = 0
+
+        signal.signal(signal.SIGINT, self.myrunner.signal_handler)
+        signal.signal(signal.SIGTERM, self.myrunner.signal_handler)
+
+        thread = threading.Thread(target=trigger_signal)
+
+        try:
+            thread.start()
+
+            self.myrunner.run(url, self.max_aborted, release, wait)
+            thread.join()
+        except (KeyboardInterrupt, SystemExit):
+            logging.info('Thread cancelling...')
+
+        self.assertTrue(self.myrunner.cleanup_done)
+
+    @mock.patch('builtins.open', create=True)
+    @mock.patch('subprocess.Popen')
+    @mock.patch('logging.error')
+    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
+    def test_cleanup_called2(self, mock_jobsubmit, mock_log_err, mock_popen,
+                             mock_open):
+        """Ensure BeakerRunner cleanup isn't called twice."""
+        # pylint: disable=W0613,R0913
+
+        url = "http://machine1.example.com/builds/1234567890.tar.gz"
+        release = "4.17.0-rc1"
+        wait = True
+        mock_jobsubmit.return_value = "J:0001"
+
+        mock_popen.return_value = 0
+
+        signal.signal(signal.SIGINT, self.myrunner.signal_handler)
+        signal.signal(signal.SIGTERM, self.myrunner.signal_handler)
+
+        thread = threading.Thread(target=trigger_signal)
+
+        self.myrunner.cleanup_done = True
+
+        try:
+            thread.start()
+
+            self.myrunner.run(url, self.max_aborted, release, wait)
+            thread.join()
+        except (KeyboardInterrupt, SystemExit):
+            logging.info('Thread cancelling...')
+
+        self.assertFalse(mock_popen.called)
 
     @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
