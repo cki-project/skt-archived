@@ -18,6 +18,10 @@ import mock
 from defusedxml.ElementTree import fromstring
 
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+SCRIPT_PATH = os.path.dirname(__file__)
+DEFAULT_ARGS = {
+    'jobtemplate': '{}/assets/test.xml'.format(SCRIPT_PATH)
+}
 
 
 def get_asset_path(filename):
