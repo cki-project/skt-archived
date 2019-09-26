@@ -18,7 +18,6 @@ import os
 import platform
 import re
 import subprocess
-import sys
 import time
 
 from defusedxml.ElementTree import fromstring
@@ -138,14 +137,11 @@ class BeakerRunner:
         # Set up the default, allowing for overrides with each run
         self.max_aborted = 3
 
-        # determines if termination cleanup was done and all jobs terminated
-        self.cleanup_done = False
-
         # if True, keep waived tests hidden for this run
         self.waiving = None
 
-        # retcode used here only to decided if cleanup handler should be run
-        self.retcode = None
+        # the actual retcode to return is stored here
+        self.retcode = SKT_ERROR
 
         logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
@@ -427,33 +423,6 @@ class BeakerRunner:
         newroot.append(tmp)
 
         return newroot
-
-    def cleanup_handler(self):
-        """
-        Call cancel_pending_jobs() to cancel all pending jobs
-
-        Returns:
-             None
-        """
-        # don't run cleanup handler twice by accident and don't try to cancel
-        # jobs that are completed and passed
-        if self.cleanup_done or self.retcode == 0:
-            return
-
-        # skt is being terminated, cancel its jobs
-        # NOTE(mhayden): Per ticket #1140, Beaker jobs must continue to run
-        # when a timeout is reached and skt is killed in the GitLab pipeline.
-
-        self.cleanup_done = True
-
-    def signal_handler(self, signal, frame):
-        # pylint: disable=unused-argument
-        """
-        Handle SIGTERM|SIGINT: call cleanup_handler() and exit.
-        """
-        self.cleanup_handler()
-
-        sys.exit(SKT_ERROR)
 
     def cancel_pending_jobs(self):
         """
@@ -737,7 +706,6 @@ class BeakerRunner:
                    SKT_BOOT if the boot test failed
         """
         # pylint: disable=too-many-arguments
-        ret = SKT_SUCCESS
         self.watchlist = set()
         self.job_to_recipe_set_map = {}
         self.recipe_set_results = {}
@@ -762,17 +730,15 @@ class BeakerRunner:
                 # wait for completion, resubmit jobs as needed
                 self.wait(jobid)
                 # get return code and report it
-                ret = self.__getresults()
+                self.retcode = self.__getresults()
                 logging.debug(
-                    "Got return code when gathering results: %s", ret
+                    "Got return code when gathering results: %s", self.retcode
                 )
+            else:
+                # not waiting -> change retcode to success
+                self.retcode = SKT_SUCCESS
+
         except (Exception, BaseException) as exc:
             logging.error(exc)
-            if isinstance(exc, SystemExit):
-                # call cleanup handler to kill submitted jobs
-                self.cleanup_handler()
-            ret = SKT_ERROR
 
-        self.retcode = ret
-
-        return ret
+        return self.retcode
