@@ -100,14 +100,17 @@ def cmd_run(config_set):
             return
 
         recipe_set_index = 0
+        recipe_set_list = []
         for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
             save_state(config_set, {'jobid_%s' % (index): job})
             for recipe_set in runner.job_to_recipe_set_map[job]:
+                recipe_set_list.append(recipe_set)
                 save_state(config_set,
                            {'recipesetid_%s' % (recipe_set_index): recipe_set})
                 recipe_set_index += 1
 
         config_set['jobs'] = ' '.join(runner.job_to_recipe_set_map.keys())
+        config_set['recipesets'] = ' '.join(recipe_set_list)
         # save maximum indexes we've used to simplify statefile merging
         config_set['max_recipe_set_index'] = recipe_set_index
         config_set['max_job_index'] = len(runner.job_to_recipe_set_map.keys())
