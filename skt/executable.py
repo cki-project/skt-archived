@@ -87,9 +87,9 @@ def cmd_run(config_set):
         cmd_run.cleanup_done = False
 
     def cleanup_handler():
-        """ Save SKT job state (jobid_?, recipesetid_?, max_recipe_set_index,
-            max_job_index, jobs, retcode) to rc-file and mark in runner that
-            cleanup_handler() ran. Jobs are not cancelled, see ticket #1140.
+        """ Save SKT job state (recipesetid_?, max_recipe_set_index, jobs,
+            retcode) to rc-file and mark in runner that cleanup_handler() ran.
+            Jobs are not cancelled, see ticket #1140.
 
             Returns:
                  None
@@ -102,7 +102,6 @@ def cmd_run(config_set):
         recipe_set_index = 0
         recipe_set_list = []
         for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
-            save_state(config_set, {'jobid_%s' % (index): job})
             for recipe_set in runner.job_to_recipe_set_map[job]:
                 recipe_set_list.append(recipe_set)
                 save_state(config_set,
@@ -113,7 +112,6 @@ def cmd_run(config_set):
         config_set['recipesets'] = ' '.join(recipe_set_list)
         # save maximum indexes we've used to simplify statefile merging
         config_set['max_recipe_set_index'] = recipe_set_index
-        config_set['max_job_index'] = len(runner.job_to_recipe_set_map.keys())
 
         save_state(config_set, {'retcode': runner.retcode})
 
