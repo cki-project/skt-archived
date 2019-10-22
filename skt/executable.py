@@ -21,6 +21,9 @@ import sys
 import tempfile
 
 import argparse
+
+import itertools
+
 from skt.runner import BeakerRunner
 from skt.misc import SKT_ERROR
 
@@ -87,9 +90,9 @@ def cmd_run(config_set):
         cmd_run.cleanup_done = False
 
     def cleanup_handler():
-        """ Save SKT job state (recipesetid_?, max_recipe_set_index, jobs,
-            retcode) to rc-file and mark in runner that cleanup_handler() ran.
-            Jobs are not cancelled, see ticket #1140.
+        """ Save SKT job state (jobs, recipesets, retcode) to rc-file and mark
+            in runner that cleanup_handler() ran. Jobs are not cancelled, see
+            ticket #1140.
 
             Returns:
                  None
@@ -99,19 +102,12 @@ def cmd_run(config_set):
         if cmd_run.cleanup_done:
             return
 
-        recipe_set_index = 0
-        recipe_set_list = []
-        for index, job in enumerate(runner.job_to_recipe_set_map.keys()):
-            for recipe_set in runner.job_to_recipe_set_map[job]:
-                recipe_set_list.append(recipe_set)
-                save_state(config_set,
-                           {'recipesetid_%s' % (recipe_set_index): recipe_set})
-                recipe_set_index += 1
-
         config_set['jobs'] = ' '.join(runner.job_to_recipe_set_map.keys())
-        config_set['recipesets'] = ' '.join(recipe_set_list)
-        # save maximum indexes we've used to simplify statefile merging
-        config_set['max_recipe_set_index'] = recipe_set_index
+        config_set['recipesets'] = ' '.join(
+            list(itertools.chain.from_iterable(
+                runner.job_to_recipe_set_map.values()
+            ))
+        )
 
         save_state(config_set, {'retcode': runner.retcode})
 
