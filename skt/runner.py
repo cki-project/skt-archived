@@ -663,6 +663,7 @@ class BeakerRunner:
                 break
 
         if not jobid:
+            logging.info(stdout)
             raise Exception('Unable to submit the job!')
 
         logging.info("submitted jobid: %s", jobid)
