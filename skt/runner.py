@@ -25,7 +25,7 @@ from defusedxml.ElementTree import tostring
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
 from skt.misc import is_task_waived
-from skt.misc import safe_popen, retry_safe_popen
+from cki_lib.misc import safe_popen, retry_safe_popen
 
 
 class ConditionCheck:
