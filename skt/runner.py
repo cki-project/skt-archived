@@ -651,10 +651,11 @@ class BeakerRunner:
         args += ["-"]
         err_strings = ["connection to beaker.engineering.redhat.com failed",
                        "Can't connect to MySQL server on"]
-        stdout, _, _ = retry_safe_popen(err_strings, args, stdin_data=xml,
-                                        stdin=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        stdout=subprocess.PIPE)
+        stdout, stderr, retcode = retry_safe_popen(err_strings, args,
+                                                   stdin_data=xml,
+                                                   stdin=subprocess.PIPE,
+                                                   stderr=subprocess.PIPE,
+                                                   stdout=subprocess.PIPE)
 
         for line in stdout.split("\n"):
             match = re.match(r"^Submitted: \['([^']+)'\]$", line)
@@ -663,6 +664,7 @@ class BeakerRunner:
                 break
 
         if not jobid:
+            logging.info(f'retcode={retcode}, stderr={stderr}')
             logging.info(stdout)
             raise Exception('Unable to submit the job!')
 
