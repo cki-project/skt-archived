@@ -22,6 +22,7 @@ import time
 
 from defusedxml.ElementTree import fromstring
 from defusedxml.ElementTree import tostring
+from defusedxml.ElementTree import ParseError
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
 from skt.misc import is_task_waived
@@ -383,8 +384,14 @@ class BeakerRunner:
             host_requires.append(and_node)
 
         for disabled in self.blacklisted:
-            hostname = fromstring(f'<hostname op="!=" value="{disabled}" />')
-            and_node.append(hostname)
+            try:
+                hostname = fromstring(f'<hostname op="!=" value="{disabled}" '
+                                      f'/>')
+                and_node.append(hostname)
+            except ParseError:
+                # do not accept or try to quote any html/xml values; only
+                # plaintext values like "host1" are accepted
+                logging.info('Skipping invalid blacklist entry!')
 
         return host_requires
 
