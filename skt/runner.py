@@ -231,28 +231,23 @@ class BeakerRunner:
 
         return fromstring(stdout)
 
-    def __forget_taskspec(self, taskspec):
+    def __forget_taskspec(self, recipe_set_id):
         """
-        Remove a job or recipe set from self.job_to_recipe_set_map, and recipe
-        set from self.watchlist if applicable.
+        Remove recipe set from self.job_to_recipe_set_map and self.watchlist
+        (if applicable).
 
         Args:
-            taskspec: The job (J:xxxxx) or recipe set (RS:xxxxx) ID.
+            recipe_set_id: recipe set (RS:xxxxx) ID.
         """
-        if taskspec.startswith("J:"):
-            del self.job_to_recipe_set_map[taskspec]
-        elif taskspec.startswith("RS:"):
-            self.watchlist.discard(taskspec)
-            deljids = set()
-            for (jid, rset) in self.job_to_recipe_set_map.items():
-                if taskspec in rset:
-                    rset.remove(taskspec)
-                    if not rset:
-                        deljids.add(jid)
-            for jid in deljids:
-                del self.job_to_recipe_set_map[jid]
-        else:
-            raise ValueError("Unknown taskspec type: %s" % taskspec)
+        self.watchlist.discard(recipe_set_id)
+        deljids = set()
+        for (jid, rset) in self.job_to_recipe_set_map.items():
+            if recipe_set_id in rset:
+                rset.remove(recipe_set_id)
+                if not rset:
+                    deljids.add(jid)
+        for jid in deljids:
+            del self.job_to_recipe_set_map[jid]
 
     def _not_booting(self, recipe):
         """
@@ -436,8 +431,7 @@ class BeakerRunner:
 
     def cancel_pending_jobs(self):
         """
-        Cancel all recipe sets from self.watchlist and remove their IDs from
-        self.job_to_recipe_set_map.
+        Cancel all recipe sets from self.watchlist.
         Cancelling a part of a job leads to cancelling the entire job.
         So we cancel a job if any of its recipesets is in the watchlist.
         """
@@ -447,8 +441,6 @@ class BeakerRunner:
             _, _, ret = safe_popen(['bkr', 'job-cancel', job_id])
             if ret:
                 logging.info('Failed to cancel the remaining recipe sets!')
-
-            self.__forget_taskspec(job_id)
 
     def __handle_test_abort(self, recipe, recipe_id, recipe_set_id, root):
         if self._not_booting(recipe):
@@ -473,10 +465,7 @@ class BeakerRunner:
             newjobid = self.__jobsubmit(tostring(newjob))
             self.__add_to_watchlist(newjobid)
 
-            # discard aborted result only if we have attempts left
-            self.__forget_taskspec(recipe_set_id)
-        else:
-            self.watchlist.discard(recipe_set_id)
+        self.watchlist.discard(recipe_set_id)
 
     def __handle_test_fail(self, recipe, recipe_id):
         # Something in the recipe set really reported failure
