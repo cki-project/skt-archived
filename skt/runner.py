@@ -383,6 +383,7 @@ class BeakerRunner:
             and_node = fromstring('<and />')
             host_requires.append(and_node)
 
+        invalid_entries_reported = False
         for disabled in self.blacklisted:
             try:
                 hostname = fromstring(f'<hostname op="!=" value="{disabled}" '
@@ -391,7 +392,9 @@ class BeakerRunner:
             except ParseError:
                 # do not accept or try to quote any html/xml values; only
                 # plaintext values like "host1" are accepted
-                logging.info('Skipping invalid blacklist entry!')
+                if not invalid_entries_reported:
+                    logging.info('The blacklist or a part of it is invalid!')
+                    invalid_entries_reported = True
 
         return host_requires
 
