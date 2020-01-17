@@ -12,20 +12,19 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 
-import configparser
+import argparse
 import atexit
+import itertools
 import logging
 import os
 import signal
 import sys
 import tempfile
 
-import argparse
+from datadefinition.rc_data import SKTData
 
-import itertools
-
-from skt.runner import BeakerRunner
 from skt.misc import SKT_ERROR
+from skt.runner import BeakerRunner
 
 LOGGER = logging.getLogger()
 
@@ -35,54 +34,17 @@ def full_path(path):
     return os.path.abspath(os.path.expanduser(path))
 
 
-def save_state(config_set, state):
-    """
-    Merge state to config_set, and then save config_set.
-
-    Args:
-        config_set: A dictionary of skt configuration.
-        state:      A dictionary of skt current state.
-    """
-
-    def set_field(key, val, dst):
-        if key in ['type', 'jobtemplate', 'jobowner', 'blacklist']:
-            dst['runner'][key] = val
-        else:
-            dst['state'][key] = val
-
-    config_dict = {'state': {}, 'runner': {}}
-
-    for key, val in config_set.items():
-        set_field(key, val, config_dict)
-
-    for key, val in state.items():
-        # print info about change of existing keys or addition of new
-        if key not in config_set.keys() or config_set[key] != val:
-            logging.debug("state: %s -> %s", key, val)
-
-        set_field(key, val, config_dict)
-        config_set[key] = val
-
-    # create parser to safely read dict and output config file
-    temp_parser = configparser.RawConfigParser()
-    temp_parser.read_dict(config_dict)
-
-    # write parser content to the rc-file
-    with open(config_set.get('rc'), 'w') as fileh:
-        temp_parser.write(fileh)
-
-
-def cmd_run(config_set):
+def cmd_run(skt_data):
     """
     Run tests on a built kernel using the specified "runner". Only "Beaker"
     runner is currently supported.
 
     Args:
-        config_set:    A dictionary of skt configuration.
+        skt_data: SKTData, parsed rc config file overriden with cmd-line args
     """
-    jobtemplate = config_set.get('jobtemplate')
-    jobowner = config_set.get('jobowner')
-    blacklist = config_set.get('blacklist')
+    jobtemplate = skt_data.runner.jobtemplate
+    jobowner = skt_data.runner.jobowner
+    blacklist = skt_data.runner.blacklist
     runner = BeakerRunner(jobtemplate, jobowner, blacklist)
     try:
         cmd_run.cleanup_done
@@ -102,14 +64,16 @@ def cmd_run(config_set):
         if cmd_run.cleanup_done:
             return
 
-        config_set['jobs'] = ' '.join(runner.job_to_recipe_set_map.keys())
-        config_set['recipesets'] = ' '.join(
+        skt_data.state.jobs = ' '.join(runner.job_to_recipe_set_map.keys())
+        skt_data.state.recipesets = ' '.join(
             list(itertools.chain.from_iterable(
                 runner.job_to_recipe_set_map.values()
             ))
         )
 
-        save_state(config_set, {'retcode': runner.retcode})
+        skt_data.state.retcode = runner.retcode
+        with open(skt_data.state.rc, 'w') as fhandle:
+            fhandle.write(skt_data.serialize())
 
         # NOTE: Don't cancel jobs. Per ticket #1140, Beaker jobs must continue
         # to run when a timeout is reached and skt is killed in the GitLab
@@ -128,12 +92,12 @@ def cmd_run(config_set):
     atexit.register(cleanup_handler)
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
-    return runner.run(config_set.get('kernel_package_url'),
-                      config_set.get('max_aborted_count'),
-                      config_set.get('kernel_version'),
-                      config_set.get('wait'),
-                      arch=config_set.get("kernel_arch"),
-                      waiving=config_set.get('waiving'))
+    return runner.run(skt_data.state.kernel_package_url,
+                      skt_data.state.max_aborted_count,
+                      skt_data.state.kernel_version,
+                      skt_data.state.wait,
+                      arch=skt_data.state.kernel_arch,
+                      waiving=skt_data.state.waiving)
 
 
 def setup_logging(verbose):
@@ -167,10 +131,7 @@ def setup_parser():
     parser.add_argument("--waiving", help=("Hide waived tests."),
                         type=lambda x: (str(x).lower() == 'true'),
                         default=True)
-    # FIXME Storing state in config file can break the whole system in case
-    #       state saving aborts. It's better to save state separately.
-    #       It also breaks separation of concerns, as in principle skt doesn't
-    #       need to modify its own configuration otherwise.
+
     parser.add_argument(
         "--state",
         help=(
@@ -194,75 +155,64 @@ def setup_parser():
     parser_run.add_argument("-h", "--help", help="Run sub-command help",
                             action="help")
 
-    parser_run.set_defaults(func=cmd_run)
-    parser_run.set_defaults(_name="run")
-
     return parser
 
 
-def post_fixture(config_set):
+def post_fixture(skt_data):
     """ Modifies skt configuration to set defaults or modify params."""
     # Get an absolute path for the work directory
-    if config_set.get('workdir'):
-        config_set['workdir'] = full_path(config_set.get('workdir'))
+    if skt_data.state.workdir:
+        skt_data.state.workdir = full_path(skt_data.state.workdir)
     else:
-        config_set['workdir'] = tempfile.mkdtemp()
+        skt_data.state.workdir = tempfile.mkdtemp()
 
     # Assign default --wait value if not specified
-    if not config_set.get('wait'):
-        config_set['wait'] = True
+    if not skt_data.state.wait:
+        skt_data.state.wait = True
 
     # Assign default max aborted count if it's not defined in config file
-    if not config_set.get('max_aborted_count'):
-        config_set['max_aborted_count'] = 3
+    if not skt_data.state.max_aborted_count:
+        skt_data.state.max_aborted_count = 3
 
     # Get absolute path to blacklist file
-    if config_set.get('blacklist'):
-        config_set['blacklist'] = full_path(config_set['blacklist'])
+    if skt_data.runner.blacklist:
+        skt_data.runner.blacklist = full_path(skt_data.runner.blacklist)
 
-    return config_set
+    return skt_data
 
 
-def load_config(args):
-    """
-    Load skt configuration from the command line and the configuration file.
-
+def override_config_with_cmdline(args, skt_data):
+    """Override skt config data with cmd-line args.
     Args:
-        args:   Parsed command-line configuration, including the path to the
-                configuration file.
-
+        args: argparse.Namespace, cmd-line args
+        skt_data: SKTData, parsed config file setiings
     Returns:
-        Loaded configuration dictionary.
+        updated skt_data with overriden values
     """
-    # NOTE: The shell should do any tilde expansions on the path
-    # before the rc path is provided to Python.
 
-    # create output object; config file settings overriden by cmd-line params
-    config_set = vars(args)
+    for key, value in vars(args).items():
+        setattr(skt_data.state, key, value)
 
-    # read input file (rc-file) using config file parser
-    config_parser = configparser.RawConfigParser()
-    config_parser.read(args.rc)
+    return skt_data
 
-    # if there are unset values in command-line args, use config values
-    seen_config_keys = set()
-    for section in config_parser.sections():
-        for key, value in config_parser.items(section):
-            if key in seen_config_keys:
-                # we don't allow non-globally-unique keys
-                raise RuntimeError('input config file is not flat!')
 
-            if config_set.get(key):
-                # cmd-line args override config, not vice-versa
-                continue
+def load_skt_config_data(args):
+    """Load settings from config file and override with cmd-line args.
+    Args:
+        args: argparse.Namespace, parsed cmd-line args
+    Returns:
+        skt_data: SKTData, parsed rc config file
+    """
+    # make sure path to rc-file is absolute
+    args.rc = full_path(args.rc)
 
-            # write a new value
-            config_set[key] = value
+    with open(args.rc) as fhandle:
+        skt_data = SKTData.deserialize(fhandle.read())  # type: SKTData
 
-            # add seen key
-            seen_config_keys.add(key)
+    # override config file values with cmd-line args
+    skt_data = override_config_with_cmdline(args, skt_data)
 
-    return config_set
+    return skt_data
 
 
 def main():
@@ -271,15 +221,13 @@ def main():
     try:
         parser = setup_parser()
         args = parser.parse_args()
-        # make sure path to rc-file is absolute
-        args.rc = full_path(args.rc)
+        skt_data = load_skt_config_data(args)
 
-        setup_logging(args.verbose)
+        setup_logging(skt_data.state.verbose)
 
-        config_set = load_config(args)
-        config_set = post_fixture(config_set)
+        skt_data = post_fixture(skt_data)
 
-        retcode = args.func(config_set)
+        retcode = cmd_run(skt_data)
 
         sys.exit(retcode)
     except KeyboardInterrupt:

@@ -20,10 +20,14 @@ import time
 import unittest
 
 import mock
+from datadefinition.rc_data import SKTData
 
 from skt import executable
 from skt.runner import BeakerRunner
 from tests import misc
+
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+RC_EXAMPLE = open(os.path.join(ASSETS_DIR, 'actual_rc.cfg')).read()
 
 
 def trigger_signal():
@@ -71,7 +75,6 @@ class TestExecutable(unittest.TestCase):
         self.assertEqual(current_logger.getEffectiveLevel(), logging.WARNING -
                          (verbose * 10))
 
-    @mock.patch('skt.executable.save_state')
     @mock.patch('skt.executable.BeakerRunner')
     @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
@@ -79,7 +82,7 @@ class TestExecutable(unittest.TestCase):
     @mock.patch('subprocess.call')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_cleanup_called(self, mock_jobsubmit, mock_call, mock_log_err,
-                            mock_popen, mock_open, mock_runner, mock_sstate):
+                            mock_popen, mock_open, mock_runner):
         """Ensure BeakerRunner.signal_handler works."""
         # pylint: disable=W0613,R0913
         mock_runner.return_value = self.myrunner
@@ -90,47 +93,15 @@ class TestExecutable(unittest.TestCase):
         mock_popen.return_value = 0
 
         thread = threading.Thread(target=trigger_signal)
+
         try:
             thread.start()
+            # it's fine to call this directly, no need to mock
+            skt_data = SKTData.deserialize(RC_EXAMPLE)
 
-            executable.cmd_run({})
+            executable.cmd_run(skt_data)
             thread.join()
         except (KeyboardInterrupt, SystemExit):
             logging.info('Thread cancelling...')
 
         self.assertTrue(executable.cmd_run.cleanup_done)
-        # check that save_state function was called, which probably means
-        # that cleanup_handler was called also
-        self.assertTrue(mock_sstate.called)
-
-    @mock.patch('skt.executable.save_state')
-    @mock.patch('skt.executable.BeakerRunner')
-    @mock.patch('builtins.open', create=True)
-    @mock.patch('subprocess.Popen')
-    @mock.patch('logging.error')
-    @mock.patch('subprocess.call')
-    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_cleanup_not_called_twice(self, mock_jobsubmit, mock_call,
-                                      mock_log_err, mock_popen, mock_open,
-                                      mock_runner, mock_sstate):
-        """Ensure BeakerRunner cleanup isn't called twice."""
-        # pylint: disable=W0613,R0913
-        mock_runner.return_value = self.myrunner
-        mock_jobsubmit.return_value = "J:0001"
-
-        mock_call.return_value = 0
-        mock_popen.return_value = 0
-
-        executable.cmd_run.cleanup_done = True
-        thread = threading.Thread(target=trigger_signal)
-        try:
-            thread.start()
-
-            executable.cmd_run({})
-            thread.join()
-        except (KeyboardInterrupt, SystemExit):
-            logging.info('Thread cancelling...')
-
-        # check that save_state function wasn't called, which probably means
-        # that cleanup_handler wasn't called either
-        self.assertFalse(mock_sstate.called)
