@@ -302,7 +302,8 @@ class TestRunner(unittest.TestCase):
         self.myrunner._BeakerRunner__add_to_watchlist(j_jobid)
         mock_popen.assert_called_once_with(
             ["bkr", "job-results", "--prettyxml", j_jobid],
-            stdout=subprocess.PIPE
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
         )
 
         # test that whiteboard was parsed OK

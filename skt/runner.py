@@ -221,7 +221,10 @@ class BeakerRunner:
         """
         args = ["bkr", "job-results", "--prettyxml", taskspec]
 
-        stdout, _, _ = safe_popen(args, stdout=subprocess.PIPE)
+        err_strings = ["ProtocolError", "503 Service Unavailable"]
+        stdout, _, _ = retry_safe_popen(err_strings, args,
+                                        stderr=subprocess.PIPE,
+                                        stdout=subprocess.PIPE)
 
         # Write the Beaker results locally so they could be stored as an
         # artifact.
