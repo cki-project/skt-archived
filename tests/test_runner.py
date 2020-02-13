@@ -446,18 +446,6 @@ class TestRunner(unittest.TestCase):
     @mock.patch('logging.warning')
     @mock.patch('logging.error')
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_run_wait2(self, mock_logging, mock_logging_err, mock_jobsubmit):
-        """Ensure BeakerRunner.run works."""
-        # pylint: disable=W0613
-
-        # beaker_results.xml has test failures, returncode should be SKT_FAIL
-        result = misc.exec_on(self.myrunner, mock_jobsubmit,
-                              'beaker_results.xml', 1, 'Completed')
-        self.assertEqual(SKT_FAIL, result)
-
-    @mock.patch('logging.warning')
-    @mock.patch('logging.error')
-    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run_wait3(self, mock_logging, mock_logging_err, mock_jobsubmit):
         """Ensure BeakerRunner.run works."""
         # pylint: disable=W0613
@@ -495,8 +483,6 @@ class TestRunner(unittest.TestCase):
     def test_run_wait6(self, mock_logging, mock_logging_err, mock_jobsubmit):
         """Ensure BeakerRunner.run works."""
         # pylint: disable=W0613
-        # disable waiving for this test!
-        self.myrunner.waiving = False
         # abort right-away ( 0 allowed)
         misc.exec_on(self.myrunner, mock_jobsubmit, 'beaker_aborted_some.xml',
                      0)
@@ -538,30 +524,8 @@ class TestRunner(unittest.TestCase):
         self.myrunner.watchdelay = 0.1
 
         result = misc.exec_on(self.myrunner, mock_jobsubmit,
-                              'beaker_results.xml', 5, 'Completed',
-                              waiving=True)
+                              'beaker_results.xml', 5, 'Completed')
         self.assertEqual(SKT_SUCCESS, result)
-
-    @mock.patch('skt.runner.BeakerRunner.getresultstree')
-    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
-    def test_waived_fails(self, mock_jobsubmit, mock_getresultstree):
-        """ Ensure that waived tests don't affect overall
-            test result. This tests test failure."""
-
-        beaker_xml = misc.get_asset_content('beaker_results.xml')
-        mock_getresultstree.return_value = fromstring(beaker_xml)
-        mock_jobsubmit.return_value = "J:0001"
-
-        # no need to wait 60 seconds
-        # though beaker_pass_results.xml only needs one iteration
-        self.myrunner.watchdelay = 0.1
-
-        # waiving=False : failure must show
-        result = misc.exec_on(self.myrunner, mock_jobsubmit,
-                              'beaker_results.xml', 5, 'Completed',
-                              waiving=False)
-
-        self.assertEqual(result, SKT_FAIL)
 
     @mock.patch('logging.error')
     @mock.patch('logging.warning')
@@ -581,10 +545,9 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
 
-        # waiving=False: infrastructure error must be reported
         result = misc.exec_on(self.myrunner, mock_jobsubmit,
                               'beaker_aborted_some.xml', 5,
-                              'Completed', waiving=False)
+                              'Completed')
 
         self.assertEqual(result, SKT_ERROR)
 
@@ -606,10 +569,8 @@ class TestRunner(unittest.TestCase):
         # though beaker_pass_results.xml only needs one iteration
         self.myrunner.watchdelay = 0.1
 
-        # waiving=False : failure must show
         result = misc.exec_on(self.myrunner, mock_jobsubmit,
-                              'beaker_aborted_some.xml', 5,
-                              'Aborted', waiving=False)
+                              'beaker_aborted_some.xml', 5, 'Aborted')
 
         self.assertEqual(result, SKT_ERROR)
 
@@ -619,7 +580,7 @@ class TestRunner(unittest.TestCase):
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_fail_and_skip(self, mock_jobsubmit, mock_getresultstree,
                            mock_warning, mock_error):
-        """ Ensure that a job with failed tasks, no waiving and skipped tests
+        """ Ensure that a job with failed tasks and skipped tests
             returns SKT_FAIL."""
         # pylint: disable=unused-argument
 
@@ -635,7 +596,7 @@ class TestRunner(unittest.TestCase):
         # of the fake Beaker XML job to 'Completed', the asset file already has
         # that state.
         result = misc.exec_on(self.myrunner, mock_jobsubmit,
-                              'beaker_skip_and_fail.xml', 5, waiving=False)
+                              'beaker_skip_and_fail.xml', 5)
 
         # see method description for details why SKT_FAIL
         self.assertEqual(SKT_FAIL, result)
