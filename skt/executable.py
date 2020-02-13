@@ -96,8 +96,7 @@ def cmd_run(skt_data):
                       skt_data.state.max_aborted_count,
                       skt_data.state.kernel_version,
                       skt_data.state.wait,
-                      arch=skt_data.state.kernel_arch,
-                      waiving=skt_data.state.waiving)
+                      arch=skt_data.state.kernel_arch)
 
 
 def setup_logging(verbose):
@@ -128,10 +127,6 @@ def setup_parser():
     parser.add_argument("-v", "--verbose", help="Increase verbosity level",
                         action="count", default=0)
     parser.add_argument("--rc", help="Path to rc file", required=True)
-    parser.add_argument("--waiving", help=("Hide waived tests."),
-                        type=lambda x: (str(x).lower() == 'true'),
-                        default=True)
-
     parser.add_argument(
         "--state",
         help=(

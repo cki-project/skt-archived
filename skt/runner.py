@@ -39,12 +39,11 @@ class ConditionCheck:
 
         return f'retval={self.retval} {values}'
 
-    def __call__(self, task, waiving, is_task_waived_func, prev_task):
+    def __call__(self, task, is_task_waived_func, prev_task):
         """ Evaluates the condition and return retval if matched, else None.
 
             Args:
                 task: defusedxml of the task node
-                waiving: bool, determines if waiving is enabled
                 is_task_waived_func: function used to test whether the task
                                      is waived
                 prev_task: task that was run before this one, or None if this
@@ -53,11 +52,12 @@ class ConditionCheck:
         task_results = {
             'result': task.attrib.get('result'),
             'status': task.attrib.get('status'),
-            'waived': True if waiving and is_task_waived_func(task) else False,
+            'waived': is_task_waived_func(task),
             'prev_task_panicked_and_waived':
                 True if prev_task is not None and (
-                waiving and is_task_waived_func(prev_task) and
-                prev_task.attrib.get('result') == 'Panic') else False
+                    is_task_waived_func(prev_task) and
+                    prev_task.attrib.get('result') == 'Panic'
+                ) else False
         }
 
         if not self.kwargs:
@@ -137,9 +137,6 @@ class BeakerRunner:
         self.aborted_count = 0
         # Set up the default, allowing for overrides with each run
         self.max_aborted = 3
-
-        # if True, keep waived tests hidden for this run
-        self.waiving = None
 
         # the actual retcode to return is stored here
         self.retcode = SKT_ERROR
@@ -304,8 +301,7 @@ class BeakerRunner:
         prev_task = None
         for task in recipe_result.findall('task'):
             for cond_check in result_condition_checks:
-                retval = cond_check(task, self.waiving, is_task_waived,
-                                    prev_task)
+                retval = cond_check(task, is_task_waived, prev_task)
                 if retval is not None:
                     return retval, f'recipeid {recipe_id} -> {str(cond_check)}'
 
@@ -477,7 +473,7 @@ class BeakerRunner:
         waiving_skip = False
 
         if self.get_kpkginstall_task(recipe) is None:
-            # we don't waiving kernel-install task :-)
+            # we don't waive the kernel-install task :-)
             # Assume the kernel was installed by default and
             # everything is a test
             test_failure = True
@@ -688,7 +684,7 @@ class BeakerRunner:
             recipe.append(new_hreq)
 
     def run(self, url, max_aborted, release, wait=False,
-            arch=platform.machine(), waiving=True):
+            arch=platform.machine()):
         """
         Run tests in Beaker.
 
@@ -703,7 +699,6 @@ class BeakerRunner:
                          in a format accepted by Beaker. Defaults to
                          architecture of the current machine skt is running on
                          if not specified.
-            waiving:        Hide tests that are waived
 
         Returns:
             ret where ret can be
@@ -720,7 +715,6 @@ class BeakerRunner:
         self.completed_recipes = {}
         self.aborted_count = 0
         self.max_aborted = max_aborted
-        self.waiving = waiving
 
         try:
             job_xml_tree = fromstring(self.__getxml(
