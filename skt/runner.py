@@ -101,7 +101,6 @@ result_condition_checks = [
 class BeakerRunner:
     """Beaker test runner"""
     # pylint: disable=too-many-instance-attributes
-    TYPE = 'beaker'
 
     def __init__(self, jobtemplate, jobowner=None, blacklist=None):
         """
@@ -141,7 +140,6 @@ class BeakerRunner:
         # the actual retcode to return is stored here
         self.retcode = SKT_ERROR
 
-        logging.info("runner type: %s", self.TYPE)
         logging.info("beaker template: %s", self.template)
 
     @classmethod
