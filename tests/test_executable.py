@@ -20,7 +20,7 @@ import time
 import unittest
 
 import mock
-from datadefinition.rc_data import SKTData
+from rcdefinition.rc_data import SKTData
 
 from skt import executable
 from skt.runner import BeakerRunner

@@ -21,7 +21,7 @@ import signal
 import sys
 import tempfile
 
-from datadefinition.rc_data import SKTData
+from rcdefinition.rc_data import SKTData
 
 from skt.misc import SKT_ERROR
 from skt.runner import BeakerRunner
