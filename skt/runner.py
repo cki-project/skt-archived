@@ -226,12 +226,7 @@ class BeakerRunner:
             logging.warning(stderr)
             raise RuntimeError('failed getting Beaker job-results')
 
-        # Write the Beaker results locally so they could be stored as an
-        # artifact.
-        results_filename = 'beaker-results-{}.xml'.format(taskspec)
-        with open(results_filename, 'w') as fileh:
-            fileh.write(stdout)
-
+        # return Beaker results parsed xml
         return fromstring(stdout)
 
     def __forget_taskspec(self, recipe_set_id):
