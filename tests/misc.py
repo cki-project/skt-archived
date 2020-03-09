@@ -86,6 +86,7 @@ def exec_on(myrunner, mock_jobsubmit, xml_asset_file, max_aborted,
         Returns:
             xml root
         """
+
         if alt_state:
             if fake_getresultstree.run_count > 2:
                 result = fromstring(get_asset_content(xml_asset_file))
@@ -93,11 +94,14 @@ def exec_on(myrunner, mock_jobsubmit, xml_asset_file, max_aborted,
                 recipe = result.findall('.//recipe')[-1]
                 recipe.attrib['status'] = alt_state
 
+                sself.recipe_set_results[taskspec] = result
                 return result
 
             fake_getresultstree.run_count += 1
 
-        return fromstring(get_asset_content(xml_asset_file))
+        result = fromstring(get_asset_content(xml_asset_file))
+        sself.recipe_set_results[taskspec] = result
+        return result
 
     fake_getresultstree.run_count = 1
     # fake cancel_pending_jobs so 'bkr cancel' isn't run

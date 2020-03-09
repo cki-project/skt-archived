@@ -2,7 +2,7 @@
   <whiteboard>
     skt 4.17.0-rc1+ 1234567890.tar.gz [noavc] [noselinux]
   </whiteboard>
-  <recipeSet>
+  <recipeSet id="123">
     <recipe result='Warn' status='Aborted' id="123">
       <logs>
         <log name='console.log' href="http://example.com/">
@@ -24,7 +24,7 @@
       </task>
     </recipe>
   </recipeSet>
-  <recipeSet>
+  <recipeSet id="456">
     <recipe result='Pass' status='Completed' id="456456">
       <logs>
         <log name='console.log' href="http://example.com/">
@@ -46,7 +46,7 @@
       </task>
     </recipe>
   </recipeSet>
-    <recipeSet>
+    <recipeSet id="789">
     <recipe result='Warn' status='Waiting' id="123123">
       <logs>
         <log name='console.log' href="http://example.com/">
