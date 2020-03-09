@@ -149,7 +149,6 @@ run the tests with the built kernel as such:
 The `<SKTRC>` is a config file with contents like this:
 
 [runner]
-type=beaker
 jobtemplate=beaker.xml
 jobowner=username
 blacklist=beaker-blacklist.txt
