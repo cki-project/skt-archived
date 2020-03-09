@@ -138,6 +138,8 @@ class BeakerRunner:
         self.aborted_count = 0
         # Set up the default, allowing for overrides with each run
         self.max_aborted = 3
+        # Marks that we've had too many retries on infra-issues.
+        self.has_aborted = False
 
         # the actual retcode to return is stored here
         self.retcode = SKT_ERROR
@@ -205,8 +207,7 @@ class BeakerRunner:
 
         return xml
 
-    @classmethod
-    def getresultstree(cls, taskspec):
+    def getresultstree(self, taskspec):
         """
         Retrieve Beaker results for taskspec in Beaker's native XML format.
 
@@ -229,7 +230,9 @@ class BeakerRunner:
             raise RuntimeError('failed getting Beaker job-results')
 
         # return Beaker results parsed xml
-        return fromstring(stdout)
+        results = fromstring(stdout)
+        self.recipe_set_results[taskspec] = results
+        return results
 
     def __forget_taskspec(self, recipe_set_id):
         """
@@ -297,6 +300,9 @@ class BeakerRunner:
 
         if self._not_booting(recipe_result):
             return SKT_BOOT, f'recipeid {recipe_id} hit EWD in boottest!'
+
+        if self.has_aborted:
+            return SKT_ERROR, f'too many aborted recipes!'
 
         prev_task = None
         for task in recipe_result.findall('task'):
@@ -503,10 +509,11 @@ class BeakerRunner:
     def __watchloop(self):
         while self.watchlist:
             time.sleep(self.watchdelay)
-
-            if self.max_aborted == self.aborted_count:
+            if self.max_aborted <= self.aborted_count:
+                self.has_aborted = True
                 # Remove / cancel all the remaining recipe set IDs and abort
                 self.cancel_pending_jobs()
+                return
 
             for recipe_set_id in self.watchlist.copy():
                 root = self.getresultstree(recipe_set_id)
@@ -525,7 +532,10 @@ class BeakerRunner:
                     self.completed_recipes[recipe_set_id].add(recipe_id)
                     if len(self.completed_recipes[recipe_set_id]) == \
                             len(recipes):
-                        self.watchlist.remove(recipe_set_id)
+                        try:
+                            self.watchlist.remove(recipe_set_id)
+                        except KeyError:
+                            pass
                         self.recipe_set_results[recipe_set_id] = root
 
                     if result == 'Pass':

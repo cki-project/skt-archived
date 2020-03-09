@@ -496,7 +496,7 @@ class TestRunner(unittest.TestCase):
 
         # abort later on, change last recipe to Aborted
         result = misc.exec_on(self.myrunner, mock_jobsubmit,
-                              'beaker_aborted_some.xml', 2, 'Aborted')
+                              'beaker_aborted_some.xml', 0, 'Aborted')
         self.assertEqual(SKT_ERROR, result)
 
     @mock.patch('logging.warning')
