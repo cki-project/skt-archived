@@ -18,7 +18,9 @@ import os
 import platform
 import re
 import subprocess
+import sys
 import time
+import traceback
 
 from defusedxml.ElementTree import fromstring
 from defusedxml.ElementTree import tostring
@@ -738,7 +740,8 @@ class BeakerRunner:
                 # not waiting -> change retcode to success
                 self.retcode = SKT_SUCCESS
 
-        except (Exception, BaseException) as exc:
-            logging.error(exc)
+        except (Exception, BaseException):
+            exc = sys.exc_info()
+            logging.error('\n'.join(traceback.format_exception(*exc)))
 
         return self.retcode
