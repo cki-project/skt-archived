@@ -750,8 +750,12 @@ class BeakerRunner:
                 # not waiting -> change retcode to success
                 self.retcode = SKT_SUCCESS
 
-        except (Exception, BaseException):
-            exc = sys.exc_info()
-            logging.error('\n'.join(traceback.format_exception(*exc)))
+        except (Exception, BaseException) as e:
+            if isinstance(e, SystemExit):
+                sys.stderr.write('SystemExit exception caught\n')
+                raise
+            else:
+                exc = sys.exc_info()
+                logging.error('\n'.join(traceback.format_exception(*exc)))
 
         return self.retcode
