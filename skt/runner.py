@@ -442,6 +442,11 @@ class BeakerRunner:
         """
         logging.info('Cancelling pending jobs!')
 
+        # Update all recipe_set_ids before canceling, so we don't gey KeyError
+        # later on (nitpick).
+        for recipe_set_id in self.watchlist.copy():
+            self.getresultstree(recipe_set_id)
+
         for job_id in set(self.job_to_recipe_set_map):
             _, _, ret = safe_popen(['bkr', 'job-cancel', job_id])
             if ret:
