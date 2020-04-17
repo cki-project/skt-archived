@@ -15,6 +15,7 @@
 import copy
 import logging
 import os
+import pathlib
 import platform
 import re
 import subprocess
@@ -28,6 +29,7 @@ from defusedxml.ElementTree import ParseError
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
 from skt.misc import is_task_waived
+from cki_lib.glue import do_xml_replacements
 from cki_lib.misc import safe_popen, retry_safe_popen
 
 
@@ -171,41 +173,6 @@ class BeakerRunner:
                 return self.getresultstree(jid).attrib['group']
 
         return None
-
-    def __getxml(self, replacements):
-        """
-        Generate job XML with template replacements applied. Search the
-        template for words surrounded by "##" strings and replace them with
-        strings from the supplied dictionary.
-
-        Args:
-            replacements:   A dictionary of placeholder strings with "##"
-                            around them, and their replacements.
-
-        Raises:
-            ValueError if the placeholder would be replaced by a non-string
-                       object.
-
-        Returns:
-            The job XML text with template replacements applied.
-        """
-        xml = ''
-        with open(self.template, 'r') as fileh:
-            for line in fileh:
-                for match in re.finditer(r"##(\w+)##", line):
-                    to_replace = match.group(1)
-                    if to_replace in replacements:
-                        if not isinstance(replacements[to_replace], str):
-                            raise ValueError('XML replace: string expected but'
-                                             ' {} is {}'.format(to_replace,
-                                                                replacements
-                                                                [to_replace]))
-                        line = line.replace(match.group(0),
-                                            replacements[to_replace])
-
-                xml += line
-
-        return xml
 
     def getresultstree(self, taskspec):
         """
@@ -732,11 +699,11 @@ class BeakerRunner:
         self.max_aborted = max_aborted
 
         try:
-            job_xml_tree = fromstring(self.__getxml(
-                {'KVER': release,
-                 'KPKG_URL': url,
-                 'ARCH': arch}
-            ))
+            lines = pathlib.Path(self.template).read_text().splitlines()
+            job_xml_tree = fromstring(do_xml_replacements(lines,
+                                                          {'KVER': release,
+                                                           'KPKG_URL': url,
+                                                           'ARCH': arch}))
             # add blacklist to all recipes
             self.add_blacklist2recipes(job_xml_tree)
 
