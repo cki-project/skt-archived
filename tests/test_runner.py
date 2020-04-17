@@ -34,9 +34,6 @@ class TestRunner(unittest.TestCase):
         """Set up test fixtures"""
         self.myrunner = runner.BeakerRunner(**misc.DEFAULT_ARGS)
 
-        with open('{}/assets/test.xml'.format(misc.SCRIPT_PATH), 'r') as fileh:
-            self.test_xml = fileh.read()
-
         self.max_aborted = 3
 
         # mock helper method to always return 'cki' to avoid mocking annoying
@@ -252,38 +249,6 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(re.sub(r'[\s]+', '', exp_result),
                          re.sub(r'[\s]+', '', result))
 
-    def test_getxml(self):
-        """Ensure BeakerRunner.__getxml() returns xml."""
-        # pylint: disable=W0212,E1101
-        result = self.myrunner._BeakerRunner__getxml({})
-        self.assertEqual(result, self.test_xml)
-
-    def test_getxml_invalid_replace(self):
-        """
-        Ensure BeakerRunner.__getxml() raises ValueError if the replacement is
-        not a string.
-        """
-        # pylint: disable=W0212,E1101
-        with self.assertRaises(ValueError):
-            self.myrunner._BeakerRunner__getxml({"KVER": None})
-
-    def test_getxml_replace(self):
-        """Ensure BeakerRunner.__getxml() returns xml with replacements."""
-        # pylint: disable=W0212,E1101
-        result = self.myrunner._BeakerRunner__getxml({'KVER': 'kernel-4.16'})
-        expected_xml = self.test_xml.replace("##KVER##", "kernel-4.16")
-        self.assertEqual(result, expected_xml)
-
-    def test_getxml_multi_replace(self):
-        """
-        Ensure BeakerRunner.__getxml() returns xml with multi-instance
-        replacements.
-        """
-        # pylint: disable=W0212,E1101
-        result = self.myrunner._BeakerRunner__getxml({'ARCH': 's390x'})
-        expected_xml = self.test_xml.replace("##ARCH##", "s390x")
-        self.assertEqual(result, expected_xml)
-
     @mock.patch('builtins.open', create=True)
     @mock.patch('subprocess.Popen')
     def test_add_to_watchlist(self, mock_popen, mock_open):
@@ -410,7 +375,7 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(result, 0)
 
     @mock.patch('logging.error')
-    @mock.patch('skt.runner.BeakerRunner._BeakerRunner__getxml')
+    @mock.patch('skt.runner.do_xml_replacements')
     def test_run_fail(self, mock_logging_err, mock_getxml):
         """Ensure BeakerRunner.run errors on invalid xml."""
         # pylint: disable=W0613
