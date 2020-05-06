@@ -377,10 +377,11 @@ class BeakerRunner:
 
         for recipe in tmp.findall('recipe'):
             hreq = recipe.find("hostRequires")
-            hostname = hreq.find('hostname')
-            if hostname is not None:
-                hreq.remove(hostname)
             if samehost:
+                hostname = hreq.find('hostname')
+                if hostname is not None:
+                    hreq.remove(hostname)
+
                 value = recipe.attrib.get("system")
                 hostname = fromstring(f'<hostname op="=" value="{value}"/>')
                 hreq.append(hostname)
