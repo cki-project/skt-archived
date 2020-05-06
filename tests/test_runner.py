@@ -359,8 +359,10 @@ class TestRunner(unittest.TestCase):
 
         result = self.myrunner._BeakerRunner__recipe_set_to_job(xml_parsed)
 
-        # check that <hostname op="!=" value="hst1"/> was removed
-        self.assertEqual(result.findall('.//hostname'), [])
+        # check that <hostname op="!=" value="hst1"/> wasn't removed
+        self.assertEqual(len(result.findall('.//hostname')), 1)
+        self.assertEqual(tostring(result.find('.//hostname')).decode(),
+                         '<hostname op="!=" value="hst1" />')
 
     @mock.patch('skt.runner.BeakerRunner._BeakerRunner__jobsubmit')
     def test_run(self, mock_jobsubmit):
