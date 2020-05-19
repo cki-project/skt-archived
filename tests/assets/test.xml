@@ -1,18 +1,18 @@
 <job>
-  <whiteboard>skt ##KVER## [noavc] [noselinux]</whiteboard>
+  <whiteboard>skt 3.10.xx [noavc] [noselinux]</whiteboard>
   <recipeSet>
-    <recipe ks_meta="harness='restraint-rhts beakerlib-redhat'" kernel_options="selinux=0" whiteboard="##KVER##">
+    <recipe ks_meta="harness='restraint-rhts beakerlib-redhat'" kernel_options="selinux=0" whiteboard="3.10.xx">
       <distroRequires>
         <and>
           <distro_family op="=" value="Fedora26"/>
           <distro_tag op="=" value="RELEASED"/>
           <distro_variant op="=" value="Server"/>
-          <distro_arch op="=" value="##ARCH##"/>
+          <distro_arch op="=" value="x86_64"/>
         </and>
       </distroRequires>
       <hostRequires>
         <and>
-          <arch op="=" value="##ARCH##"/>
+          <arch op="=" value="x86_64"/>
         </and>
       </hostRequires>
       <repos/>
@@ -33,7 +33,7 @@
         <fetch url="https://github.com/RH-FMK/tests-beaker.git?master#distribution/kpkginstall"/>
         <params>
           <param name="KPKG_URL" value="##KPKG_URL##"/>
-          <param name="KVER" value="##KVER##"/>
+          <param name="KVER" value="3.10.xx"/>
         </params>
       </task>
     </recipe>

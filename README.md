@@ -95,24 +95,15 @@ quieter, shorter output.
 
 To run the tests you will need access to a
 [Beaker](https://beaker-project.org/) instance configured to the point where
-`bkr whoami` completes successfully. You will also need a template file for
-generating a Beaker job XML, which runs the tests. The template file can
-contain the following placeholder strings replaced by `skt` before submitting
-the job XML to Beaker:
-
-* `##KVER##`
-    - The kernel release version output by `make -s kernelrelease`.
-* `##KPKG_URL##`
-    - The URL of the kernel tarball, generated and published to with
-      `publish`.
-
-Below is an example of a superficial template. Note that it won't work as is.
+`bkr whoami` completes successfully. You will also need Beaker job XML file,
+ which runs the tests. 
+Below is an example of this file. Note that it won't work as is.
 
 ```XML
 <job>
-  <whiteboard>skt ##KVER##</whiteboard>
+  <whiteboard>skt kernel-version</whiteboard>
   <recipeSet>
-    <recipe whiteboard="##KVER##">
+    <recipe whiteboard="kernel-version">
       <distroRequires>
         <and>
           <distro_family op="=" value="Fedora26"/>
@@ -132,8 +123,8 @@ Below is an example of a superficial template. Note that it won't work as is.
       <task name="/distribution/install" role="STANDALONE"/>
       <task name="/distribution/kpkginstall" role="STANDALONE">
         <params>
-          <param name="KPKG_URL" value="##KPKG_URL##"/>
-          <param name="KVER" value="##KVER##"/>
+          <param name="KPKG_URL" value="http://url_to_kernel"/>
+          <param name="KVER" value="kernel-version"/>
         </params>
       </task>
     </recipe>
@@ -141,7 +132,7 @@ Below is an example of a superficial template. Note that it won't work as is.
 </job>
 ```
 
-Provided you have both Beaker access and a suitable job XML template, you can
+Provided you have both Beaker access and a suitable job XML file, you can
 run the tests with the built kernel as such:
 
     skt --rc <SKTRC> --state --workdir <WORKDIR> -vv run --wait
@@ -154,7 +145,7 @@ jobowner=username
 blacklist=beaker-blacklist.txt
 
 Here, `<jobtemplate>` is the name of the file with the Beaker job XML
-template. If you remove the `--wait` option, the command will return once the
+file. If you remove the `--wait` option, the command will return once the
 job was submitted. Otherwise it will wait for its completion and report the
 result.
 

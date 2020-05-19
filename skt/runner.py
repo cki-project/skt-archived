@@ -29,7 +29,6 @@ from defusedxml.ElementTree import ParseError
 
 from skt.misc import SKT_SUCCESS, SKT_FAIL, SKT_ERROR, SKT_BOOT
 from skt.misc import is_task_waived
-from cki_lib.glue import do_xml_replacements
 from cki_lib.misc import safe_popen, retry_safe_popen
 
 
@@ -269,7 +268,7 @@ class BeakerRunner:
             return SKT_BOOT, f'recipeid {recipe_id} hit EWD in boottest!'
 
         if self.has_aborted:
-            return SKT_ERROR, f'too many aborted recipes!'
+            return SKT_ERROR, 'too many aborted recipes!'
 
         prev_task = None
         for task in recipe_result.findall('task'):
@@ -700,11 +699,8 @@ class BeakerRunner:
         self.max_aborted = max_aborted
 
         try:
-            lines = pathlib.Path(self.template).read_text().splitlines()
-            job_xml_tree = fromstring(do_xml_replacements(lines,
-                                                          {'KVER': release,
-                                                           'KPKG_URL': url,
-                                                           'ARCH': arch}))
+            text = pathlib.Path(self.template).read_text()
+            job_xml_tree = fromstring(text)
             # add blacklist to all recipes
             self.add_blacklist2recipes(job_xml_tree)
 
