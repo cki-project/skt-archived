@@ -22,6 +22,9 @@ SCRIPT_PATH = os.path.dirname(__file__)
 DEFAULT_ARGS = {
     'jobtemplate': '{}/assets/test.xml'.format(SCRIPT_PATH)
 }
+INV_TEMPLATE_ARGS = {
+    'jobtemplate': '{}/assets/0.xml'.format(SCRIPT_PATH)
+}
 
 
 def get_asset_path(filename):

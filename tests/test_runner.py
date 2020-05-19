@@ -377,17 +377,15 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(result, 0)
 
     @mock.patch('logging.error')
-    @mock.patch('skt.runner.do_xml_replacements')
-    def test_run_fail(self, mock_logging_err, mock_getxml):
+    def test_run_fail(self, mock_logging_err):
         """Ensure BeakerRunner.run errors on invalid xml."""
         # pylint: disable=W0613
         url = "http://machine1.example.com/builds/1234567890.tar.gz"
         release = "4.17.0-rc1"
         wait = True
+        inv_runner = runner.BeakerRunner(**misc.INV_TEMPLATE_ARGS)
 
-        mock_getxml.return_value = '<xml >'
-
-        result = self.myrunner.run(url, self.max_aborted, release, wait)
+        result = inv_runner.run(url, self.max_aborted, release, wait)
         self.assertEqual(result, 2)
 
     @mock.patch('skt.runner.BeakerRunner.getresultstree')
