@@ -1,6 +1,8 @@
 skt - sonic kernel testing
 ==========================
 
+THIS PROJECT HAS MOVED TO https://gitlab.com/cki-project/skt/.
+
 [![Travis CI Build Status][travis_badge]][travis_page]
 [![Test Coverage Status][coveralls_badge]][coveralls_page]
 
